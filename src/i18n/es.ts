@@ -182,6 +182,16 @@ export const es = {
     results: (n: number) => `${n} resultados`,
     hint: "Busca en todos tus indexadores de Prowlarr a la vez.",
   },
+  subtitles: {
+    movies: "Películas",
+    episodes: "Episodios",
+    missing: "Faltan",
+    search: "Buscar",
+    searchAll: "Buscar todos",
+    searchAllStarted: "Búsqueda de todos los subtítulos que faltan iniciada",
+    searchStarted: (title: string) => `Buscando subtítulos para ${title}`,
+    none: "No falta ningún subtítulo.",
+  },
   common: {
     retry: "Reintentar",
     cancel: "Cancelar",
