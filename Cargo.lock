@@ -723,6 +723,7 @@ dependencies = [
  "base64 0.22.1",
  "dasharr-core",
  "keyring",
+ "percent-encoding",
  "serde",
  "serde_json",
  "tauri",

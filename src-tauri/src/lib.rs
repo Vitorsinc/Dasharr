@@ -29,9 +29,10 @@ pub fn run() {
         ])
         .setup(|app| {
             let handle = app.handle().clone();
+            // Los clientes se crean antes de abrir la ventana para que las primeras peticiones no fallen como "no configurado".
+            tauri::async_runtime::block_on(handle.state::<AppState>().load(&handle));
             tauri::async_runtime::spawn(async move {
                 let state = handle.state::<AppState>();
-                state.load(&handle).await;
                 state.probe_all(&handle, true).await;
                 loop {
                     tokio::time::sleep(PROBE_INTERVAL).await;
