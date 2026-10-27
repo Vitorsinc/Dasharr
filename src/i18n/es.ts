@@ -145,6 +145,16 @@ export const es = {
     emptyQueue: "No hay nada descargándose.",
     emptyLibrary: "No hay nada en la biblioteca con este filtro.",
   },
+  calendar: {
+    week: "Semana",
+    month: "Mes",
+    today: "Hoy",
+    previous: "Anterior",
+    next: "Siguiente",
+    weekdays: ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"],
+    upcoming: "Próximos estrenos",
+    nothing: "Nada programado.",
+  },
   common: {
     retry: "Reintentar",
     cancel: "Cancelar",
