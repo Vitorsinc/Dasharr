@@ -5,7 +5,7 @@ import type { ApiError, FilePart, Route, SecretsPatch, ServiceConfig, ServiceKin
 export interface ApiCall {
   method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
   path: string;
-  query?: Record<string, string | number | boolean | undefined | null>;
+  query?: Record<string, string | number | boolean | undefined | null | (string | number)[]>;
   json?: unknown;
   form?: Record<string, string>;
   files?: FilePart[];
@@ -26,9 +26,11 @@ function toBody(call: ApiCall): ApiBody | null {
 }
 
 function toQuery(q: ApiCall["query"]): [string, string][] {
-  return Object.entries(q ?? {})
-    .filter(([, v]) => v !== undefined && v !== null)
-    .map(([k, v]) => [k, String(v)]);
+  return Object.entries(q ?? {}).flatMap(([k, v]): [string, string][] => {
+    if (v === undefined || v === null) return [];
+    if (Array.isArray(v)) return v.map((x) => [k, String(x)]);
+    return [[k, String(v)]];
+  });
 }
 
 export async function apiRequest<T>(service: ServiceKind, call: ApiCall): Promise<T> {
