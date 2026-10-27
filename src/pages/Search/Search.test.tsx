@@ -4,9 +4,40 @@ import { mockBackend, renderApp } from "@/test/utils";
 import { sortResults, type SearchResult } from "@/api/prowlarr";
 
 const results = [
-  { guid: "1", title: "Dune 2160p", indexer: "A", indexerId: 1, size: 50e9, seeders: 5, leechers: 1, publishDate: "2026-10-01T00:00:00Z", magnetUrl: "magnet:?xt=1", protocol: "torrent" },
-  { guid: "2", title: "Dune 1080p", indexer: "B", indexerId: 2, size: 10e9, seeders: 300, leechers: 2, publishDate: "2026-09-01T00:00:00Z", downloadUrl: "http://prowlarr/dl/2", protocol: "torrent" },
-  { guid: "3", title: "Dune NZB", indexer: "C", indexerId: 3, size: 20e9, publishDate: "2026-10-20T00:00:00Z", downloadUrl: "http://nzb", protocol: "usenet" },
+  {
+    guid: "1",
+    title: "Dune 2160p",
+    indexer: "A",
+    indexerId: 1,
+    size: 50e9,
+    seeders: 5,
+    leechers: 1,
+    publishDate: "2026-10-01T00:00:00Z",
+    magnetUrl: "magnet:?xt=1",
+    protocol: "torrent",
+  },
+  {
+    guid: "2",
+    title: "Dune 1080p",
+    indexer: "B",
+    indexerId: 2,
+    size: 10e9,
+    seeders: 300,
+    leechers: 2,
+    publishDate: "2026-09-01T00:00:00Z",
+    downloadUrl: "http://prowlarr/dl/2",
+    protocol: "torrent",
+  },
+  {
+    guid: "3",
+    title: "Dune NZB",
+    indexer: "C",
+    indexerId: 3,
+    size: 20e9,
+    publishDate: "2026-10-20T00:00:00Z",
+    downloadUrl: "http://nzb",
+    protocol: "usenet",
+  },
 ] as SearchResult[];
 
 test("sortResults", () => {

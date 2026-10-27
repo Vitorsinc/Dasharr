@@ -4,10 +4,18 @@ import App, { makeQueryClient } from "@/App";
 import type { ServiceKind, ServiceSettingsView } from "@/lib/types";
 
 type Handler = (args: any) => unknown;
-export type ApiHandlers = Partial<Record<ServiceKind, (req: { method: string; path: string; query: [string, string][]; body: any }) => unknown>>;
+export type ApiHandlers = Partial<
+  Record<ServiceKind, (req: { method: string; path: string; query: [string, string][]; body: any }) => unknown>
+>;
 
 export function view(urls: { local?: string; external?: string } = {}, extra: Partial<ServiceSettingsView> = {}): ServiceSettingsView {
-  return { config: { localUrl: urls.local ?? null, externalUrl: urls.external ?? null, enabled: true }, hasApiKey: true, hasPassword: false, hasProxyPassword: false, ...extra };
+  return {
+    config: { localUrl: urls.local ?? null, externalUrl: urls.external ?? null, enabled: true },
+    hasApiKey: true,
+    hasPassword: false,
+    hasProxyPassword: false,
+    ...extra,
+  };
 }
 
 export function allConfigured(): Record<ServiceKind, ServiceSettingsView> {
@@ -21,7 +29,9 @@ export function allConfigured(): Record<ServiceKind, ServiceSettingsView> {
 }
 
 /** Simula el backend de Tauri: comandos y peticiones por servicio. */
-export function mockBackend(opts: { settings?: Record<ServiceKind, ServiceSettingsView>; api?: ApiHandlers; commands?: Record<string, Handler> } = {}) {
+export function mockBackend(
+  opts: { settings?: Record<ServiceKind, ServiceSettingsView>; api?: ApiHandlers; commands?: Record<string, Handler> } = {},
+) {
   const settings = opts.settings ?? allConfigured();
   const mock = vi.mocked(invoke);
   mock.mockImplementation(async (cmd: string, args?: any) => {

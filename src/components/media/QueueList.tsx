@@ -5,7 +5,8 @@ import { formatBytes } from "@/lib/format";
 
 function label(r: QueueRecord) {
   if (r.movie) return `${r.movie.title}${r.movie.year ? ` (${r.movie.year})` : ""}`;
-  if (r.series && r.episode) return `${r.series.title} · ${r.episode.seasonNumber}x${String(r.episode.episodeNumber).padStart(2, "0")} ${r.episode.title}`;
+  if (r.series && r.episode)
+    return `${r.series.title} · ${r.episode.seasonNumber}x${String(r.episode.episodeNumber).padStart(2, "0")} ${r.episode.title}`;
   return r.title;
 }
 

@@ -33,7 +33,11 @@ function WantedList({ rows }: { rows: Row[] }) {
             {r.subtitle && <div className="truncate text-xs text-muted">{r.subtitle}</div>}
           </div>
           <div className="flex flex-wrap justify-end gap-1">
-            {r.langs.map((l) => <span key={l.code2 + !!l.forced + !!l.hi} className="chip bg-danger/10 text-danger">{langLabel(l)}</span>)}
+            {r.langs.map((l) => (
+              <span key={l.code2 + !!l.forced + !!l.hi} className="chip bg-danger/10 text-danger">
+                {langLabel(l)}
+              </span>
+            ))}
           </div>
           <button
             className="btn-outline px-2.5 py-1.5"
@@ -67,11 +71,21 @@ export default function SubtitlesPage() {
   const episodes = useServiceQuery("bazarr", ["wanted-episodes"], bazarr.getWantedEpisodes, { refetchInterval: REFRESH.library });
   const current = tab === "movies" ? movies : episodes;
 
-  if (movies.configured === false) return <Page title={t.nav.subtitles}><NotConfigured service="bazarr" /></Page>;
+  if (movies.configured === false)
+    return (
+      <Page title={t.nav.subtitles}>
+        <NotConfigured service="bazarr" />
+      </Page>
+    );
 
   const rows: Row[] =
     tab === "movies"
-      ? (movies.data ?? []).map((m) => ({ key: `m${m.radarrId}`, title: m.title, langs: m.missing_subtitles, search: () => bazarr.searchMovie(m) }))
+      ? (movies.data ?? []).map((m) => ({
+          key: `m${m.radarrId}`,
+          title: m.title,
+          langs: m.missing_subtitles,
+          search: () => bazarr.searchMovie(m),
+        }))
       : (episodes.data ?? []).map((e) => ({
           key: `e${e.sonarrEpisodeId}`,
           title: e.seriesTitle,
@@ -107,7 +121,13 @@ export default function SubtitlesPage() {
         </>
       }
     >
-      {current.isLoading || current.configured === undefined ? <Loading /> : current.isError ? <ErrorPanel service="bazarr" error={current.error} onRetry={() => current.refetch()} /> : <WantedList rows={rows} />}
+      {current.isLoading || current.configured === undefined ? (
+        <Loading />
+      ) : current.isError ? (
+        <ErrorPanel service="bazarr" error={current.error} onRetry={() => current.refetch()} />
+      ) : (
+        <WantedList rows={rows} />
+      )}
     </Page>
   );
 }

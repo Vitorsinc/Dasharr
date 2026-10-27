@@ -40,14 +40,26 @@ export default function MoviesPage() {
   const existing = useMemo(() => new Set((movies.data ?? []).map((m) => m.tmdbId)), [movies.data]);
   const selected = movies.data?.find((m) => m.id === selectedId) ?? null;
 
-  if (movies.configured === false) return <Page title={t.nav.movies}><NotConfigured service="radarr" /></Page>;
+  if (movies.configured === false)
+    return (
+      <Page title={t.nav.movies}>
+        <NotConfigured service="radarr" />
+      </Page>
+    );
 
   return (
     <Page
       title={t.nav.movies}
       actions={
         <>
-          <Segmented<Tab> value={tab} onChange={setTab} options={[{ value: "library", label: t.library.library }, { value: "queue", label: t.library.queue }]} />
+          <Segmented<Tab>
+            value={tab}
+            onChange={setTab}
+            options={[
+              { value: "library", label: t.library.library },
+              { value: "queue", label: t.library.queue },
+            ]}
+          />
           <button className="btn-primary" onClick={() => setAdding(true)}>
             <Plus className="h-4 w-4" /> {t.library.addMovie}
           </button>
@@ -55,7 +67,13 @@ export default function MoviesPage() {
       }
     >
       {tab === "queue" ? (
-        queue.isLoading ? <Loading /> : queue.isError ? <ErrorPanel service="radarr" error={queue.error} onRetry={() => queue.refetch()} /> : <QueueList records={queue.data ?? []} />
+        queue.isLoading ? (
+          <Loading />
+        ) : queue.isError ? (
+          <ErrorPanel service="radarr" error={queue.error} onRetry={() => queue.refetch()} />
+        ) : (
+          <QueueList records={queue.data ?? []} />
+        )
       ) : (
         <>
           <LibraryToolbar query={query} onQuery={setQuery} filter={filter} onFilter={setFilter} sort={sort} onSort={setSort} />
@@ -68,7 +86,14 @@ export default function MoviesPage() {
           ) : (
             <PosterGrid>
               {items.map((m) => (
-                <PosterCard key={m.id} title={m.title} subtitle={String(m.year)} poster={posterUrl("radarr", m)} state={libState(m)} onClick={() => setSelectedId(m.id)} />
+                <PosterCard
+                  key={m.id}
+                  title={m.title}
+                  subtitle={String(m.year)}
+                  poster={posterUrl("radarr", m)}
+                  state={libState(m)}
+                  onClick={() => setSelectedId(m.id)}
+                />
               ))}
             </PosterGrid>
           )}
@@ -80,7 +105,14 @@ export default function MoviesPage() {
         onOpenChange={setAdding}
         title={t.library.addMovie}
         lookup={radarr.lookup}
-        toItem={(m) => ({ key: m.tmdbId, title: m.title, year: m.year, overview: m.overview, poster: posterUrl("radarr", { images: m.images }), exists: existing.has(m.tmdbId) })}
+        toItem={(m) => ({
+          key: m.tmdbId,
+          title: m.title,
+          year: m.year,
+          overview: m.overview,
+          poster: posterUrl("radarr", { images: m.images }),
+          exists: existing.has(m.tmdbId),
+        })}
         profiles={meta.profiles.data ?? []}
         rootFolders={meta.roots.data ?? []}
         onAdd={async (m, o) => {

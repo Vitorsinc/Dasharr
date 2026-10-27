@@ -57,7 +57,10 @@ export const radarr = {
     apiRequest<unknown>("radarr", { method: "DELETE", path: `/api/v3/movie/${id}`, query: { deleteFiles, addImportExclusion: false } }),
   search: (movieIds: number[]) => common.command({ name: "MoviesSearch", movieIds }),
   getCalendar: (start: Date, end: Date) =>
-    apiRequest<Movie[]>("radarr", { path: "/api/v3/calendar", query: { start: start.toISOString(), end: end.toISOString(), unmonitored: false } }),
+    apiRequest<Movie[]>("radarr", {
+      path: "/api/v3/calendar",
+      query: { start: start.toISOString(), end: end.toISOString(), unmonitored: false },
+    }),
 };
 
 /** Fecha de estreno más relevante para el calendario: digital, física o en cines. */

@@ -24,7 +24,13 @@ export function LibraryToolbar({
     <div className="flex flex-wrap items-center gap-3">
       <div className="relative w-64">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
-        <input className="input pl-9" value={query} onChange={(e) => onQuery(e.target.value)} placeholder={t.library.searchPlaceholder} aria-label={t.library.searchPlaceholder} />
+        <input
+          className="input pl-9"
+          value={query}
+          onChange={(e) => onQuery(e.target.value)}
+          placeholder={t.library.searchPlaceholder}
+          aria-label={t.library.searchPlaceholder}
+        />
       </div>
       <Segmented<LibFilter>
         label="Filtro"

@@ -4,7 +4,19 @@ import { useState, type ReactNode } from "react";
 import { t } from "@/i18n/es";
 import { cn } from "@/lib/cn";
 
-export function Dialog({ open, onOpenChange, title, children, wide }: { open: boolean; onOpenChange: (o: boolean) => void; title: string; children: ReactNode; wide?: boolean }) {
+export function Dialog({
+  open,
+  onOpenChange,
+  title,
+  children,
+  wide,
+}: {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  title: string;
+  children: ReactNode;
+  wide?: boolean;
+}) {
   return (
     <RD.Root open={open} onOpenChange={onOpenChange}>
       <RD.Portal>
@@ -54,7 +66,12 @@ export function ConfirmDialog({
         <div className="text-sm text-muted">{message}</div>
         {checkboxLabel && (
           <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" checked={checked} onChange={(e) => setChecked(e.target.checked)} className="h-4 w-4 accent-[rgb(var(--danger))]" />
+            <input
+              type="checkbox"
+              checked={checked}
+              onChange={(e) => setChecked(e.target.checked)}
+              className="h-4 w-4 accent-[rgb(var(--danger))]"
+            />
             {checkboxLabel}
           </label>
         )}

@@ -26,8 +26,10 @@ export interface WantedEpisode {
 const flags = (l: SubLang) => ({ language: l.code2, forced: String(!!l.forced), hi: String(!!l.hi) });
 
 export const bazarr = {
-  getWantedMovies: async () => (await apiRequest<{ data: WantedMovie[] }>("bazarr", { path: "/api/movies/wanted", query: { start: 0, length: -1 } })).data ?? [],
-  getWantedEpisodes: async () => (await apiRequest<{ data: WantedEpisode[] }>("bazarr", { path: "/api/episodes/wanted", query: { start: 0, length: -1 } })).data ?? [],
+  getWantedMovies: async () =>
+    (await apiRequest<{ data: WantedMovie[] }>("bazarr", { path: "/api/movies/wanted", query: { start: 0, length: -1 } })).data ?? [],
+  getWantedEpisodes: async () =>
+    (await apiRequest<{ data: WantedEpisode[] }>("bazarr", { path: "/api/episodes/wanted", query: { start: 0, length: -1 } })).data ?? [],
   /** Busca y descarga cada idioma que falta de una película. */
   searchMovie: async (m: WantedMovie) => {
     for (const l of m.missing_subtitles) {
@@ -36,12 +38,24 @@ export const bazarr = {
   },
   searchEpisode: async (e: WantedEpisode) => {
     for (const l of e.missing_subtitles) {
-      await apiRequest<unknown>("bazarr", { method: "PATCH", path: "/api/episodes/subtitles", query: { seriesid: e.sonarrSeriesId, episodeid: e.sonarrEpisodeId, ...flags(l) } });
+      await apiRequest<unknown>("bazarr", {
+        method: "PATCH",
+        path: "/api/episodes/subtitles",
+        query: { seriesid: e.sonarrSeriesId, episodeid: e.sonarrEpisodeId, ...flags(l) },
+      });
     }
   },
   searchAllWanted: async () => {
-    await apiRequest<unknown>("bazarr", { method: "POST", path: "/api/system/tasks", query: { taskid: "wanted_search_missing_subtitles_movies" } });
-    await apiRequest<unknown>("bazarr", { method: "POST", path: "/api/system/tasks", query: { taskid: "wanted_search_missing_subtitles_series" } });
+    await apiRequest<unknown>("bazarr", {
+      method: "POST",
+      path: "/api/system/tasks",
+      query: { taskid: "wanted_search_missing_subtitles_movies" },
+    });
+    await apiRequest<unknown>("bazarr", {
+      method: "POST",
+      path: "/api/system/tasks",
+      query: { taskid: "wanted_search_missing_subtitles_series" },
+    });
   },
 };
 

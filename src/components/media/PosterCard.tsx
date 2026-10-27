@@ -27,21 +27,38 @@ export function Poster({ src, title, className }: { src?: string; title: string;
   );
 }
 
-export function PosterCard({ title, subtitle, poster, state, onClick }: { title: string; subtitle?: string; poster?: string; state?: LibState; onClick?: () => void }) {
+export function PosterCard({
+  title,
+  subtitle,
+  poster,
+  state,
+  onClick,
+}: {
+  title: string;
+  subtitle?: string;
+  poster?: string;
+  state?: LibState;
+  onClick?: () => void;
+}) {
   const s = state ? stateStyle[state] : null;
   return (
     <button onClick={onClick} className="group flex flex-col gap-2 text-left outline-none" aria-label={title}>
       <div className="relative transition-transform duration-200 group-hover:-translate-y-0.5 group-focus-visible:ring-2 group-focus-visible:ring-accent rounded-lg">
         <Poster src={poster} title={title} className="shadow-sm group-hover:shadow-lg" />
         {s && (
-          <span className="absolute right-2 top-2 flex items-center gap-1 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur" title={s.label}>
+          <span
+            className="absolute right-2 top-2 flex items-center gap-1 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur"
+            title={s.label}
+          >
             <span className={cn("h-1.5 w-1.5 rounded-full", s.dot)} />
             {s.label}
           </span>
         )}
       </div>
       <div className="min-w-0 px-0.5">
-        <div className="truncate text-sm font-medium" title={title}>{title}</div>
+        <div className="truncate text-sm font-medium" title={title}>
+          {title}
+        </div>
         {subtitle && <div className="truncate text-xs text-muted">{subtitle}</div>}
       </div>
     </button>

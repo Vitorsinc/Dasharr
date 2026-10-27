@@ -12,7 +12,9 @@ export async function serviceVersion(service: ServiceKind): Promise<string> {
     case "prowlarr":
       return str((await apiRequest<{ version?: unknown } | null>(service, { path: "/api/v1/system/status" }))?.version);
     case "bazarr":
-      return str((await apiRequest<{ data?: { bazarr_version?: unknown } } | null>(service, { path: "/api/system/status" }))?.data?.bazarr_version);
+      return str(
+        (await apiRequest<{ data?: { bazarr_version?: unknown } } | null>(service, { path: "/api/system/status" }))?.data?.bazarr_version,
+      );
     case "qbittorrent":
       return str(await apiRequest<unknown>(service, { path: "/api/v2/app/version" }));
   }

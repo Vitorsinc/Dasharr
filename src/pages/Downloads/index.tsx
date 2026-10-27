@@ -24,7 +24,17 @@ const groupStyle: Record<TorrentGroup, string> = {
   error: "bg-danger/15 text-danger",
 };
 
-function IconButton({ label, onClick, children, danger }: { label: string; onClick: () => void; children: React.ReactNode; danger?: boolean }) {
+function IconButton({
+  label,
+  onClick,
+  children,
+  danger,
+}: {
+  label: string;
+  onClick: () => void;
+  children: React.ReactNode;
+  danger?: boolean;
+}) {
   return (
     <button className={cn("btn-ghost p-1.5", danger && "hover:text-danger")} onClick={onClick} aria-label={label} title={label}>
       {children}
@@ -71,7 +81,12 @@ export default function DownloadsPage() {
     }
   };
 
-  if (torrents.configured === false) return <Page title={t.nav.downloads}><NotConfigured service="qbittorrent" /></Page>;
+  if (torrents.configured === false)
+    return (
+      <Page title={t.nav.downloads}>
+        <NotConfigured service="qbittorrent" />
+      </Page>
+    );
 
   const sel = [...selected].filter((h) => list.some((tr) => tr.hash === h));
   const allSelected = list.length > 0 && sel.length === list.length;
@@ -95,10 +110,17 @@ export default function DownloadsPage() {
       }
     >
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Stat icon={ArrowDown} label={t.downloads.downloading} value={formatSpeed(totalDl)} />
-        <Stat icon={ArrowUp} label={t.downloads.seeding} value={formatSpeed(totalUp)} />
+        <Stat icon={ArrowDown} label={t.downloads.dlSpeed} value={formatSpeed(totalDl)} />
+        <Stat icon={ArrowUp} label={t.downloads.upSpeed} value={formatSpeed(totalUp)} />
         <Stat icon={HardDrive} label={t.downloads.freeSpace} value={formatBytes(server.data?.free_space_on_disk)} />
-        <button className={cn("card flex items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-2", alt && "border-warning/50")} onClick={() => run(qbit.toggleAltSpeed)} aria-pressed={alt}>
+        <button
+          className={cn(
+            "card flex items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-2",
+            alt && "border-warning/50",
+          )}
+          onClick={() => run(qbit.toggleAltSpeed)}
+          aria-pressed={alt}
+        >
           <Turtle className={cn("h-5 w-5", alt ? "text-warning" : "text-muted")} aria-hidden />
           <div>
             <div className="text-xs text-muted">{t.downloads.altSpeed}</div>
@@ -131,11 +153,21 @@ export default function DownloadsPage() {
         {sel.length > 0 && (
           <div className="ml-auto flex items-center gap-1 rounded-lg border border-border bg-surface px-2 py-1">
             <span className="px-2 text-sm text-muted">{t.downloads.selected(sel.length)}</span>
-            <IconButton label={t.downloads.resume} onClick={() => run(() => qbit.resume(sel))}><Play className="h-4 w-4" /></IconButton>
-            <IconButton label={t.downloads.pause} onClick={() => run(() => qbit.pause(sel))}><Pause className="h-4 w-4" /></IconButton>
-            <IconButton label={t.downloads.forceStart} onClick={() => run(() => qbit.forceStart(sel))}><Zap className="h-4 w-4" /></IconButton>
-            <IconButton label={t.downloads.recheck} onClick={() => run(() => qbit.recheck(sel))}><RotateCw className="h-4 w-4" /></IconButton>
-            <IconButton label={t.common.delete} danger onClick={() => setToDelete(sel)}><Trash2 className="h-4 w-4" /></IconButton>
+            <IconButton label={t.downloads.resume} onClick={() => run(() => qbit.resume(sel))}>
+              <Play className="h-4 w-4" />
+            </IconButton>
+            <IconButton label={t.downloads.pause} onClick={() => run(() => qbit.pause(sel))}>
+              <Pause className="h-4 w-4" />
+            </IconButton>
+            <IconButton label={t.downloads.forceStart} onClick={() => run(() => qbit.forceStart(sel))}>
+              <Zap className="h-4 w-4" />
+            </IconButton>
+            <IconButton label={t.downloads.recheck} onClick={() => run(() => qbit.recheck(sel))}>
+              <RotateCw className="h-4 w-4" />
+            </IconButton>
+            <IconButton label={t.common.delete} danger onClick={() => setToDelete(sel)}>
+              <Trash2 className="h-4 w-4" />
+            </IconButton>
           </div>
         )}
       </div>
@@ -152,19 +184,33 @@ export default function DownloadsPage() {
             <thead className="border-b border-border text-left text-xs text-muted">
               <tr>
                 <th className="w-10 px-3 py-2">
-                  <input type="checkbox" aria-label={t.downloads.selectAll} checked={allSelected} onChange={() => setSelected(allSelected ? new Set() : new Set(list.map((x) => x.hash)))} />
+                  <input
+                    type="checkbox"
+                    aria-label={t.downloads.selectAll}
+                    checked={allSelected}
+                    onChange={() => setSelected(allSelected ? new Set() : new Set(list.map((x) => x.hash)))}
+                  />
                 </th>
                 <th className="px-3 py-2 font-medium">{t.downloads.name}</th>
                 <th className="w-24 px-3 py-2 font-medium">{t.downloads.size}</th>
                 <th className="w-44 px-3 py-2 font-medium">{t.downloads.progress}</th>
-                <th className="w-28 px-3 py-2 font-medium"><ArrowDown className="inline h-3.5 w-3.5" /> / <ArrowUp className="inline h-3.5 w-3.5" /></th>
+                <th className="w-28 px-3 py-2 font-medium">
+                  <ArrowDown className="inline h-3.5 w-3.5" /> / <ArrowUp className="inline h-3.5 w-3.5" />
+                </th>
                 <th className="w-24 px-3 py-2 font-medium">{t.downloads.eta}</th>
                 <th className="w-36 px-3 py-2" />
               </tr>
             </thead>
             <tbody>
               {list.map((tr) => (
-                <TorrentRow key={tr.hash} tr={tr} selected={selected.has(tr.hash)} onToggle={() => toggle(tr.hash)} run={run} onDelete={() => setToDelete([tr.hash])} />
+                <TorrentRow
+                  key={tr.hash}
+                  tr={tr}
+                  selected={selected.has(tr.hash)}
+                  onToggle={() => toggle(tr.hash)}
+                  run={run}
+                  onDelete={() => setToDelete([tr.hash])}
+                />
               ))}
             </tbody>
           </table>
@@ -188,7 +234,19 @@ export default function DownloadsPage() {
   );
 }
 
-function TorrentRow({ tr, selected, onToggle, run, onDelete }: { tr: Torrent; selected: boolean; onToggle: () => void; run: (fn: () => Promise<unknown>) => void; onDelete: () => void }) {
+function TorrentRow({
+  tr,
+  selected,
+  onToggle,
+  run,
+  onDelete,
+}: {
+  tr: Torrent;
+  selected: boolean;
+  onToggle: () => void;
+  run: (fn: () => Promise<unknown>) => void;
+  onDelete: () => void;
+}) {
   const group = torrentGroup(tr);
   const paused = group === "paused" || (group === "completed" && tr.state.startsWith("p")) || tr.state.startsWith("stopped");
   return (
@@ -197,11 +255,15 @@ function TorrentRow({ tr, selected, onToggle, run, onDelete }: { tr: Torrent; se
         <input type="checkbox" aria-label={t.downloads.select(tr.name)} checked={selected} onChange={onToggle} />
       </td>
       <td className="max-w-0 px-3 py-2.5">
-        <div className="truncate font-medium" title={tr.name}>{tr.name}</div>
+        <div className="truncate font-medium" title={tr.name}>
+          {tr.name}
+        </div>
         <div className="mt-0.5 flex items-center gap-2 text-xs text-muted">
-          <span className={cn("chip", groupStyle[group])}>{t.downloads[group]}</span>
+          <span className={cn("chip", groupStyle[group])}>{t.downloads.state[group]}</span>
           {tr.category && <span>{tr.category}</span>}
-          <span>{t.downloads.seeds}: {tr.num_seeds}</span>
+          <span>
+            {t.downloads.seeds}: {tr.num_seeds}
+          </span>
         </div>
       </td>
       <td className="px-3 py-2.5 tabular-nums text-muted">{formatBytes(tr.size)}</td>
@@ -217,12 +279,20 @@ function TorrentRow({ tr, selected, onToggle, run, onDelete }: { tr: Torrent; se
       <td className="px-3 py-2.5">
         <div className="flex justify-end gap-0.5">
           {paused ? (
-            <IconButton label={t.downloads.resume} onClick={() => run(() => qbit.resume([tr.hash]))}><Play className="h-4 w-4" /></IconButton>
+            <IconButton label={t.downloads.resume} onClick={() => run(() => qbit.resume([tr.hash]))}>
+              <Play className="h-4 w-4" />
+            </IconButton>
           ) : (
-            <IconButton label={t.downloads.pause} onClick={() => run(() => qbit.pause([tr.hash]))}><Pause className="h-4 w-4" /></IconButton>
+            <IconButton label={t.downloads.pause} onClick={() => run(() => qbit.pause([tr.hash]))}>
+              <Pause className="h-4 w-4" />
+            </IconButton>
           )}
-          <IconButton label={t.downloads.forceStart} onClick={() => run(() => qbit.forceStart([tr.hash]))}><Zap className="h-4 w-4" /></IconButton>
-          <IconButton label={t.common.delete} danger onClick={onDelete}><Trash2 className="h-4 w-4" /></IconButton>
+          <IconButton label={t.downloads.forceStart} onClick={() => run(() => qbit.forceStart([tr.hash]))}>
+            <Zap className="h-4 w-4" />
+          </IconButton>
+          <IconButton label={t.common.delete} danger onClick={onDelete}>
+            <Trash2 className="h-4 w-4" />
+          </IconButton>
         </div>
       </td>
     </tr>

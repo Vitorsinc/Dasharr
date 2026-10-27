@@ -36,18 +36,37 @@ export default function SeriesPage() {
   const [monitor, setMonitor] = useState<MonitorOption>("all");
   const [selectedId, setSelectedId] = useState<number | null>(null);
 
-  const items = useMemo(() => filterSort((series.data ?? []).map((s) => ({ ...s, ...seriesLibFlags(s) })), { query, filter, sort }), [series.data, query, filter, sort]);
+  const items = useMemo(
+    () =>
+      filterSort(
+        (series.data ?? []).map((s) => ({ ...s, ...seriesLibFlags(s) })),
+        { query, filter, sort },
+      ),
+    [series.data, query, filter, sort],
+  );
   const existing = useMemo(() => new Set((series.data ?? []).map((s) => s.tvdbId)), [series.data]);
   const selected = series.data?.find((s) => s.id === selectedId) ?? null;
 
-  if (series.configured === false) return <Page title={t.nav.series}><NotConfigured service="sonarr" /></Page>;
+  if (series.configured === false)
+    return (
+      <Page title={t.nav.series}>
+        <NotConfigured service="sonarr" />
+      </Page>
+    );
 
   return (
     <Page
       title={t.nav.series}
       actions={
         <>
-          <Segmented<Tab> value={tab} onChange={setTab} options={[{ value: "library", label: t.library.library }, { value: "queue", label: t.library.queue }]} />
+          <Segmented<Tab>
+            value={tab}
+            onChange={setTab}
+            options={[
+              { value: "library", label: t.library.library },
+              { value: "queue", label: t.library.queue },
+            ]}
+          />
           <button className="btn-primary" onClick={() => setAdding(true)}>
             <Plus className="h-4 w-4" /> {t.library.addSeries}
           </button>
@@ -55,7 +74,13 @@ export default function SeriesPage() {
       }
     >
       {tab === "queue" ? (
-        queue.isLoading ? <Loading /> : queue.isError ? <ErrorPanel service="sonarr" error={queue.error} onRetry={() => queue.refetch()} /> : <QueueList records={queue.data ?? []} />
+        queue.isLoading ? (
+          <Loading />
+        ) : queue.isError ? (
+          <ErrorPanel service="sonarr" error={queue.error} onRetry={() => queue.refetch()} />
+        ) : (
+          <QueueList records={queue.data ?? []} />
+        )
       ) : (
         <>
           <LibraryToolbar series query={query} onQuery={setQuery} filter={filter} onFilter={setFilter} sort={sort} onSort={setSort} />
@@ -87,7 +112,14 @@ export default function SeriesPage() {
         onOpenChange={setAdding}
         title={t.library.addSeries}
         lookup={sonarr.lookup}
-        toItem={(s) => ({ key: s.tvdbId, title: s.title, year: s.year, overview: s.overview, poster: posterUrl("sonarr", { images: s.images }), exists: existing.has(s.tvdbId) })}
+        toItem={(s) => ({
+          key: s.tvdbId,
+          title: s.title,
+          year: s.year,
+          overview: s.overview,
+          poster: posterUrl("sonarr", { images: s.images }),
+          exists: existing.has(s.tvdbId),
+        })}
         profiles={meta.profiles.data ?? []}
         rootFolders={meta.roots.data ?? []}
         extra={

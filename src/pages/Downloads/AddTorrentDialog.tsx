@@ -15,7 +15,17 @@ function readBase64(file: File): Promise<string> {
   });
 }
 
-export function AddTorrentDialog({ open, onOpenChange, categories, onAdded }: { open: boolean; onOpenChange: (o: boolean) => void; categories: string[]; onAdded: () => void }) {
+export function AddTorrentDialog({
+  open,
+  onOpenChange,
+  categories,
+  onAdded,
+}: {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  categories: string[];
+  onAdded: () => void;
+}) {
   const [urls, setUrls] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [category, setCategory] = useState("");
@@ -24,7 +34,10 @@ export function AddTorrentDialog({ open, onOpenChange, categories, onAdded }: { 
   async function submit() {
     setBusy(true);
     try {
-      const list = urls.split("\n").map((u) => u.trim()).filter(Boolean);
+      const list = urls
+        .split("\n")
+        .map((u) => u.trim())
+        .filter(Boolean);
       if (list.length) await qbit.addUrls(list, category || undefined);
       if (file) await qbit.addFile({ field: "torrents", filename: file.name, base64: await readBase64(file) }, category || undefined);
       toast.success(t.downloads.added);
@@ -44,11 +57,21 @@ export function AddTorrentDialog({ open, onOpenChange, categories, onAdded }: { 
       <div className="flex flex-col gap-4">
         <label>
           <span className="label">{t.downloads.urls}</span>
-          <textarea className="input min-h-24 font-mono text-xs" value={urls} onChange={(e) => setUrls(e.target.value)} placeholder="magnet:?xt=urn:btih:…" />
+          <textarea
+            className="input min-h-24 font-mono text-xs"
+            value={urls}
+            onChange={(e) => setUrls(e.target.value)}
+            placeholder="magnet:?xt=urn:btih:…"
+          />
         </label>
         <label>
           <span className="label">{t.downloads.file}</span>
-          <input type="file" accept=".torrent,application/x-bittorrent" className="text-sm" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+          <input
+            type="file"
+            accept=".torrent,application/x-bittorrent"
+            className="text-sm"
+            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+          />
         </label>
         <label>
           <span className="label">{t.downloads.category}</span>

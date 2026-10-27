@@ -7,7 +7,9 @@ test("avisa cuando un torrent pasa a completado", async () => {
   mockBackend({
     api: {
       qbittorrent: (req) =>
-        req.path === "/api/v2/torrents/info" ? [{ hash: "h", name: "Peli.mkv", progress, state: progress < 1 ? "downloading" : "uploading" }] : {},
+        req.path === "/api/v2/torrents/info"
+          ? [{ hash: "h", name: "Peli.mkv", progress, state: progress < 1 ? "downloading" : "uploading" }]
+          : {},
     },
   });
   vi.useFakeTimers({ shouldAdvanceTime: true });

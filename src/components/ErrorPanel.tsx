@@ -21,7 +21,17 @@ export function NotConfigured({ service, compact }: { service: ServiceKind; comp
   );
 }
 
-export function ErrorPanel({ service, error, onRetry, compact }: { service: ServiceKind; error: unknown; onRetry?: () => void; compact?: boolean }) {
+export function ErrorPanel({
+  service,
+  error,
+  onRetry,
+  compact,
+}: {
+  service: ServiceKind;
+  error: unknown;
+  onRetry?: () => void;
+  compact?: boolean;
+}) {
   if (isApiError(error) && error.kind === "NotConfigured") return <NotConfigured service={service} compact={compact} />;
   return (
     <div role="alert" className={cn("card flex flex-col items-center gap-3 border-danger/40 text-center", compact ? "p-4" : "p-10")}>

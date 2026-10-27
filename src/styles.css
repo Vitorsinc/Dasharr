@@ -26,18 +26,50 @@
   --warning: 251 191 36;
   --danger: 248 113 113;
 }
-html, body, #root { height: 100%; }
-body { @apply bg-bg text-fg antialiased; font-feature-settings: "tnum"; }
-::-webkit-scrollbar { width: 10px; height: 10px; }
-::-webkit-scrollbar-thumb { @apply bg-border rounded-full; border: 2px solid transparent; background-clip: padding-box; }
+html,
+body,
+#root {
+  height: 100%;
+}
+body {
+  @apply bg-bg text-fg antialiased;
+  font-feature-settings: "tnum";
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-border rounded-full;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
 @layer components {
-  .btn { @apply inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none; }
-  .btn-primary { @apply btn bg-accent text-white hover:bg-accent/90; }
-  .btn-ghost { @apply btn text-fg hover:bg-surface-2; }
-  .btn-outline { @apply btn border border-border hover:bg-surface-2; }
-  .btn-danger { @apply btn bg-danger text-white hover:bg-danger/90; }
-  .input { @apply w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/30 placeholder:text-muted; }
-  .card { @apply rounded-xl border border-border bg-surface; }
-  .label { @apply mb-1 block text-xs font-medium text-muted; }
-  .chip { @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium; }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none;
+  }
+  .btn-primary {
+    @apply btn bg-accent text-white hover:bg-accent/90;
+  }
+  .btn-ghost {
+    @apply btn text-fg hover:bg-surface-2;
+  }
+  .btn-outline {
+    @apply btn border border-border hover:bg-surface-2;
+  }
+  .btn-danger {
+    @apply btn bg-danger text-white hover:bg-danger/90;
+  }
+  .input {
+    @apply w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/30 placeholder:text-muted;
+  }
+  .card {
+    @apply rounded-xl border border-border bg-surface;
+  }
+  .label {
+    @apply mb-1 block text-xs font-medium text-muted;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium;
+  }
 }

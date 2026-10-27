@@ -4,13 +4,56 @@ import { mockBackend, renderApp } from "@/test/utils";
 import { episodeStatus } from "@/api/sonarr";
 
 const series = [
-  { id: 7, title: "Shōgun", year: 2024, tvdbId: 70, monitored: true, images: [], statistics: { episodeFileCount: 8, episodeCount: 10, totalEpisodeCount: 10, sizeOnDisk: 0 } },
-  { id: 8, title: "Severance", year: 2022, tvdbId: 80, monitored: true, images: [], statistics: { episodeFileCount: 9, episodeCount: 9, totalEpisodeCount: 19, sizeOnDisk: 0 } },
+  {
+    id: 7,
+    title: "Shōgun",
+    year: 2024,
+    tvdbId: 70,
+    monitored: true,
+    images: [],
+    statistics: { episodeFileCount: 8, episodeCount: 10, totalEpisodeCount: 10, sizeOnDisk: 0 },
+  },
+  {
+    id: 8,
+    title: "Severance",
+    year: 2022,
+    tvdbId: 80,
+    monitored: true,
+    images: [],
+    statistics: { episodeFileCount: 9, episodeCount: 9, totalEpisodeCount: 19, sizeOnDisk: 0 },
+  },
 ];
 const episodes = [
-  { id: 101, seriesId: 7, seasonNumber: 1, episodeNumber: 1, title: "Anjin", airDateUtc: "2024-02-27T00:00:00Z", hasFile: true, monitored: true },
-  { id: 102, seriesId: 7, seasonNumber: 1, episodeNumber: 2, title: "Servants of Two Masters", airDateUtc: "2024-02-27T00:00:00Z", hasFile: false, monitored: true },
-  { id: 201, seriesId: 7, seasonNumber: 2, episodeNumber: 1, title: "TBA", airDateUtc: "2099-01-01T00:00:00Z", hasFile: false, monitored: true },
+  {
+    id: 101,
+    seriesId: 7,
+    seasonNumber: 1,
+    episodeNumber: 1,
+    title: "Anjin",
+    airDateUtc: "2024-02-27T00:00:00Z",
+    hasFile: true,
+    monitored: true,
+  },
+  {
+    id: 102,
+    seriesId: 7,
+    seasonNumber: 1,
+    episodeNumber: 2,
+    title: "Servants of Two Masters",
+    airDateUtc: "2024-02-27T00:00:00Z",
+    hasFile: false,
+    monitored: true,
+  },
+  {
+    id: 201,
+    seriesId: 7,
+    seasonNumber: 2,
+    episodeNumber: 1,
+    title: "TBA",
+    airDateUtc: "2099-01-01T00:00:00Z",
+    hasFile: false,
+    monitored: true,
+  },
 ];
 
 function backend() {
@@ -67,6 +110,11 @@ test("añadir serie con opción de monitorización", async () => {
   await userEvent.selectOptions(within(dialog).getByLabelText("Monitorizar"), "future");
   await userEvent.click(within(dialog).getByRole("button", { name: "Añadir" }));
   const post = calls.find((c) => c.method === "POST" && c.path === "/api/v3/series");
-  expect(post.body.value).toMatchObject({ tvdbId: 99, qualityProfileId: 1, rootFolderPath: "/tv", addOptions: { monitor: "future", searchForMissingEpisodes: true } });
+  expect(post.body.value).toMatchObject({
+    tvdbId: 99,
+    qualityProfileId: 1,
+    rootFolderPath: "/tv",
+    addOptions: { monitor: "future", searchForMissingEpisodes: true },
+  });
   expect(post.body.value.languageProfileId).toBeUndefined();
 });

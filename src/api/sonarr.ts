@@ -92,10 +92,17 @@ export const sonarr = {
   setEpisodesMonitored: (episodeIds: number[], monitored: boolean) =>
     apiRequest<unknown>("sonarr", { method: "PUT", path: "/api/v3/episode/monitor", json: { episodeIds, monitored } }),
   deleteSeries: (id: number, deleteFiles: boolean) =>
-    apiRequest<unknown>("sonarr", { method: "DELETE", path: `/api/v3/series/${id}`, query: { deleteFiles, addImportListExclusion: false } }),
+    apiRequest<unknown>("sonarr", {
+      method: "DELETE",
+      path: `/api/v3/series/${id}`,
+      query: { deleteFiles, addImportListExclusion: false },
+    }),
   searchSeries: (seriesId: number) => common.command({ name: "SeriesSearch", seriesId }),
   searchSeason: (seriesId: number, seasonNumber: number) => common.command({ name: "SeasonSearch", seriesId, seasonNumber }),
   searchEpisodes: (episodeIds: number[]) => common.command({ name: "EpisodeSearch", episodeIds }),
   getCalendar: (start: Date, end: Date) =>
-    apiRequest<Episode[]>("sonarr", { path: "/api/v3/calendar", query: { start: start.toISOString(), end: end.toISOString(), includeSeries: true, unmonitored: false } }),
+    apiRequest<Episode[]>("sonarr", {
+      path: "/api/v3/calendar",
+      query: { start: start.toISOString(), end: end.toISOString(), includeSeries: true, unmonitored: false },
+    }),
 };

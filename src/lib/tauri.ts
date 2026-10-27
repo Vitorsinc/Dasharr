@@ -19,7 +19,8 @@ type ApiBody =
   | { type: "multipart"; value: { fields: [string, string][]; files: FilePart[] } };
 
 function toBody(call: ApiCall): ApiBody | null {
-  if (call.multipart || call.files?.length) return { type: "multipart", value: { fields: Object.entries(call.form ?? {}), files: call.files ?? [] } };
+  if (call.multipart || call.files?.length)
+    return { type: "multipart", value: { fields: Object.entries(call.form ?? {}), files: call.files ?? [] } };
   if (call.form) return { type: "form", value: Object.entries(call.form) };
   if (call.json !== undefined) return { type: "json", value: call.json };
   return null;

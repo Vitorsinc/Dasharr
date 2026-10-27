@@ -14,7 +14,10 @@ async function notify(body: string) {
 /** Vigila qBittorrent en segundo plano y avisa cuando un torrent termina. */
 export function useDownloadNotifications() {
   const [{ notifications }] = usePrefs();
-  const { data } = useServiceQuery("qbittorrent", ["torrents"], qbit.getTorrents, { refetchInterval: REFRESH.torrents, enabled: notifications });
+  const { data } = useServiceQuery("qbittorrent", ["torrents"], qbit.getTorrents, {
+    refetchInterval: REFRESH.torrents,
+    enabled: notifications,
+  });
   const prev = useRef<Torrent[] | undefined>(undefined);
   useEffect(() => {
     if (!data) return;

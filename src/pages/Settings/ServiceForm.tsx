@@ -91,10 +91,20 @@ export function ServiceForm({ service, view, route }: { service: ServiceKind; vi
       </div>
       <div className="grid gap-4 md:grid-cols-2">
         <Field label={t.settings.localUrl}>
-          <input className="input" value={localUrl} onChange={(e) => setLocalUrl(e.target.value)} placeholder={`http://192.168.1.50:${port}`} />
+          <input
+            className="input"
+            value={localUrl}
+            onChange={(e) => setLocalUrl(e.target.value)}
+            placeholder={`http://192.168.1.50:${port}`}
+          />
         </Field>
         <Field label={t.settings.externalUrl}>
-          <input className="input" value={externalUrl} onChange={(e) => setExternalUrl(e.target.value)} placeholder={`https://${service}.midominio.com`} />
+          <input
+            className="input"
+            value={externalUrl}
+            onChange={(e) => setExternalUrl(e.target.value)}
+            placeholder={`https://${service}.midominio.com`}
+          />
         </Field>
         {isQbit ? (
           <>
@@ -102,17 +112,35 @@ export function ServiceForm({ service, view, route }: { service: ServiceKind; vi
               <input className="input" value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="off" />
             </Field>
             <Field label={t.settings.password}>
-              <input className="input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder={view?.hasPassword ? t.settings.savedSecret : ""} />
+              <input
+                className="input"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder={view?.hasPassword ? t.settings.savedSecret : ""}
+              />
             </Field>
           </>
         ) : (
           <Field label={t.settings.apiKey} hint={t.settings.apiKeyHint}>
-            <input className="input font-mono" value={apiKey} onChange={(e) => setApiKey(e.target.value)} placeholder={view?.hasApiKey ? t.settings.savedSecret : ""} autoComplete="off" spellCheck={false} />
+            <input
+              className="input font-mono"
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+              placeholder={view?.hasApiKey ? t.settings.savedSecret : ""}
+              autoComplete="off"
+              spellCheck={false}
+            />
           </Field>
         )}
       </div>
 
-      <button type="button" className="mt-4 flex items-center gap-1 text-sm text-muted hover:text-fg" onClick={() => setShowProxy((v) => !v)} aria-expanded={showProxy}>
+      <button
+        type="button"
+        className="mt-4 flex items-center gap-1 text-sm text-muted hover:text-fg"
+        onClick={() => setShowProxy((v) => !v)}
+        aria-expanded={showProxy}
+      >
         <ChevronDown className={`h-4 w-4 transition-transform ${showProxy ? "rotate-180" : ""}`} />
         {t.settings.proxy}
       </button>
@@ -122,7 +150,13 @@ export function ServiceForm({ service, view, route }: { service: ServiceKind; vi
             <input className="input" value={proxyUsername} onChange={(e) => setProxyUsername(e.target.value)} autoComplete="off" />
           </Field>
           <Field label={t.settings.proxyPassword}>
-            <input className="input" type="password" value={proxyPassword} onChange={(e) => setProxyPassword(e.target.value)} placeholder={view?.hasProxyPassword ? t.settings.savedSecret : ""} />
+            <input
+              className="input"
+              type="password"
+              value={proxyPassword}
+              onChange={(e) => setProxyPassword(e.target.value)}
+              placeholder={view?.hasProxyPassword ? t.settings.savedSecret : ""}
+            />
           </Field>
         </div>
       )}

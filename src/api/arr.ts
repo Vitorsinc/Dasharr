@@ -49,7 +49,12 @@ export function arrCommon(service: ArrService) {
       (
         await apiRequest<{ records: QueueRecord[] }>(service, {
           path: "/api/v3/queue",
-          query: { pageSize: 200, includeMovie: service === "radarr", includeSeries: service === "sonarr", includeEpisode: service === "sonarr" },
+          query: {
+            pageSize: 200,
+            includeMovie: service === "radarr",
+            includeSeries: service === "sonarr",
+            includeEpisode: service === "sonarr",
+          },
         })
       ).records ?? [],
   };

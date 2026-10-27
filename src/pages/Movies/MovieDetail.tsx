@@ -49,8 +49,18 @@ export function MovieDetail({ movie, onClose }: { movie: Movie | null; onClose: 
               <Info label="En cines" value={movie.inCinemas ? formatDate(movie.inCinemas) : undefined} />
               <Info label="Digital" value={movie.digitalRelease ? formatDate(movie.digitalRelease) : undefined} />
             </div>
-            {movie.movieFile?.relativePath && <Info label={t.library.file} value={<span className="break-all font-mono text-xs">{movie.movieFile.relativePath}</span>} />}
-            {movie.genres?.length ? <div className="flex flex-wrap gap-1.5">{movie.genres.map((g) => <span key={g} className="chip bg-surface-2 text-muted">{g}</span>)}</div> : null}
+            {movie.movieFile?.relativePath && (
+              <Info label={t.library.file} value={<span className="break-all font-mono text-xs">{movie.movieFile.relativePath}</span>} />
+            )}
+            {movie.genres?.length ? (
+              <div className="flex flex-wrap gap-1.5">
+                {movie.genres.map((g) => (
+                  <span key={g} className="chip bg-surface-2 text-muted">
+                    {g}
+                  </span>
+                ))}
+              </div>
+            ) : null}
             <div className="mt-auto flex flex-wrap gap-2">
               <button className="btn-primary" onClick={() => run(() => radarr.search([movie.id]), t.library.searchStarted)}>
                 <Search className="h-4 w-4" /> {t.library.searchNow}

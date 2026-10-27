@@ -104,7 +104,14 @@ export function AddMediaDialog<T>({
           <form onSubmit={doLookup} className="flex gap-2">
             <div className="relative flex-1">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
-              <input autoFocus className="input pl-9" value={term} onChange={(e) => setTerm(e.target.value)} placeholder={t.library.lookupPlaceholder} aria-label={t.library.lookupPlaceholder} />
+              <input
+                autoFocus
+                className="input pl-9"
+                value={term}
+                onChange={(e) => setTerm(e.target.value)}
+                placeholder={t.library.lookupPlaceholder}
+                aria-label={t.library.lookupPlaceholder}
+              />
             </div>
             <button className="btn-primary" type="submit" disabled={searching}>
               {searching && <Spinner className="h-4 w-4 text-white" />}
@@ -116,7 +123,12 @@ export function AddMediaDialog<T>({
             {results?.map((r) => {
               const it = toItem(r);
               return (
-                <button key={it.key} disabled={it.exists} onClick={() => setPicked(r)} className="flex gap-3 rounded-lg p-2 text-left hover:bg-surface-2 disabled:opacity-50">
+                <button
+                  key={it.key}
+                  disabled={it.exists}
+                  onClick={() => setPicked(r)}
+                  className="flex gap-3 rounded-lg p-2 text-left hover:bg-surface-2 disabled:opacity-50"
+                >
                   <Poster src={it.poster} title={it.title} className="w-14 shrink-0" />
                   <div className="min-w-0">
                     <div className="font-medium">
@@ -144,7 +156,9 @@ export function AddMediaDialog<T>({
               <span className="label">{t.library.qualityProfile}</span>
               <select className="input" value={profileId} onChange={(e) => setProfileId(Number(e.target.value))}>
                 {profiles.map((q) => (
-                  <option key={q.id} value={q.id}>{q.name}</option>
+                  <option key={q.id} value={q.id}>
+                    {q.name}
+                  </option>
                 ))}
               </select>
             </label>
@@ -153,7 +167,8 @@ export function AddMediaDialog<T>({
               <select className="input" value={root} onChange={(e) => setRoot(e.target.value)}>
                 {rootFolders.map((f) => (
                   <option key={f.id} value={f.path}>
-                    {f.path}{f.freeSpace != null ? ` (${formatBytes(f.freeSpace)} libres)` : ""}
+                    {f.path}
+                    {f.freeSpace != null ? ` (${formatBytes(f.freeSpace)} libres)` : ""}
                   </option>
                 ))}
               </select>
@@ -164,7 +179,9 @@ export function AddMediaDialog<T>({
               {t.library.searchOnAdd}
             </label>
             <div className="flex justify-end gap-2">
-              <button className="btn-ghost" onClick={() => setPicked(null)}>{t.common.cancel}</button>
+              <button className="btn-ghost" onClick={() => setPicked(null)}>
+                {t.common.cancel}
+              </button>
               <button className="btn-primary" onClick={add} disabled={busy || profileId === "" || !root}>
                 {busy && <Spinner className="h-4 w-4 text-white" />}
                 {t.common.add}

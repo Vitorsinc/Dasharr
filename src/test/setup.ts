@@ -34,4 +34,3 @@ vi.mock("@tauri-apps/plugin-notification", () => ({
   requestPermission: vi.fn(async () => "granted"),
   sendNotification: vi.fn(),
 }));
-vi.mock("@tauri-apps/plugin-dialog", () => ({ open: vi.fn(async () => null) }));

@@ -5,7 +5,10 @@ test("Inicio: tarjetas de servicio, descargas activas y próximos estrenos; un s
   const soon = new Date(Date.now() + 2 * 86400_000).toISOString();
   mockBackend({
     api: {
-      radarr: (r) => (r.path === "/api/v3/system/status" ? { version: "5.2.0" } : [{ id: 1, title: "Estreno", year: 2026, hasFile: false, digitalRelease: soon }]),
+      radarr: (r) =>
+        r.path === "/api/v3/system/status"
+          ? { version: "5.2.0" }
+          : [{ id: 1, title: "Estreno", year: 2026, hasFile: false, digitalRelease: soon }],
       sonarr: () => Promise.reject({ kind: "Network", message: "timeout" }),
       prowlarr: () => ({ version: "1.20.0" }),
       bazarr: () => ({ data: { bazarr_version: "1.4.5" } }),
@@ -13,7 +16,15 @@ test("Inicio: tarjetas de servicio, descargas activas y próximos estrenos; un s
         r.path === "/api/v2/app/version"
           ? "v4.6.2"
           : [
-              ...Array.from({ length: 6 }, (_, i) => ({ hash: `a${i}`, name: `Activo ${i}`, progress: 0.5, dlspeed: 1024, upspeed: 0, eta: 60, state: "downloading" })),
+              ...Array.from({ length: 6 }, (_, i) => ({
+                hash: `a${i}`,
+                name: `Activo ${i}`,
+                progress: 0.5,
+                dlspeed: 1024,
+                upspeed: 0,
+                eta: 60,
+                state: "downloading",
+              })),
               { hash: "s", name: "Sembrando", progress: 1, dlspeed: 0, upspeed: 0, eta: 0, state: "uploading" },
             ],
     },

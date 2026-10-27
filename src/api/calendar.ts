@@ -19,7 +19,16 @@ export function mergeCalendar(movies: Movie[], episodes: Episode[]): CalItem[] {
   for (const m of movies) {
     const d = movieReleaseDate(m);
     if (!d) continue;
-    items.push({ id: `m-${m.id}`, source: "radarr", title: m.title, subtitle: String(m.year), date: new Date(d), hasFile: m.hasFile, poster: posterUrl("radarr", m, 250), movie: m });
+    items.push({
+      id: `m-${m.id}`,
+      source: "radarr",
+      title: m.title,
+      subtitle: String(m.year),
+      date: new Date(d),
+      hasFile: m.hasFile,
+      poster: posterUrl("radarr", m, 250),
+      movie: m,
+    });
   }
   for (const e of episodes) {
     if (!e.airDateUtc) continue;

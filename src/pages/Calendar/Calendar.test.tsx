@@ -12,7 +12,17 @@ test("mergeCalendar usa la fecha digital, luego física, luego cines, y ordena",
     { id: 2, title: "B", year: 2025, hasFile: false, inCinemas: "2025-02-01T00:00:00Z" },
     { id: 3, title: "Sin fecha", year: 2025, hasFile: false },
   ] as Movie[];
-  const eps = [{ id: 9, seasonNumber: 2, episodeNumber: 3, title: "Ep", airDateUtc: "2025-02-15T00:00:00Z", hasFile: true, series: { title: "Serie" } }] as Episode[];
+  const eps = [
+    {
+      id: 9,
+      seasonNumber: 2,
+      episodeNumber: 3,
+      title: "Ep",
+      airDateUtc: "2025-02-15T00:00:00Z",
+      hasFile: true,
+      series: { title: "Serie" },
+    },
+  ] as Episode[];
   const r = mergeCalendar(movies, eps);
   expect(r.map((i) => i.id)).toEqual(["m-2", "e-9", "m-1"]);
   expect(r[1]).toMatchObject({ source: "sonarr", title: "Serie", subtitle: "2x03 · Ep", hasFile: true });

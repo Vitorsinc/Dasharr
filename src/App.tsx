@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createMemoryRouter, createBrowserRouter, RouterProvider, type RouteObject } from "react-router-dom";
 import { Layout } from "@/components/Layout";
+import { RouteError } from "@/components/RouteError";
 import HomePage from "@/pages/Home";
 import MoviesPage from "@/pages/Movies";
 import SeriesPage from "@/pages/Series";
@@ -14,14 +15,19 @@ export const routes: RouteObject[] = [
   {
     element: <Layout />,
     children: [
-      { path: "/", element: <HomePage /> },
-      { path: "/peliculas", element: <MoviesPage /> },
-      { path: "/series", element: <SeriesPage /> },
-      { path: "/descargas", element: <DownloadsPage /> },
-      { path: "/buscar", element: <SearchPage /> },
-      { path: "/subtitulos", element: <SubtitlesPage /> },
-      { path: "/calendario", element: <CalendarPage /> },
-      { path: "/ajustes", element: <SettingsPage /> },
+      {
+        errorElement: <RouteError />,
+        children: [
+          { path: "/", element: <HomePage /> },
+          { path: "/peliculas", element: <MoviesPage /> },
+          { path: "/series", element: <SeriesPage /> },
+          { path: "/descargas", element: <DownloadsPage /> },
+          { path: "/buscar", element: <SearchPage /> },
+          { path: "/subtitulos", element: <SubtitlesPage /> },
+          { path: "/calendario", element: <CalendarPage /> },
+          { path: "/ajustes", element: <SettingsPage /> },
+        ],
+      },
     ],
   },
 ];
