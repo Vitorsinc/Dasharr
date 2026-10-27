@@ -1,17 +1,19 @@
 import { apiRequest } from "@/lib/tauri";
 import type { ServiceKind } from "@/lib/types";
 
-/** Versión del servicio; sirve también para comprobar que la API key funciona. */
+const str = (v: unknown) => (typeof v === "string" && v ? v : "?");
+
+/** Versión del servicio; sirve también para comprobar que la API key funciona. Nunca lanza por un formato inesperado. */
 export async function serviceVersion(service: ServiceKind): Promise<string> {
   switch (service) {
     case "radarr":
     case "sonarr":
-      return (await apiRequest<{ version: string }>(service, { path: "/api/v3/system/status" })).version;
+      return str((await apiRequest<{ version?: unknown } | null>(service, { path: "/api/v3/system/status" }))?.version);
     case "prowlarr":
-      return (await apiRequest<{ version: string }>(service, { path: "/api/v1/system/status" })).version;
+      return str((await apiRequest<{ version?: unknown } | null>(service, { path: "/api/v1/system/status" }))?.version);
     case "bazarr":
-      return (await apiRequest<{ data: { bazarr_version: string } }>(service, { path: "/api/system/status" })).data.bazarr_version;
+      return str((await apiRequest<{ data?: { bazarr_version?: unknown } } | null>(service, { path: "/api/system/status" }))?.data?.bazarr_version);
     case "qbittorrent":
-      return await apiRequest<string>(service, { path: "/api/v2/app/version" });
+      return str(await apiRequest<unknown>(service, { path: "/api/v2/app/version" }));
   }
 }
