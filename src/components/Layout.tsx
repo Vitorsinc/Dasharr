@@ -2,9 +2,11 @@ import { Outlet } from "react-router-dom";
 import { Toaster } from "sonner";
 import { Sidebar } from "./Sidebar";
 import { useApplyTheme } from "@/hooks/usePrefs";
+import { useDownloadNotifications } from "@/hooks/useDownloadNotifications";
 
 export function Layout() {
   useApplyTheme();
+  useDownloadNotifications();
   return (
     <div className="flex h-full">
       <Sidebar />
