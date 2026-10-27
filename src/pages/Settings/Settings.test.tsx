@@ -1,4 +1,4 @@
-import { screen, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { mockBackend, renderApp, view } from "@/test/utils";
 import type { ServiceKind, ServiceSettingsView } from "@/lib/types";
@@ -55,4 +55,33 @@ test("pide al menos una dirección", async () => {
   const bazarr = await screen.findByRole("region", { name: "Bazarr" });
   await userEvent.click(within(bazarr).getByRole("button", { name: "Probar conexión" }));
   expect(await within(bazarr).findByText("Indica al menos una dirección.")).toBeInTheDocument();
+});
+
+test("importa la configuración desde un archivo JSON", async () => {
+  const save = vi.fn();
+  let current = settings;
+  mockBackend({
+    commands: {
+      save_service: (a: any) => {
+        save(a);
+        current = { ...current, [a.service]: view({ local: a.config.localUrl }) };
+      },
+      get_settings: () => current,
+    },
+  });
+  renderApp("/ajustes");
+  await screen.findByRole("region", { name: "Radarr" });
+  const file = new File([JSON.stringify({ services: { sonarr: { localUrl: "http://h:8989", apiKey: "abc" } } })], "dasharr-config.json", {
+    type: "application/json",
+  });
+  await userEvent.upload(screen.getByLabelText("Importar desde archivo"), file);
+  await waitFor(() =>
+    expect(save).toHaveBeenCalledWith({
+      service: "sonarr",
+      config: { localUrl: "http://h:8989", externalUrl: null, enabled: true },
+      secrets: { apiKey: "abc", username: undefined, password: undefined, proxyUsername: undefined, proxyPassword: undefined },
+    }),
+  );
+  const sonarr = await screen.findByRole("region", { name: "Sonarr" });
+  expect(await within(sonarr).findByDisplayValue("http://h:8989")).toBeInTheDocument();
 });

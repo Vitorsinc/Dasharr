@@ -53,6 +53,9 @@ export const es = {
     themeSystem: "Sistema",
     notifications: "Avisar cuando termine una descarga",
     autostart: "Iniciar con Windows",
+    import: "Importar desde archivo",
+    imported: (n: number) => (n === 1 ? "1 servicio importado" : `${n} servicios importados`),
+    importHint: "Puedes borrar el archivo después de importarlo: las claves quedan guardadas en el Administrador de credenciales.",
     autoSwitch: "Dasharr usa la dirección local cuando responde y la externa cuando no.",
   },
   downloads: {

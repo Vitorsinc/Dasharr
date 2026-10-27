@@ -1,4 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { Upload } from "lucide-react";
+import { toast } from "sonner";
 import { disable, enable, isEnabled } from "@tauri-apps/plugin-autostart";
 import { Page } from "@/components/Page";
 import { Loading, Segmented, Toggle } from "@/components/ui";
@@ -8,6 +11,53 @@ import { useSettings } from "@/hooks/useSettings";
 import { useConnectionStates } from "@/hooks/useConnectionStates";
 import { usePrefs, type Theme } from "@/hooks/usePrefs";
 import { ServiceForm } from "./ServiceForm";
+import { parseConfigFile } from "@/lib/importConfig";
+import { saveService } from "@/lib/tauri";
+import { errorMessage } from "@/lib/errors";
+import { settingsKey } from "@/hooks/useSettings";
+
+function readText(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result));
+    r.onerror = () => reject(r.error);
+    r.readAsText(file);
+  });
+}
+
+function ImportButton({ onImported }: { onImported: () => void }) {
+  const qc = useQueryClient();
+  const input = useRef<HTMLInputElement>(null);
+  async function onFile(file: File) {
+    try {
+      const services = parseConfigFile(await readText(file));
+      for (const s of services) await saveService(s.service, s.config, s.secrets);
+      await qc.invalidateQueries();
+      await qc.refetchQueries({ queryKey: settingsKey });
+      onImported();
+      toast.success(t.settings.imported(services.length), { description: t.settings.importHint });
+    } catch (e) {
+      toast.error(errorMessage(e));
+    } finally {
+      if (input.current) input.current.value = "";
+    }
+  }
+  return (
+    <>
+      <input
+        ref={input}
+        type="file"
+        accept=".json,application/json"
+        hidden
+        aria-label={t.settings.import}
+        onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])}
+      />
+      <button className="btn-outline" onClick={() => input.current?.click()}>
+        <Upload className="h-4 w-4" /> {t.settings.import}
+      </button>
+    </>
+  );
+}
 
 function Preferences() {
   const [prefs, setPrefs] = usePrefs();
@@ -55,14 +105,19 @@ function Preferences() {
 export default function SettingsPage() {
   const { data, isLoading } = useSettings();
   const { data: routes } = useConnectionStates();
+  const [generation, setGeneration] = useState(0);
   return (
-    <Page title={t.nav.settings}>
+    <Page title={t.nav.settings} actions={<ImportButton onImported={() => setGeneration((g) => g + 1)} />}>
       <div className="flex max-w-4xl flex-col gap-4">
         <div>
           <h2 className="text-lg font-semibold">{t.settings.servicesTitle}</h2>
           <p className="text-sm text-muted">{t.settings.autoSwitch}</p>
         </div>
-        {isLoading ? <Loading /> : SERVICE_KINDS.map((s) => <ServiceForm key={s} service={s} view={data?.[s]} route={routes?.[s]} />)}
+        {isLoading ? (
+          <Loading />
+        ) : (
+          SERVICE_KINDS.map((s) => <ServiceForm key={`${s}-${generation}`} service={s} view={data?.[s]} route={routes?.[s]} />)
+        )}
         <h2 className="mt-4 text-lg font-semibold">{t.settings.preferences}</h2>
         <Preferences />
       </div>
