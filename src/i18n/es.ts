@@ -1,0 +1,48 @@
+export const es = {
+  app: { name: "Dasharr" },
+  nav: {
+    home: "Inicio",
+    movies: "Películas",
+    series: "Series",
+    downloads: "Descargas",
+    search: "Buscar",
+    subtitles: "Subtítulos",
+    calendar: "Calendario",
+    settings: "Ajustes",
+  },
+  services: {
+    radarr: "Radarr",
+    sonarr: "Sonarr",
+    prowlarr: "Prowlarr",
+    bazarr: "Bazarr",
+    qbittorrent: "qBittorrent",
+  },
+  route: { local: "Local", remote: "Remoto", offline: "Sin conexión", unknown: "Comprobando" },
+  errors: {
+    NotConfigured: "Este servicio no está configurado.",
+    Network: "No se puede conectar con el servidor.",
+    Unauthorized: "API key o credenciales incorrectas.",
+    Http: "El servidor respondió con un error",
+    unknown: "Error desconocido",
+    cannotConnect: (service: string) => `No se puede conectar con ${service}`,
+  },
+  common: {
+    retry: "Reintentar",
+    cancel: "Cancelar",
+    confirm: "Confirmar",
+    save: "Guardar",
+    delete: "Borrar",
+    search: "Buscar",
+    add: "Añadir",
+    close: "Cerrar",
+    loading: "Cargando…",
+    empty: "No hay nada que mostrar.",
+    goToSettings: "Ir a Ajustes",
+    notConfigured: (service: string) => `${service} no está configurado`,
+    notConfiguredHint: "Añade su dirección y credenciales en Ajustes para usar esta sección.",
+    deleteFiles: "Borrar también los archivos",
+    done: "Hecho",
+  },
+};
+export type Strings = typeof es;
+export const t = es;
