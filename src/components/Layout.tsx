@@ -1,8 +1,10 @@
 import { Outlet } from "react-router-dom";
 import { Toaster } from "sonner";
 import { Sidebar } from "./Sidebar";
+import { useApplyTheme } from "@/hooks/usePrefs";
 
 export function Layout() {
+  useApplyTheme();
   return (
     <div className="flex h-full">
       <Sidebar />

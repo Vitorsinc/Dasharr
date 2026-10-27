@@ -23,3 +23,15 @@ Object.defineProperty(window, "matchMedia", {
     dispatchEvent: () => false,
   }),
 });
+
+vi.mock("@tauri-apps/plugin-autostart", () => ({
+  isEnabled: vi.fn(async () => false),
+  enable: vi.fn(async () => {}),
+  disable: vi.fn(async () => {}),
+}));
+vi.mock("@tauri-apps/plugin-notification", () => ({
+  isPermissionGranted: vi.fn(async () => true),
+  requestPermission: vi.fn(async () => "granted"),
+  sendNotification: vi.fn(),
+}));
+vi.mock("@tauri-apps/plugin-dialog", () => ({ open: vi.fn(async () => null) }));
