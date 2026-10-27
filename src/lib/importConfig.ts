@@ -6,7 +6,8 @@ export interface ImportedService {
   secrets: SecretsPatch;
 }
 
-const str = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : undefined);
+/** Los valores de plantilla sin rellenar ("PEGA_AQUI_…") se tratan como ausentes. */
+const str = (v: unknown) => (typeof v === "string" && v.trim() && !v.trim().startsWith("PEGA_AQUI") ? v.trim() : undefined);
 
 /**
  * Lee un archivo de configuración de Dasharr:

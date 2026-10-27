@@ -5,7 +5,7 @@ test("lee servicios conocidos con direcciones y secretos", () => {
     JSON.stringify({
       services: {
         radarr: { localUrl: " http://h:7878 ", externalUrl: "https://movies.x.org", apiKey: "k1" },
-        bazarr: { localUrl: "http://h:6767" },
+        bazarr: { localUrl: "http://h:6767", apiKey: "PEGA_AQUI_BAZARR_KEY" },
         qbittorrent: { localUrl: "http://h:8080", username: "u", password: "p" },
         plex: { localUrl: "http://h:32400" },
         sonarr: { apiKey: "sin-url" },
