@@ -155,6 +155,13 @@ export const es = {
     upcoming: "Próximos estrenos",
     nothing: "Nada programado.",
   },
+  home: {
+    services: "Servicios",
+    activeDownloads: "Descargas activas",
+    noActive: "No hay descargas activas.",
+    seeAll: "Ver todo",
+    version: (v: string) => `v${v.replace(/^v/, "")}`,
+  },
   common: {
     retry: "Reintentar",
     cancel: "Cancelar",
