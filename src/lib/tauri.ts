@@ -61,3 +61,16 @@ export function imageUrl(service: ServiceKind, path: string): string {
 }
 
 export type { ApiError };
+
+export interface LogFile {
+  path: string;
+  lines: string[];
+}
+
+export const readLog = () => invoke<LogFile>("read_log");
+export const clearLog = () => invoke<void>("clear_log");
+
+/** Deja constancia en el registro de un error de la interfaz. Nunca falla. */
+export function writeLog(level: "error" | "warn" | "info", message: string) {
+  invoke("write_log", { level, message }).catch(() => {});
+}

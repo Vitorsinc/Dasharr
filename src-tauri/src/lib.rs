@@ -1,5 +1,6 @@
 mod commands;
 mod images;
+mod logs;
 mod settings;
 mod state;
 
@@ -14,6 +15,7 @@ const PROBE_INTERVAL: Duration = Duration::from_secs(60);
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(logs::plugin())
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_autostart::init(tauri_plugin_autostart::MacosLauncher::LaunchAgent, None))
@@ -26,8 +28,12 @@ pub fn run() {
             commands::api_request,
             commands::get_connection_states,
             commands::refresh_connections,
+            logs::read_log,
+            logs::clear_log,
+            logs::write_log,
         ])
         .setup(|app| {
+            log::info!("Dasharr {} iniciado", app.package_info().version);
             let handle = app.handle().clone();
             // Los clientes se crean antes de abrir la ventana para que las primeras peticiones no fallen como "no configurado".
             tauri::async_runtime::block_on(handle.state::<AppState>().load(&handle));

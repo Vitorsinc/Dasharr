@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use base64::Engine;
 use reqwest::{header, Method, StatusCode};
@@ -71,7 +71,13 @@ impl ServiceClient {
             Resolved { route: Route::Offline, base: None }
         };
         let route = resolved.route;
-        *self.resolved.lock().await = Some(resolved);
+        let previous = self.resolved.lock().await.replace(resolved).map(|r| r.route);
+        if previous != Some(route) {
+            match route {
+                Route::Offline => log::warn!("{}: sin conexión (no responde ni la dirección local ni la externa)", self.kind.as_str()),
+                _ => log::info!("{}: conectado por la dirección {}", self.kind.as_str(), if route == Route::Local { "local" } else { "externa" }),
+            }
+        }
         route
     }
 
@@ -205,7 +211,18 @@ impl ServiceClient {
         Ok(res)
     }
 
-    fn check_status(status: StatusCode, text: &str) -> Result<(), ApiError> {
+    fn check_status(status: StatusCode, headers: &header::HeaderMap, text: &str) -> Result<(), ApiError> {
+        // Un 401 con "WWW-Authenticate: Basic" viene del proxy inverso, no del servicio.
+        let basic = headers
+            .get(header::WWW_AUTHENTICATE)
+            .and_then(|v| v.to_str().ok())
+            .is_some_and(|v| v.to_ascii_lowercase().starts_with("basic"));
+        if status == StatusCode::UNAUTHORIZED && basic {
+            return Err(ApiError::Http {
+                status: 401,
+                message: "el proxy inverso pide usuario y contraseña (rellena los campos del proxy en Ajustes)".into(),
+            });
+        }
         if status == StatusCode::UNAUTHORIZED || status == StatusCode::FORBIDDEN {
             return Err(ApiError::Unauthorized);
         }
@@ -217,10 +234,23 @@ impl ServiceClient {
     }
 
     pub async fn request(&self, req: ApiRequest) -> Result<ApiResponse, ApiError> {
-        let res = self.send(&req).await?;
+        let started = Instant::now();
+        let result = self.request_inner(&req).await;
+        let ms = started.elapsed().as_millis();
+        // Solo método y ruta: la consulta y el cuerpo pueden llevar datos sensibles.
+        match &result {
+            Ok(r) => log::debug!("{} {} {} -> {} ({ms} ms)", self.kind.as_str(), req.method.to_uppercase(), req.path, r.status),
+            Err(e) => log::error!("{} {} {} -> {e} ({ms} ms)", self.kind.as_str(), req.method.to_uppercase(), req.path),
+        }
+        result
+    }
+
+    async fn request_inner(&self, req: &ApiRequest) -> Result<ApiResponse, ApiError> {
+        let res = self.send(req).await?;
         let status = res.status();
+        let headers = res.headers().clone();
         let text = res.text().await.map_err(ApiError::network)?;
-        Self::check_status(status, &text)?;
+        Self::check_status(status, &headers, &text)?;
         let body = if text.trim().is_empty() {
             Value::Null
         } else {
@@ -240,7 +270,8 @@ impl ServiceClient {
             .unwrap_or("application/octet-stream")
             .to_string();
         if !status.is_success() {
-            Self::check_status(status, "")?;
+            let headers = res.headers().clone();
+            Self::check_status(status, &headers, "")?;
         }
         let bytes = res.bytes().await.map_err(ApiError::network)?;
         Ok((bytes.to_vec(), ctype))

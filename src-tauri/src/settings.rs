@@ -32,10 +32,11 @@ fn apply(field: &mut Option<String>, patch: &Option<String>) {
 impl SecretsPatch {
     pub fn merge(&self, existing: &ServiceSecrets) -> ServiceSecrets {
         let mut s = existing.clone();
-        apply(&mut s.api_key, &self.api_key);
-        apply(&mut s.username, &self.username);
+        // Las claves copiadas de la web suelen arrastrar espacios o saltos de línea.
+        apply(&mut s.api_key, &self.api_key.as_ref().map(|v| v.trim().to_string()));
+        apply(&mut s.username, &self.username.as_ref().map(|v| v.trim().to_string()));
         apply(&mut s.password, &self.password);
-        apply(&mut s.proxy_username, &self.proxy_username);
+        apply(&mut s.proxy_username, &self.proxy_username.as_ref().map(|v| v.trim().to_string()));
         apply(&mut s.proxy_password, &self.proxy_password);
         s
     }
@@ -110,6 +111,8 @@ mod tests {
         let patch = SecretsPatch { api_key: None, password: Some("".into()), username: Some("admin".into()), ..Default::default() };
         let merged = patch.merge(&existing);
         assert_eq!(merged.api_key.as_deref(), Some("old"));
+        let trimmed = SecretsPatch { api_key: Some("  abc123\n".into()), ..Default::default() }.merge(&existing);
+        assert_eq!(trimmed.api_key.as_deref(), Some("abc123"));
         assert_eq!(merged.password, None);
         assert_eq!(merged.username.as_deref(), Some("admin"));
     }

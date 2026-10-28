@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { CalendarDays, Captions, Clapperboard, Download, Home, Search, Settings, Tv } from "lucide-react";
+import { CalendarDays, Captions, Clapperboard, Download, Home, ScrollText, Search, Settings, Tv } from "lucide-react";
 import { t } from "@/i18n/es";
 import { cn } from "@/lib/cn";
 
@@ -43,6 +43,7 @@ export function Sidebar() {
           <Item key={i.to} {...i} />
         ))}
       </div>
+      <Item to="/registro" label={t.nav.logs} icon={ScrollText} />
       <Item to="/ajustes" label={t.nav.settings} icon={Settings} />
     </nav>
   );

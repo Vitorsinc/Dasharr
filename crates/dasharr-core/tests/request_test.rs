@@ -186,3 +186,22 @@ async fn qbit_ok_without_cookie_means_no_session_needed() {
     assert_eq!(c.test().await.unwrap(), "v5.0.0");
     assert_eq!(c.request(ApiRequest::get("/api/v2/app/version")).await.unwrap().status, 200);
 }
+
+#[tokio::test]
+async fn proxy_basic_auth_challenge_is_reported_separately() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/api/system/status"))
+        .respond_with(ResponseTemplate::new(401).insert_header("WWW-Authenticate", "Basic realm=\"npm\""))
+        .mount(&server)
+        .await;
+    let client = ServiceClient::new(
+        ServiceKind::Bazarr,
+        ServiceConfig { local_url: Some(server.uri()), external_url: None, enabled: true },
+        ServiceSecrets { api_key: Some("k".into()), ..Default::default() },
+    );
+    match client.test().await {
+        Err(ApiError::Http { status: 401, message }) => assert!(message.contains("proxy")),
+        other => panic!("esperaba error de proxy, llegó {other:?}"),
+    }
+}
