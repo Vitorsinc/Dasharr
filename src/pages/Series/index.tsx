@@ -79,7 +79,7 @@ export default function SeriesPage() {
         ) : queue.isError ? (
           <ErrorPanel service="sonarr" error={queue.error} onRetry={() => queue.refetch()} />
         ) : (
-          <QueueList records={queue.data ?? []} />
+          <QueueList service="sonarr" records={queue.data ?? []} />
         )
       ) : (
         <>

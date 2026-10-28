@@ -68,6 +68,35 @@ function backend() {
         if (req.path === "/api/v3/rootfolder") return [{ id: 1, path: "/tv" }];
         if (req.path === "/api/v3/languageprofile") throw { kind: "Http", status: 404 };
         if (req.path === "/api/v3/series/lookup") return [{ title: "The Bear", year: 2022, tvdbId: 99 }];
+        if (req.path === "/api/v3/queue")
+          return {
+            records: [
+              {
+                id: 1,
+                title: "Shogun.S01E02.1080p",
+                size: 100,
+                sizeleft: 0,
+                status: "completed",
+                trackedDownloadState: "importPending",
+                trackedDownloadStatus: "warning",
+                statusMessages: [{ title: "Shogun.S01E02.1080p", messages: ["No se reconoce la serie"] }],
+                downloadId: "ABC",
+              },
+            ],
+          };
+        if (req.path === "/api/v3/manualimport")
+          return [
+            {
+              id: 5,
+              path: "/dl/Shogun.S01E02.mkv",
+              relativePath: "Shogun.S01E02.mkv",
+              size: 100,
+              quality: { q: 1 },
+              languages: [],
+              downloadId: "ABC",
+              rejections: [{ reason: "Serie desconocida" }],
+            },
+          ];
         return {};
       },
     },
@@ -117,4 +146,29 @@ test("añadir serie con opción de monitorización", async () => {
     addOptions: { monitor: "future", searchForMissingEpisodes: true },
   });
   expect(post.body.value.languageProfileId).toBeUndefined();
+});
+
+test("importación manual desde la cola asociando serie y episodio con hardlink", async () => {
+  const calls = backend();
+  renderApp("/series");
+  await userEvent.click(await screen.findByRole("tab", { name: "Cola" }));
+  expect(await screen.findByText("No se reconoce la serie")).toBeInTheDocument();
+  await userEvent.click(screen.getByRole("button", { name: /Importar manualmente/ }));
+  const dialog = await screen.findByRole("dialog");
+  expect(await within(dialog).findByText("Serie desconocida")).toBeInTheDocument();
+  expect(calls.find((c) => c.path === "/api/v3/manualimport").query).toEqual([
+    ["downloadId", "ABC"],
+    ["filterExistingFiles", "true"],
+  ]);
+  await userEvent.selectOptions(within(dialog).getByLabelText("Serie"), "7");
+  await userEvent.selectOptions(await within(dialog).findByLabelText("Temporada"), "1");
+  await userEvent.click(within(dialog).getByLabelText("Episodios 2"));
+  await userEvent.click(within(dialog).getByLabelText(/Archivo Shogun/));
+  await userEvent.click(within(dialog).getByRole("button", { name: "Importar 1" }));
+  const post = calls.find((c) => c.method === "POST" && c.path === "/api/v3/command");
+  expect(post.body.value).toMatchObject({
+    name: "ManualImport",
+    importMode: "copy",
+    files: [{ path: "/dl/Shogun.S01E02.mkv", seriesId: 7, seasonNumber: 1, episodeIds: [102], downloadId: "ABC", quality: { q: 1 } }],
+  });
 });

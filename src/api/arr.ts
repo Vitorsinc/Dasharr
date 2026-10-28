@@ -25,6 +25,10 @@ export interface QueueRecord {
   timeleft?: string;
   estimatedCompletionTime?: string;
   downloadClient?: string;
+  downloadId?: string;
+  trackedDownloadStatus?: "ok" | "warning" | "error";
+  statusMessages?: { title?: string; messages?: string[] }[];
+  errorMessage?: string;
   movie?: { title: string; year?: number };
   series?: { title: string };
   episode?: { seasonNumber: number; episodeNumber: number; title: string };
@@ -113,4 +117,63 @@ export function sortReleases(list: Release[], by: ReleaseSort): Release[] {
       // Orden del *arr (ya prioriza calidad y puntuación), con las rechazadas al final.
       return out.sort((a, b) => Number(!!a.rejected) - Number(!!b.rejected));
   }
+}
+
+export interface ManualImportItem {
+  id: number;
+  path: string;
+  relativePath?: string;
+  folderName?: string;
+  name?: string;
+  size: number;
+  seasonNumber?: number;
+  series?: { id: number; title: string };
+  episodes?: { id: number; seasonNumber: number; episodeNumber: number; title: string }[];
+  movie?: { id: number; title: string; year?: number };
+  quality?: unknown;
+  languages?: unknown[];
+  releaseGroup?: string;
+  downloadId?: string;
+  indexerFlags?: number;
+  releaseType?: string;
+  rejections?: (string | { reason?: string })[];
+}
+
+/** "copy" es "Hardlink o copiar" en Sonarr/Radarr: crea un hardlink si el disco lo permite y si no, copia. */
+export type ImportMode = "copy" | "move";
+
+export type ManualImportTarget = { seriesId: number; seasonNumber: number; episodeIds: number[] } | { movieId: number };
+
+export function rejectionText(r: string | { reason?: string }) {
+  return typeof r === "string" ? r : (r.reason ?? "");
+}
+
+export function getManualImport(service: ArrService, downloadId: string) {
+  return apiRequest<ManualImportItem[]>(service, { path: "/api/v3/manualimport", query: { downloadId, filterExistingFiles: true } });
+}
+
+export function runManualImport(
+  service: ArrService,
+  files: { item: ManualImportItem; target: ManualImportTarget }[],
+  importMode: ImportMode,
+) {
+  return apiRequest<unknown>(service, {
+    method: "POST",
+    path: "/api/v3/command",
+    json: {
+      name: "ManualImport",
+      importMode,
+      files: files.map(({ item, target }) => ({
+        path: item.path,
+        folderName: item.folderName,
+        quality: item.quality,
+        languages: item.languages,
+        releaseGroup: item.releaseGroup,
+        downloadId: item.downloadId,
+        indexerFlags: item.indexerFlags ?? 0,
+        releaseType: item.releaseType,
+        ...target,
+      })),
+    },
+  });
 }

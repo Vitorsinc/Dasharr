@@ -72,7 +72,7 @@ export default function MoviesPage() {
         ) : queue.isError ? (
           <ErrorPanel service="radarr" error={queue.error} onRetry={() => queue.refetch()} />
         ) : (
-          <QueueList records={queue.data ?? []} />
+          <QueueList service="radarr" records={queue.data ?? []} />
         )
       ) : (
         <>
