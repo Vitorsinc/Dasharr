@@ -2,6 +2,7 @@ import { NavLink } from "react-router-dom";
 import { CalendarDays, Captions, Clapperboard, Download, Home, ScrollText, Search, Settings, Tv } from "lucide-react";
 import { t } from "@/i18n/es";
 import { cn } from "@/lib/cn";
+import { versionLabel } from "@/lib/version";
 
 const items = [
   { to: "/", label: t.nav.home, icon: Home, end: true },
@@ -45,6 +46,9 @@ export function Sidebar() {
       </div>
       <Item to="/registro" label={t.nav.logs} icon={ScrollText} />
       <Item to="/ajustes" label={t.nav.settings} icon={Settings} />
+      <div className="mt-3 px-3 text-xs text-muted" title={t.app.version}>
+        {versionLabel()}
+      </div>
     </nav>
   );
 }

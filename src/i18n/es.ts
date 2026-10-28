@@ -1,5 +1,5 @@
 export const es = {
-  app: { name: "Dasharr" },
+  app: { name: "Dasharr", version: "Versión de Dasharr" },
   nav: {
     home: "Inicio",
     movies: "Películas",

@@ -19,12 +19,18 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - run: npm ci
+      - name: Comprobar versión y preparar notas
+        id: notes
+        shell: bash
+        run: |
+          node scripts/release-notes.mjs "${{ github.ref_name }}" > notes.md
+          { echo "body<<EOF"; cat notes.md; echo "EOF"; } >> "$GITHUB_OUTPUT"
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tagName: ${{ github.ref_name }}
           releaseName: Dasharr ${{ github.ref_name }}
-          releaseBody: Descarga el instalador `.exe` (recomendado) o `.msi` de abajo.
+          releaseBody: ${{ steps.notes.outputs.body }}
           releaseDraft: false
           prerelease: false
