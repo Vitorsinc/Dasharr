@@ -19,6 +19,14 @@ struct Resolved {
     base: Option<String>,
 }
 
+/// Cookie de sesión de qBittorrent como par `nombre=valor`. Hasta la 4.x se llama `SID`;
+/// desde la 5.x incluye el puerto (`QBT_SID_8080`).
+fn session_cookie(pair: &str) -> Option<String> {
+    let (name, value) = pair.split_once('=')?;
+    let is_session = name == "SID" || name.starts_with("QBT_SID");
+    (is_session && !value.is_empty()).then(|| pair.to_string())
+}
+
 /// Cliente de un servicio concreto: elige dirección local o externa, autentica y hace peticiones.
 pub struct ServiceClient {
     kind: ServiceKind,
@@ -117,7 +125,7 @@ impl ServiceClient {
             .get_all(header::SET_COOKIE)
             .iter()
             .filter_map(|v| v.to_str().ok())
-            .find_map(|c| c.split(';').next()?.trim().strip_prefix("SID=").map(str::to_string));
+            .find_map(|c| session_cookie(c.split(';').next()?.trim()));
         let status = res.status();
         let text = res.text().await.unwrap_or_default();
         if status == StatusCode::FORBIDDEN || status == StatusCode::UNAUTHORIZED || text.trim() == "Fails." {
@@ -126,7 +134,8 @@ impl ServiceClient {
         if !status.is_success() {
             return Err(ApiError::Http { status: status.as_u16(), message: text });
         }
-        let sid = sid.ok_or(ApiError::Unauthorized)?;
+        // Sin cookie pero con "Ok.": qBittorrent no exige sesión (p. ej. red en lista blanca). Se guarda vacía.
+        let sid = sid.unwrap_or_default();
         *self.sid.lock().await = Some(sid.clone());
         Ok(sid)
     }
@@ -146,8 +155,8 @@ impl ServiceClient {
             ServiceKind::Qbittorrent => {
                 let b = b.header(header::REFERER, base);
                 match sid {
-                    Some(s) => b.header(header::COOKIE, format!("SID={s}")),
-                    None => b,
+                    Some(cookie) if !cookie.is_empty() => b.header(header::COOKIE, cookie),
+                    _ => b,
                 }
             }
         };

@@ -163,3 +163,26 @@ async fn qbit_bad_credentials() {
     let c = ServiceClient::new(ServiceKind::Qbittorrent, cfg(&s.uri()), qbit_secrets());
     assert_eq!(c.test().await.unwrap_err(), ApiError::Unauthorized);
 }
+
+#[tokio::test]
+async fn qbit_v5_cookie_name_with_port() {
+    let s = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/api/v2/auth/login"))
+        .respond_with(ResponseTemplate::new(200).set_body_string("Ok.").insert_header("Set-Cookie", "QBT_SID_8080=abc; HttpOnly; SameSite=Strict; path=/"))
+        .mount(&s)
+        .await;
+    Mock::given(path("/api/v2/app/version")).and(header("Cookie", "QBT_SID_8080=abc")).respond_with(ResponseTemplate::new(200).set_body_string("v5.1.2")).mount(&s).await;
+    let c = ServiceClient::new(ServiceKind::Qbittorrent, cfg(&s.uri()), qbit_secrets());
+    assert_eq!(c.test().await.unwrap(), "v5.1.2");
+}
+
+#[tokio::test]
+async fn qbit_ok_without_cookie_means_no_session_needed() {
+    let s = MockServer::start().await;
+    Mock::given(path("/api/v2/auth/login")).respond_with(ResponseTemplate::new(200).set_body_string("Ok.")).expect(1).mount(&s).await;
+    Mock::given(path("/api/v2/app/version")).respond_with(ResponseTemplate::new(200).set_body_string("v5.0.0")).mount(&s).await;
+    let c = ServiceClient::new(ServiceKind::Qbittorrent, cfg(&s.uri()), qbit_secrets());
+    assert_eq!(c.test().await.unwrap(), "v5.0.0");
+    assert_eq!(c.request(ApiRequest::get("/api/v2/app/version")).await.unwrap().status, 200);
+}
