@@ -22,7 +22,7 @@ export default defineConfig({
     port: 1420,
     strictPort: true,
     host: host || false,
-    watch: { ignored: ["**/src-tauri/**", "**/crates/**"] },
+    watch: { ignored: ["**/src-tauri/**", "**/crates/**", "**/target/**"] },
   },
   test: {
     environment: "jsdom",
