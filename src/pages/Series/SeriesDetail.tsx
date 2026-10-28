@@ -1,11 +1,12 @@
 import { useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { ChevronDown, Eye, EyeOff, Search, Trash2 } from "lucide-react";
+import { ChevronDown, Eye, EyeOff, ListFilter, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmDialog, Dialog } from "@/components/Dialog";
 import { Poster } from "@/components/media/PosterCard";
+import { ReleaseSearchDialog } from "@/components/media/ReleaseSearchDialog";
 import { Loading, ProgressBar } from "@/components/ui";
-import { posterUrl } from "@/api/arr";
+import { posterUrl, type ReleaseQuery } from "@/api/arr";
 import { episodeStatus, sonarr, type Episode, type EpisodeStatus, type Series } from "@/api/sonarr";
 import { useEpisodes } from "@/hooks/useArr";
 import { t } from "@/i18n/es";
@@ -24,11 +25,13 @@ function SeasonBlock({
   season,
   episodes,
   run,
+  onManual,
 }: {
   series: Series;
   season: number;
   episodes: Episode[];
   run: (fn: () => Promise<unknown>, ok?: string) => void;
+  onManual: (q: ReleaseQuery, what: string) => void;
 }) {
   const [open, setOpen] = useState(false);
   const have = episodes.filter((e) => e.hasFile).length;
@@ -51,6 +54,14 @@ function SeasonBlock({
           onClick={() => run(() => sonarr.searchSeason(series.id, season), t.library.searchStarted)}
         >
           <Search className="h-4 w-4" />
+        </button>
+        <button
+          className="btn-ghost p-1.5"
+          title={t.releases.manual}
+          aria-label={`${t.releases.manual} ${t.library.season(season)}`}
+          onClick={() => onManual({ seriesId: series.id, seasonNumber: season }, `${series.title} · ${t.library.season(season)}`)}
+        >
+          <ListFilter className="h-4 w-4" />
         </button>
       </div>
       {open && (
@@ -79,6 +90,16 @@ function SeasonBlock({
                 >
                   <Search className="h-4 w-4" />
                 </button>
+                <button
+                  className="btn-ghost p-1"
+                  title={t.releases.manual}
+                  aria-label={`${t.releases.manual} ${e.title}`}
+                  onClick={() =>
+                    onManual({ episodeId: e.id }, `${series.title} · ${e.seasonNumber}x${String(e.episodeNumber).padStart(2, "0")}`)
+                  }
+                >
+                  <ListFilter className="h-4 w-4" />
+                </button>
               </li>
             );
           })}
@@ -91,6 +112,7 @@ function SeasonBlock({
 export function SeriesDetail({ series, onClose }: { series: Series | null; onClose: () => void }) {
   const qc = useQueryClient();
   const [confirm, setConfirm] = useState(false);
+  const [manual, setManual] = useState<{ query: ReleaseQuery; what: string } | null>(null);
   const episodes = useEpisodes(series?.id);
   const seasons = useMemo(() => {
     const map = new Map<number, Episode[]>();
@@ -144,12 +166,20 @@ export function SeriesDetail({ series, onClose }: { series: Series | null; onClo
           ) : (
             <div className="flex flex-col gap-2">
               {seasons.map(([n, eps]) => (
-                <SeasonBlock key={n} series={series} season={n} episodes={eps} run={run} />
+                <SeasonBlock
+                  key={n}
+                  series={series}
+                  season={n}
+                  episodes={eps}
+                  run={run}
+                  onManual={(query, what) => setManual({ query, what })}
+                />
               ))}
             </div>
           )}
         </div>
       </Dialog>
+      <ReleaseSearchDialog service="sonarr" query={manual?.query ?? null} what={manual?.what ?? ""} onClose={() => setManual(null)} />
       <ConfirmDialog
         open={confirm}
         onOpenChange={setConfirm}

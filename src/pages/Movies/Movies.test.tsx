@@ -99,3 +99,59 @@ test("ficha: buscar ahora y borrar con confirmación", async () => {
   expect(del.path).toBe("/api/v3/movie/1");
   expect(del.query).toContainEqual(["deleteFiles", "false"]);
 });
+
+test("búsqueda manual: lista releases y descarga la elegida", async () => {
+  const calls = backend();
+  const releases = [
+    {
+      guid: "a",
+      title: "Dune.2021.1080p.WEB",
+      indexer: "IdxA",
+      indexerId: 7,
+      size: 4 * 1024 ** 3,
+      seeders: 50,
+      leechers: 2,
+      protocol: "torrent",
+      quality: { quality: { name: "WEBDL-1080p" } },
+      customFormatScore: 10,
+      rejected: false,
+    },
+    {
+      guid: "b",
+      title: "Dune.2021.CAM",
+      indexer: "IdxB",
+      indexerId: 8,
+      size: 1024 ** 3,
+      seeders: 500,
+      protocol: "torrent",
+      rejected: true,
+      rejections: ["Calidad no deseada"],
+    },
+  ];
+  const { invoke } = await import("@tauri-apps/api/core");
+  const base = vi.mocked(invoke).getMockImplementation()!;
+  vi.mocked(invoke).mockImplementation(async (cmd: string, args?: any) => {
+    if (cmd === "api_request" && args.service === "radarr" && args.request.path === "/api/v3/release") {
+      calls.push(args.request);
+      return args.request.method === "GET" ? releases : {};
+    }
+    return base(cmd, args);
+  });
+  renderApp("/peliculas");
+  await userEvent.click(await screen.findByRole("button", { name: "Dune" }));
+  await userEvent.click(await screen.findByRole("button", { name: "Búsqueda manual" }));
+  expect(await screen.findByText("Dune.2021.1080p.WEB")).toBeInTheDocument();
+  expect(screen.getByText("2 releases · 1 aceptadas")).toBeInTheDocument();
+  const get = calls.find((c) => c.path === "/api/v3/release" && c.method === "GET");
+  expect(get.query).toEqual([["movieId", "1"]]);
+  await userEvent.click(screen.getByRole("button", { name: "Descargar: Dune.2021.1080p.WEB" }));
+  await vi.waitFor(() =>
+    expect(calls.find((c) => c.path === "/api/v3/release" && c.method === "POST")?.body).toEqual({
+      type: "json",
+      value: { guid: "a", indexerId: 7 },
+    }),
+  );
+  // Las rechazadas piden confirmación antes de descargarse.
+  await userEvent.click(screen.getByRole("button", { name: "Descargar: Dune.2021.CAM" }));
+  expect(await screen.findByText(/Calidad no deseada/)).toBeInTheDocument();
+});

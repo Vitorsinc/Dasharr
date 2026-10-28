@@ -11,7 +11,8 @@ use crate::url::join_url;
 
 const LOCAL_PROBE_TIMEOUT: Duration = Duration::from_millis(1500);
 const REMOTE_PROBE_TIMEOUT: Duration = Duration::from_secs(8);
-const REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
+// La búsqueda manual de releases en Radarr/Sonarr puede tardar más de un minuto.
+const REQUEST_TIMEOUT: Duration = Duration::from_secs(120);
 
 #[derive(Debug, Clone)]
 struct Resolved {

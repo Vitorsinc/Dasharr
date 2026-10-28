@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Eye, EyeOff, Search, Trash2 } from "lucide-react";
+import { Eye, EyeOff, ListFilter, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmDialog, Dialog } from "@/components/Dialog";
 import { Poster } from "@/components/media/PosterCard";
+import { ReleaseSearchDialog } from "@/components/media/ReleaseSearchDialog";
 import { posterUrl } from "@/api/arr";
 import { radarr, type Movie } from "@/api/radarr";
 import { t } from "@/i18n/es";
@@ -23,6 +24,7 @@ function Info({ label, value }: { label: string; value?: React.ReactNode }) {
 export function MovieDetail({ movie, onClose }: { movie: Movie | null; onClose: () => void }) {
   const qc = useQueryClient();
   const [confirm, setConfirm] = useState(false);
+  const [manual, setManual] = useState(false);
   if (!movie) return null;
   const run = async (fn: () => Promise<unknown>, ok?: string) => {
     try {
@@ -65,6 +67,9 @@ export function MovieDetail({ movie, onClose }: { movie: Movie | null; onClose: 
               <button className="btn-primary" onClick={() => run(() => radarr.search([movie.id]), t.library.searchStarted)}>
                 <Search className="h-4 w-4" /> {t.library.searchNow}
               </button>
+              <button className="btn-outline" onClick={() => setManual(true)}>
+                <ListFilter className="h-4 w-4" /> {t.releases.manual}
+              </button>
               <button className="btn-outline" onClick={() => run(() => radarr.setMonitored(movie, !movie.monitored).then(onClose))}>
                 {movie.monitored ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 {movie.monitored ? t.library.monitorOff : t.library.monitorOn}
@@ -76,6 +81,12 @@ export function MovieDetail({ movie, onClose }: { movie: Movie | null; onClose: 
           </div>
         </div>
       </Dialog>
+      <ReleaseSearchDialog
+        service="radarr"
+        query={manual ? { movieId: movie.id } : null}
+        what={movie.title}
+        onClose={() => setManual(false)}
+      />
       <ConfirmDialog
         open={confirm}
         onOpenChange={setConfirm}

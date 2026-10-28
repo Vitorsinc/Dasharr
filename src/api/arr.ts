@@ -63,3 +63,54 @@ export function arrCommon(service: ArrService) {
 export function isoDate(d: Date) {
   return d.toISOString();
 }
+
+export interface Release {
+  guid: string;
+  title: string;
+  indexer: string;
+  indexerId: number;
+  size: number;
+  seeders?: number;
+  leechers?: number;
+  age?: number;
+  ageHours?: number;
+  publishDate?: string;
+  protocol: "torrent" | "usenet";
+  quality?: { quality?: { name?: string } };
+  customFormatScore?: number;
+  rejected?: boolean;
+  rejections?: string[];
+  languages?: { name: string }[];
+  infoUrl?: string;
+}
+
+export type ReleaseQuery = { movieId: number } | { episodeId: number } | { seriesId: number; seasonNumber: number };
+
+/** Búsqueda manual: pide al *arr que consulte sus indexadores ahora mismo para un elemento concreto. */
+export function getReleases(service: ArrService, q: ReleaseQuery) {
+  return apiRequest<Release[]>(service, { path: "/api/v3/release", query: q as Record<string, number> });
+}
+
+/** Descarga una release concreta elegida por el usuario, aunque el *arr la haya rechazado. */
+export function grabRelease(service: ArrService, r: Pick<Release, "guid" | "indexerId">) {
+  return apiRequest<unknown>(service, { method: "POST", path: "/api/v3/release", json: { guid: r.guid, indexerId: r.indexerId } });
+}
+
+export type ReleaseSort = "default" | "seeders" | "size" | "age" | "score";
+
+export function sortReleases(list: Release[], by: ReleaseSort): Release[] {
+  const out = [...list];
+  switch (by) {
+    case "seeders":
+      return out.sort((a, b) => (b.seeders ?? -1) - (a.seeders ?? -1));
+    case "size":
+      return out.sort((a, b) => b.size - a.size);
+    case "age":
+      return out.sort((a, b) => (a.ageHours ?? a.age ?? 0) - (b.ageHours ?? b.age ?? 0));
+    case "score":
+      return out.sort((a, b) => (b.customFormatScore ?? 0) - (a.customFormatScore ?? 0));
+    default:
+      // Orden del *arr (ya prioriza calidad y puntuación), con las rechazadas al final.
+      return out.sort((a, b) => Number(!!a.rejected) - Number(!!b.rejected));
+  }
+}
