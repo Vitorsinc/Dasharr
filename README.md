@@ -26,3 +26,11 @@ Especificación: `docs/superpowers/specs/2026-10-27-dasharr-mvp-design.md`.
 5. Pulsa **Probar conexión** y después **Guardar**.
 
 Dasharr usa la dirección local cuando responde y cambia sola a la externa cuando no. Las API keys y contraseñas se guardan en el Administrador de credenciales de Windows.
+
+## Probar cambios sin reinstalar (modo desarrollo)
+
+Requisitos (una sola vez): `winget install Git.Git OpenJS.NodeJS.LTS Rustlang.Rustup` y las
+herramientas de compilación de C++ (`winget install Microsoft.VisualStudio.2022.BuildTools --override "--quiet --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"`).
+
+Después, doble clic en `scripts\dasharr-dev.bat`: baja los últimos cambios de `feat/mvp` y abre
+Dasharr. Los cambios de pantallas se ven al momento. Usa la misma configuración que la app instalada.
