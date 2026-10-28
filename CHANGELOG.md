@@ -22,6 +22,8 @@ crea la Release con las notas de esta página.
 - Ajustes con dirección local y externa por servicio y cambio automático entre ellas; importación de configuración desde archivo.
 - Registro de errores y eventos con visor en la app (sin API keys ni contraseñas).
 - Versión visible en la barra lateral.
+- Actualización automática: aviso al abrir la app y botón en Ajustes; el instalador se verifica con SHA-256.
+- Script `scripts/dasharr-dev.bat` para probar cambios en modo desarrollo sin reinstalar.
 
 ### Corregido
 - qBittorrent 5.x: se acepta la cookie de sesión `QBT_SID_<puerto>` y el acceso sin sesión.

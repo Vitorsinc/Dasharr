@@ -74,3 +74,14 @@ export const clearLog = () => invoke<void>("clear_log");
 export function writeLog(level: "error" | "warn" | "info", message: string) {
   invoke("write_log", { level, message }).catch(() => {});
 }
+
+export interface UpdateInfo {
+  version: string;
+  notes: string;
+  installerUrl: string;
+  checksumUrl: string | null;
+}
+
+export const checkUpdate = () => invoke<UpdateInfo | null>("check_update");
+export const installUpdate = (u: UpdateInfo) =>
+  invoke<void>("install_update", { installerUrl: u.installerUrl, checksumUrl: u.checksumUrl });

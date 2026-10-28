@@ -3,10 +3,12 @@ import { Toaster } from "sonner";
 import { Sidebar } from "./Sidebar";
 import { useApplyTheme } from "@/hooks/usePrefs";
 import { useDownloadNotifications } from "@/hooks/useDownloadNotifications";
+import { useUpdateCheck } from "@/hooks/useUpdates";
 
 export function Layout() {
   useApplyTheme();
   useDownloadNotifications();
+  useUpdateCheck();
   return (
     <div className="flex h-full">
       <Sidebar />

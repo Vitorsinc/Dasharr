@@ -12,7 +12,9 @@ import { useConnectionStates } from "@/hooks/useConnectionStates";
 import { usePrefs, type Theme } from "@/hooks/usePrefs";
 import { ServiceForm } from "./ServiceForm";
 import { parseConfigFile } from "@/lib/importConfig";
-import { saveService } from "@/lib/tauri";
+import { checkUpdate, saveService } from "@/lib/tauri";
+import { notifyUpdate } from "@/hooks/useUpdates";
+import { versionLabel } from "@/lib/version";
 import { errorMessage } from "@/lib/errors";
 import { settingsKey } from "@/hooks/useSettings";
 
@@ -102,6 +104,34 @@ function Preferences() {
   );
 }
 
+function Updates() {
+  const [state, setState] = useState<"idle" | "checking" | "latest">("idle");
+  async function check() {
+    setState("checking");
+    try {
+      const u = await checkUpdate();
+      if (u) {
+        setState("idle");
+        notifyUpdate(u);
+      } else setState("latest");
+    } catch (e) {
+      setState("idle");
+      toast.error(errorMessage(e));
+    }
+  }
+  return (
+    <section className="card flex items-center justify-between gap-4 p-4">
+      <div className="text-sm">
+        Dasharr {versionLabel()}
+        {state === "latest" && <span className="ml-3 text-muted">{t.updates.upToDate}</span>}
+      </div>
+      <button className="btn-outline" onClick={check} disabled={state === "checking"}>
+        {state === "checking" ? t.updates.checking : t.updates.check}
+      </button>
+    </section>
+  );
+}
+
 export default function SettingsPage() {
   const { data, isLoading } = useSettings();
   const { data: routes } = useConnectionStates();
@@ -120,6 +150,8 @@ export default function SettingsPage() {
         )}
         <h2 className="mt-4 text-lg font-semibold">{t.settings.preferences}</h2>
         <Preferences />
+        <h2 className="mt-4 text-lg font-semibold">{t.updates.title}</h2>
+        <Updates />
       </div>
     </Page>
   );

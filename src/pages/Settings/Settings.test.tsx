@@ -85,3 +85,10 @@ test("importa la configuración desde un archivo JSON", async () => {
   const sonarr = await screen.findByRole("region", { name: "Sonarr" });
   expect(await within(sonarr).findByDisplayValue("http://h:8989")).toBeInTheDocument();
 });
+
+test("buscar actualizaciones avisa si ya está al día", async () => {
+  mockBackend({ commands: { check_update: () => null } });
+  renderApp("/ajustes");
+  await userEvent.click(await screen.findByRole("button", { name: "Buscar actualizaciones" }));
+  expect(await screen.findByText("Tienes la última versión")).toBeInTheDocument();
+});

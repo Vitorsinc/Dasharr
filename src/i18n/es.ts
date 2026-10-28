@@ -184,6 +184,16 @@ export const es = {
     confirmRejectedTitle: "Descargar una release rechazada",
     confirmRejected: (reasons: string) => `El *arr la rechazó por: ${reasons}. ¿Descargarla igualmente?`,
   },
+  updates: {
+    title: "Actualizaciones",
+    check: "Buscar actualizaciones",
+    checking: "Buscando…",
+    upToDate: "Tienes la última versión",
+    available: (v: string) => `Hay una versión nueva de Dasharr: v${v}`,
+    install: "Actualizar",
+    installing: (v: string) => `Descargando Dasharr v${v}… la app se reiniciará sola`,
+    failed: (msg: string) => `No se pudo actualizar: ${msg}`,
+  },
   manualImport: {
     action: "Importar manualmente",
     title: (what: string) => `Importar · ${what}`,

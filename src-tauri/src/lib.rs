@@ -3,6 +3,7 @@ mod images;
 mod logs;
 mod settings;
 mod state;
+mod updater;
 
 use std::time::Duration;
 
@@ -31,6 +32,8 @@ pub fn run() {
             logs::read_log,
             logs::clear_log,
             logs::write_log,
+            updater::check_update,
+            updater::install_update,
         ])
         .setup(|app| {
             log::info!("Dasharr {} iniciado", app.package_info().version);

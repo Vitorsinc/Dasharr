@@ -26,6 +26,7 @@ jobs:
           node scripts/release-notes.mjs "${{ github.ref_name }}" > notes.md
           { echo "body<<EOF"; cat notes.md; echo "EOF"; } >> "$GITHUB_OUTPUT"
       - uses: tauri-apps/tauri-action@v0
+        id: tauri
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -34,3 +35,11 @@ jobs:
           releaseBody: ${{ steps.notes.outputs.body }}
           releaseDraft: false
           prerelease: false
+      - name: Publicar la suma SHA-256 del instalador (la usa la actualización automática)
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          exe=$(ls src-tauri/target/release/bundle/nsis/*-setup.exe)
+          sha256sum "$exe" | cut -d' ' -f1 > "$exe.sha256"
+          gh release upload "${{ github.ref_name }}" "$exe.sha256" --clobber
