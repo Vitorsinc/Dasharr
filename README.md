@@ -17,6 +17,11 @@ cargo test -p dasharr-core   # pruebas del núcleo de red
 
 Especificación: `docs/superpowers/specs/2026-10-27-dasharr-mvp-design.md`.
 
+### Ramas
+
+- `dev`: aquí llegan todos los cambios (cada uno con su PR contra `dev`) y aquí se prueban.
+- `master`: solo lo revisado y aprobado, mediante un PR `dev → master`. Las versiones (`vX.Y.Z`) se etiquetan siempre en `master`.
+
 ## Primeros pasos
 
 1. Abre **Ajustes**.
@@ -32,5 +37,5 @@ Dasharr usa la dirección local cuando responde y cambia sola a la externa cuand
 Requisitos (una sola vez): `winget install Git.Git OpenJS.NodeJS.LTS Rustlang.Rustup` y las
 herramientas de compilación de C++ (`winget install Microsoft.VisualStudio.2022.BuildTools --override "--quiet --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"`).
 
-Después, doble clic en `scripts\dasharr-dev.bat`: baja los últimos cambios de `feat/mvp` y abre
+Después, doble clic en `scripts\dasharr-dev.bat`: baja los últimos cambios de `dev` y abre
 Dasharr. Los cambios de pantallas se ven al momento. Usa la misma configuración que la app instalada.

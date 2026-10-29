@@ -1,6 +1,7 @@
 //! Núcleo de red de Dasharr: resolución local/remota, autenticación y peticiones.
 mod client;
 mod error;
+pub mod filmaffinity;
 mod model;
 pub mod plex;
 mod registry;

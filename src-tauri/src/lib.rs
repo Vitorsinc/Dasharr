@@ -1,4 +1,5 @@
 mod commands;
+mod filmaffinity;
 mod images;
 mod logs;
 mod settings;
@@ -39,12 +40,19 @@ pub fn run() {
             logs::write_log,
             updater::check_update,
             updater::install_update,
+            filmaffinity::filmaffinity_ratings,
+            filmaffinity::filmaffinity_rating,
         ])
         .setup(|app| {
             log::info!("Dasharr {} iniciado", app.package_info().version);
             let handle = app.handle().clone();
             // Los clientes se crean antes de abrir la ventana para que las primeras peticiones no fallen como "no configurado".
             tauri::async_runtime::block_on(handle.state::<AppState>().load(&handle));
+            tauri::async_runtime::block_on(handle.state::<AppState>().filmaffinity.load(&handle));
+            let fa_handle = handle.clone();
+            tauri::async_runtime::spawn(async move {
+                fa_handle.state::<AppState>().filmaffinity.run_worker(fa_handle.clone()).await;
+            });
             tauri::async_runtime::spawn(async move {
                 let state = handle.state::<AppState>();
                 state.probe_all(&handle, true).await;

@@ -25,6 +25,7 @@ crea la Release con las notas de esta página.
 - Registro de errores y eventos con visor en la app (sin API keys ni contraseñas).
 - Versión visible en la barra lateral.
 - Actualización automática: aviso al abrir la app y botón en Ajustes; el instalador se verifica con SHA-256.
+- Nota de FilmAffinity en las fichas (al momento, con enlace) y sobre los pósters de Películas y Series (se va rellenando poco a poco y se guarda una semana).
 - Script `scripts/dasharr-dev.bat` para probar cambios en modo desarrollo sin reinstalar.
 - Cola de Sonarr/Radarr: quitar una descarga (y opcionalmente bloquear la release) y "Descargar ya" para las retrasadas.
 - La importación manual avisa de si termina bien o falla, en vez de solo "iniciada".

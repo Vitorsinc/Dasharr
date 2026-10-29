@@ -12,6 +12,7 @@ thiserror = { workspace = true }
 url = { workspace = true }
 base64 = { workspace = true }
 log = "0.4"
+scraper = "0.20"
 
 [dev-dependencies]
 wiremock = "0.6"
