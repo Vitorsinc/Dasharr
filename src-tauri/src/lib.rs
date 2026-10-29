@@ -2,6 +2,7 @@ mod commands;
 mod filmaffinity;
 mod images;
 mod logs;
+mod nyaa;
 mod settings;
 mod state;
 mod updater;
@@ -44,6 +45,7 @@ pub fn run() {
             updater::install_update,
             filmaffinity::filmaffinity_ratings,
             filmaffinity::filmaffinity_rating,
+            nyaa::nyaa_subtitles,
         ])
         .setup(|app| {
             log::info!("Dasharr {} iniciado", app.package_info().version);
