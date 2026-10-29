@@ -18,8 +18,8 @@ function diskName(d: Disk) {
 function DiskRow({ disk }: { disk: Disk }) {
   const u = used(disk);
   return (
-    <div className="flex flex-col gap-1 px-3 py-2" title={disk.paths.join(", ")}>
-      <div className="flex items-baseline justify-between gap-3 text-xs">
+    <div className="flex flex-col gap-1 px-2 py-1.5" title={disk.paths.join(", ")}>
+      <div className="flex items-baseline justify-between gap-2 text-xs">
         <span className="truncate font-medium">{diskName(disk)}</span>
         <span className="shrink-0 tabular-nums text-muted">
           {disk.total ? `${formatBytes(disk.free)} / ${formatBytes(disk.total)}` : t.disk.freeOnly(formatBytes(disk.free))}
@@ -68,7 +68,7 @@ export function DiskIndicator() {
         <span className="tabular-nums">{t.disk.freeOnly(formatBytes(main.free))}</span>
       </button>
       {open && (
-        <div className="card absolute right-0 top-full z-50 mt-1 w-60 py-1 shadow-lg" role="dialog" aria-label={t.disk.title}>
+        <div className="card absolute inset-x-0 top-full z-50 mt-1 py-1 shadow-lg" role="dialog" aria-label={t.disk.title}>
           {disks.map((d) => (
             <DiskRow key={d.paths[0] ?? d.sources.join()} disk={d} />
           ))}
