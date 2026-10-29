@@ -4,7 +4,7 @@ import { isSystemDisk, type Disk } from "@/api/diskspace";
 import { useDiskSpace } from "@/hooks/useDiskSpace";
 import { ProgressBar } from "@/components/ui";
 import { t } from "@/i18n/es";
-import { formatBytes, formatPercent } from "@/lib/format";
+import { formatBytes } from "@/lib/format";
 import { cn } from "@/lib/cn";
 
 const used = (d: Disk) => (d.total ? 1 - d.free / d.total : undefined);
@@ -17,20 +17,15 @@ function diskName(d: Disk) {
 
 function DiskRow({ disk }: { disk: Disk }) {
   const u = used(disk);
-  const rest = disk.paths.slice(1);
   return (
-    <div className="flex flex-col gap-1.5 px-4 py-3">
-      <div className="flex items-baseline justify-between gap-3">
-        <span className="truncate text-sm font-medium" title={disk.paths.join(", ")}>
-          {diskName(disk)}
+    <div className="flex flex-col gap-1 px-3 py-2" title={disk.paths.join(", ")}>
+      <div className="flex items-baseline justify-between gap-3 text-xs">
+        <span className="truncate font-medium">{diskName(disk)}</span>
+        <span className="shrink-0 tabular-nums text-muted">
+          {disk.total ? `${formatBytes(disk.free)} / ${formatBytes(disk.total)}` : t.disk.freeOnly(formatBytes(disk.free))}
         </span>
-        {u != null && <span className="shrink-0 text-xs tabular-nums text-muted">{t.disk.used(formatPercent(u))}</span>}
       </div>
-      {u != null && <ProgressBar value={u} tone={tone(u)} />}
-      <div className="text-xs tabular-nums text-muted">
-        {disk.total ? t.disk.free(formatBytes(disk.free), formatBytes(disk.total)) : t.disk.freeOnly(formatBytes(disk.free))}
-      </div>
-      {rest.length > 0 && <div className="truncate text-xs text-muted">{t.disk.alsoAt(rest.join(", "))}</div>}
+      {u != null && <ProgressBar value={u} tone={tone(u)} className="h-1" />}
     </div>
   );
 }
@@ -73,12 +68,7 @@ export function DiskIndicator() {
         <span className="tabular-nums">{t.disk.freeOnly(formatBytes(main.free))}</span>
       </button>
       {open && (
-        <div
-          className="card absolute right-0 top-full z-50 mt-1 w-80 divide-y divide-border shadow-lg"
-          role="dialog"
-          aria-label={t.disk.title}
-        >
-          <div className="px-4 py-2.5 text-sm font-semibold">{t.disk.title}</div>
+        <div className="card absolute right-0 top-full z-50 mt-1 w-60 py-1 shadow-lg" role="dialog" aria-label={t.disk.title}>
           {disks.map((d) => (
             <DiskRow key={d.paths[0] ?? d.sources.join()} disk={d} />
           ))}

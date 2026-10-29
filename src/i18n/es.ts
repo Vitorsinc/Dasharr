@@ -257,12 +257,9 @@ export const es = {
   },
   disk: {
     title: "Espacio en disco",
-    free: (free: string, total: string) => `${free} libres de ${total}`,
     freeOnly: (free: string) => `${free} libres`,
-    used: (pct: string) => `${pct} usado`,
     downloads: "Disco de descargas (qBittorrent)",
     system: "Sistema",
-    alsoAt: (paths: string) => `También: ${paths}`,
   },
   search: {
     placeholder: "¿Qué quieres buscar?",

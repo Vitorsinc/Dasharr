@@ -52,7 +52,6 @@ test("Inicio: tarjetas de servicio, descargas activas y próximos estrenos; un s
   expect(within(disk).getByText("1 TB libres")).toBeInTheDocument();
   await userEvent.click(disk);
   const panel = screen.getByRole("dialog", { name: "Espacio en disco" });
-  expect(within(panel).getByText("1 TB libres de 4 TB")).toBeInTheDocument();
-  expect(within(panel).getByText("75 % usado")).toBeInTheDocument();
+  expect(within(panel).getByText("1 TB / 4 TB")).toBeInTheDocument();
   expect(within(panel).getByText("Sistema (/)")).toBeInTheDocument();
 });
