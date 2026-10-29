@@ -389,7 +389,7 @@ En Dasharr: comando Tauri `unit3d_stats` (`src-tauri/src/commands.rs`) con la l�
 `crates/dasharr-core/src/unit3d.rs`. El token no llega a la interfaz; la página Trackers refresca cada
 30 min o con el botón. Solo trackers de Prowlarr (decisión de Vitor, 2026-10-29), sin alta manual.
 
-## 10. Funciones añadidas el 29/10/2026 (endpoints)
+## 12. Funciones añadidas el 29/10/2026 (endpoints)
 
 Comprobado en el código de Radarr, Sonarr, Prowlarr, Bazarr y qBittorrent (develop/master de ese día).
 
