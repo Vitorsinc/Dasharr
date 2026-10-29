@@ -229,7 +229,7 @@ fn is_sub_label(s: &str) -> bool {
 /// Cada elemento de una lista: el nombre completo vale siempre; los códigos (ENG, es-LA) solo si el
 /// elemento es corto, para no confundir «it» o «de» de una frase con italiano o alemán.
 fn list_langs(value: &str) -> Vec<String> {
-    let value = value.replace(" and ", ",").replace(" y ", ",");
+    let value = strip_markup(value).replace(" and ", ",").replace(" y ", ",");
     value
         .split(|c| ",/|+;&".contains(c))
         // «Subtitles: English | Audio: Japanese»: lo que va tras otra etiqueta ya no son subtítulos.
@@ -247,6 +247,44 @@ fn list_langs(value: &str) -> Vec<String> {
             codes
         })
         .collect()
+}
+
+/// Quita lo que no es texto y tiene «:» o «/»: banderas como imagen (`![fr](https://…)`, `<img …>`),
+/// emojis en código (`:flag_fr:`) y enlaces sueltos. Si no, «Subtitle(s): 🇫🇷 French / ASS» se cortaría.
+fn strip_markup(s: &str) -> String {
+    let mut out = String::new();
+    let mut rest = s;
+    while let Some(c) = rest.chars().next() {
+        let skip = if c == '<' {
+            rest.find('>').map(|i| i + 1)
+        } else if rest.starts_with("![") || c == '[' {
+            // Imagen o enlace markdown: se queda el texto del enlace, nunca la URL.
+            rest.find("](").and_then(|i| rest[i..].find(')').map(|j| (i, i + j + 1))).map(|(i, end)| {
+                if c == '[' {
+                    out.push_str(&rest[1..i]);
+                }
+                end
+            })
+        } else if c == ':' {
+            let name = rest[1..].find(':').map(|j| &rest[1..1 + j]);
+            name.filter(|n| !n.is_empty() && n.chars().all(|c| c.is_ascii_alphanumeric() || "_+-".contains(c))).map(|n| n.len() + 2)
+        } else if rest.starts_with("http://") || rest.starts_with("https://") {
+            Some(rest.find(char::is_whitespace).unwrap_or(rest.len()))
+        } else {
+            None
+        };
+        match skip {
+            Some(n) => {
+                out.push(' ');
+                rest = &rest[n..];
+            }
+            None => {
+                out.push(c);
+                rest = &rest[c.len_utf8()..];
+            }
+        }
+    }
+    out
 }
 
 /// Archivos de subtítulos sueltos: códigos al final del nombre (`.spa.ass`, `_eng.srt`) y nombres de idioma
@@ -484,6 +522,34 @@ mod tests {
         // Igual con la lista en HTML y una línea en blanco tras la etiqueta.
         let d = "<li><code>Subtitles Info:</code><br>\n\n<b>Spanish</b> (CR_Spanish) | ASS<br><b>French</b> (CR_French) | ASS</li>\n\nChapters: Yes";
         assert_eq!(languages(&page(d, &[])), vec!["es", "fr"]);
+    }
+
+    #[test]
+    fn reads_tsundere_raws_subtitles_with_flags() {
+        let line = |flags: [&str; 3]| {
+            format!(
+                "**Dragon Ball Super: Beerus - S01E01**\n\n---\n\n\
+* **Video:** 4 825 kb/s / 1080p (1920x1080) / 23.976 (24000/1001) FPS / x264 (High@L4.1)\n\
+* **Audio(s):** {jp} Japanese / AAC 2.0 / 229 kb/s / 44.1 kHz\n\
+* **Subtitle(s):** {} French (France) / ASS | {} German (Germany) / ASS | {} Polish (Poland) / ASS\n\
+* **Duration:** 0:23:17.688\n* **Others:** [CRC32](https://tsundere.to/x) | [Mediainfo](https://tsundere.to/y)",
+                flags[0],
+                flags[1],
+                flags[2],
+                jp = flags[0]
+            )
+        };
+        let expected = vec!["fr", "de", "pl"];
+        assert_eq!(languages(&page(&line(["🇫🇷", "🇩🇪", "🇵🇱"]), &[])), expected);
+        assert_eq!(languages(&page(&line([":flag_fr:", ":flag_de:", ":flag_pl:"]), &[])), expected);
+        assert_eq!(
+            languages(&page(&line(["![fr](https://flagcdn.com/16x12/fr.png)", "![de](https://flagcdn.com/16x12/de.png)", "![pl](https://flagcdn.com/16x12/pl.png)"]), &[])),
+            expected
+        );
+        assert_eq!(
+            languages(&page(&line(["<img src=\"https://flagcdn.com/fr.png\">", "<img src=\"https://flagcdn.com/de.png\">", "<img src=\"https://flagcdn.com/pl.png\">"]), &[])),
+            expected
+        );
     }
 
     #[test]
