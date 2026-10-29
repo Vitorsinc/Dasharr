@@ -296,6 +296,8 @@ export const es = {
     noActive: "No hay descargas activas.",
     seeAll: "Ver todo",
     version: (v: string) => `v${v.replace(/^v/, "")}`,
+    notConfigured: "Sin configurar",
+    setUpInSettings: "Añádelo en Ajustes",
     nowPlaying: "Reproduciendo ahora",
     recentlyAdded: "Añadido recientemente a Plex",
   },
