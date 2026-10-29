@@ -1,4 +1,5 @@
 import { screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { mockBackend, renderApp } from "@/test/utils";
 
 test("Inicio: tarjetas de servicio, descargas activas y próximos estrenos; un servicio caído solo afecta a su tarjeta", async () => {
@@ -45,7 +46,13 @@ test("Inicio: tarjetas de servicio, descargas activas y próximos estrenos; un s
   expect(screen.queryByText("Activo 5")).not.toBeInTheDocument();
   expect(screen.queryByText("Sembrando")).not.toBeInTheDocument();
   expect(await screen.findByRole("button", { name: "Estreno" })).toBeInTheDocument();
-  expect(screen.getByText("1 TB libres de 4 TB")).toBeInTheDocument();
-  expect(screen.getByText("75 % usado")).toBeInTheDocument();
-  expect(screen.getByText("Sistema (/)")).toBeInTheDocument();
+
+  // Espacio en disco: pequeño arriba a la derecha (el disco de contenido); al pulsarlo, todos los discos.
+  const disk = await screen.findByRole("button", { name: "Espacio en disco" });
+  expect(within(disk).getByText("1 TB libres")).toBeInTheDocument();
+  await userEvent.click(disk);
+  const panel = screen.getByRole("dialog", { name: "Espacio en disco" });
+  expect(within(panel).getByText("1 TB libres de 4 TB")).toBeInTheDocument();
+  expect(within(panel).getByText("75 % usado")).toBeInTheDocument();
+  expect(within(panel).getByText("Sistema (/)")).toBeInTheDocument();
 });
