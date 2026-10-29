@@ -11,7 +11,7 @@ export function StatusBadge({ route }: { route: Route | null | undefined }) {
     unknown: "bg-surface-2 text-muted",
   }[key];
   return (
-    <span className={cn("chip", style)}>
+    <span className={cn("chip shrink-0 whitespace-nowrap", style)}>
       <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden />
       {t.route[key]}
     </span>
