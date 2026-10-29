@@ -30,7 +30,7 @@ test("muestra las estadísticas y los trackers sin API", async () => {
   mockBackend({ commands: { unit3d_stats: () => stats } });
   renderApp("/trackers");
   const card = await screen.findByRole("article", { name: "Aither (API)" });
-  expect(card).toHaveTextContent("vitor · Power User");
+  expect(card).toHaveTextContent("Power User");
   expect(card).toHaveTextContent("2,5");
   expect(card).toHaveTextContent("1,3 TB");
   expect(card).toHaveTextContent("-3 GB");
