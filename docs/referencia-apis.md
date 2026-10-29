@@ -245,8 +245,8 @@ a otros usuarios: eso solo está en la web (sesión con cookie), y Dasharr no de
 - Límite: **30 peticiones por minuto por usuario** (`RouteServiceProvider`, `GlobalRateLimit::API`),
   compartido con las búsquedas de Prowlarr. Refrescar las estadísticas como mucho cada 15–30 min y
   bajo demanda, nunca en bucle.
-- Las peticiones salen desde el PC de Dasharr (Rust/reqwest, no hay CORS). Ojo: algunos trackers
-  limitan la API por IP o la bloquean si no viene del seedbox.
+- Las peticiones salen desde el PC de Dasharr (Rust/reqwest, no hay CORS). Un tracker modificado
+  podría limitar la API por IP o por grupo; eso no está en el código oficial, se ve con la prueba de abajo.
 
 ### Cómo detectar si un tracker lo permite
 
