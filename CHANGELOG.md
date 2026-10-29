@@ -25,6 +25,10 @@ crea la Release con las notas de esta página.
 - Series: monitorizar o dejar de monitorizar una temporada entera de un clic, ver la calidad y el tamaño del archivo de cada episodio y borrarlo, y botones para actualizar, reescanear la carpeta y renombrar (con vista previa).
 - Descargas (qBittorrent): control de torrents, añadir por enlace o archivo y aviso de Windows al terminar.
 - Buscar en los indexadores de Prowlarr y enviar a qBittorrent.
+- Descargas: ficha de cada torrent (pulsa su nombre) con datos generales, archivos para elegir cuáles bajar y con qué prioridad, trackers y pares. Cambiar la categoría y limitar la velocidad de uno o de varios seleccionados a la vez.
+- Indexadores (Prowlarr): nueva sección con el estado de cada indexador (funciona, falla, en pausa por fallos), activar o desactivar y probar uno o todos, con el motivo si falla.
+- Subtítulos (Bazarr): búsqueda manual que lista los subtítulos de cada proveedor con su puntuación para elegir cuál bajar, e historial de lo descargado.
+- Inicio: avisos de salud de Radarr, Sonarr, Prowlarr y Bazarr (lo que cada uno enseña en System → Status), también en Indexadores para Prowlarr.
 - Subtítulos que faltan (Bazarr) y búsqueda por idioma.
 - Trackers: ratio, subido, bajado, buffer, seed, bonus y H&R de los trackers UNIT3D que tienes en Prowlarr, sin meter claves nuevas.
 - Calendario semanal y mensual de estrenos y emisiones.
