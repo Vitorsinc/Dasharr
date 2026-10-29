@@ -1,0 +1,109 @@
+import { convertFileSrc, invoke } from "@tauri-apps/api/core";
+import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { openUrl } from "@tauri-apps/plugin-opener";
+import type { ApiError, FilePart, Route, SecretsPatch, ServiceConfig, ServiceKind, ServiceSettingsView } from "./types";
+
+export interface ApiCall {
+  method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
+  path: string;
+  query?: Record<string, string | number | boolean | undefined | null | (string | number)[]>;
+  json?: unknown;
+  form?: Record<string, string>;
+  files?: FilePart[];
+  /** Fuerza multipart/form-data aunque no haya archivos (qBittorrent /torrents/add). */
+  multipart?: boolean;
+}
+
+type ApiBody =
+  | { type: "json"; value: unknown }
+  | { type: "form"; value: [string, string][] }
+  | { type: "multipart"; value: { fields: [string, string][]; files: FilePart[] } };
+
+function toBody(call: ApiCall): ApiBody | null {
+  if (call.multipart || call.files?.length)
+    return { type: "multipart", value: { fields: Object.entries(call.form ?? {}), files: call.files ?? [] } };
+  if (call.form) return { type: "form", value: Object.entries(call.form) };
+  if (call.json !== undefined) return { type: "json", value: call.json };
+  return null;
+}
+
+function toQuery(q: ApiCall["query"]): [string, string][] {
+  return Object.entries(q ?? {}).flatMap(([k, v]): [string, string][] => {
+    if (v === undefined || v === null) return [];
+    if (Array.isArray(v)) return v.map((x) => [k, String(x)]);
+    return [[k, String(v)]];
+  });
+}
+
+export async function apiRequest<T>(service: ServiceKind, call: ApiCall): Promise<T> {
+  const request = { method: call.method ?? "GET", path: call.path, query: toQuery(call.query), body: toBody(call) };
+  return (await invoke<T>("api_request", { service, request })) as T;
+}
+
+export type FetchedTorrent = { type: "file"; value: string } | { type: "magnet"; value: string };
+
+/** Descarga con el cliente autenticado un enlace del servicio (el `downloadUrl` de Prowlarr). */
+export const fetchTorrent = (service: ServiceKind, url: string) => invoke<FetchedTorrent>("fetch_torrent", { service, url });
+
+export const getSettings = () => invoke<Record<ServiceKind, ServiceSettingsView>>("get_settings");
+
+export const saveService = (service: ServiceKind, config: ServiceConfig, secrets: SecretsPatch) =>
+  invoke<void>("save_service", { service, config, secrets });
+
+export const testService = (service: ServiceKind, config: ServiceConfig, secrets: SecretsPatch) =>
+  invoke<string>("test_service", { service, config, secrets });
+
+export type RouteMap = Record<ServiceKind, Route | null>;
+export const getConnectionStates = () => invoke<RouteMap>("get_connection_states");
+export const refreshConnections = () => invoke<RouteMap>("refresh_connections");
+
+export function onConnectionChanged(cb: (routes: RouteMap) => void): Promise<UnlistenFn> {
+  return listen<RouteMap>("connection-changed", (e) => cb(e.payload));
+}
+
+/** URL para cargar una imagen autenticada a través del protocolo propio. */
+export function imageUrl(service: ServiceKind, path: string): string {
+  return convertFileSrc(`${service}${path.startsWith("/") ? path : `/${path}`}`, "dasharr-img");
+}
+
+export type { ApiError };
+
+/** Abre un enlace en el navegador predeterminado. */
+export const openExternal = (url: string) => openUrl(url);
+
+export interface PlexServerChoice {
+  id: string;
+  name: string;
+  owned: boolean;
+  localUrl: string | null;
+  externalUrl: string | null;
+}
+
+export const plexLoginStart = () => invoke<{ pinId: number; url: string }>("plex_login_start");
+/** `null` mientras el usuario no haya aceptado en la web de Plex. */
+export const plexLoginCheck = (pinId: number) => invoke<PlexServerChoice[] | null>("plex_login_check", { pinId });
+export const plexLoginFinish = (serverId: string, config: ServiceConfig) => invoke<void>("plex_login_finish", { serverId, config });
+
+export interface LogFile {
+  path: string;
+  lines: string[];
+}
+
+export const readLog = () => invoke<LogFile>("read_log");
+export const clearLog = () => invoke<void>("clear_log");
+
+/** Deja constancia en el registro de un error de la interfaz. Nunca falla. */
+export function writeLog(level: "error" | "warn" | "info", message: string) {
+  invoke("write_log", { level, message }).catch(() => {});
+}
+
+export interface UpdateInfo {
+  version: string;
+  notes: string;
+  installerUrl: string;
+  checksumUrl: string | null;
+}
+
+export const checkUpdate = () => invoke<UpdateInfo | null>("check_update");
+export const installUpdate = (u: UpdateInfo) =>
+  invoke<void>("install_update", { installerUrl: u.installerUrl, checksumUrl: u.checksumUrl });

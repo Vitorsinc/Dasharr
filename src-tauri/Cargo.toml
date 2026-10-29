@@ -1,0 +1,35 @@
+[package]
+name = "dasharr"
+version = "0.1.0"
+description = "Dashboard de escritorio para Radarr, Sonarr, Prowlarr, Bazarr, qBittorrent y Plex"
+edition = "2021"
+
+[lib]
+name = "dasharr_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+dasharr-core = { path = "../crates/dasharr-core" }
+tauri = { version = "2", features = [] }
+tauri-plugin-store = "2"
+tauri-plugin-notification = "2"
+tauri-plugin-opener = "2"
+tauri-plugin-autostart = "2"
+tauri-plugin-log = "2"
+log = "0.4"
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+base64 = { workspace = true }
+percent-encoding = "2"
+reqwest = { workspace = true }
+sha2 = "0.10"
+
+[target.'cfg(windows)'.dependencies]
+keyring = { version = "3", features = ["windows-native"] }
+
+[target.'cfg(not(windows))'.dependencies]
+keyring = { version = "3" }

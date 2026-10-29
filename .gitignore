@@ -1,0 +1,9 @@
+node_modules/
+dist/
+target/
+.superpowers/
+src-tauri/gen/schemas/
+*.log
+coverage/
+*.tsbuildinfo
+dasharr-config*.json
