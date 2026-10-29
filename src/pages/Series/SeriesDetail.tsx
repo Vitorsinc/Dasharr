@@ -7,12 +7,13 @@ import { Poster } from "@/components/media/PosterCard";
 import { ReleaseSearchDialog } from "@/components/media/ReleaseSearchDialog";
 import { Loading, ProgressBar } from "@/components/ui";
 import { posterUrl, type ReleaseQuery } from "@/api/arr";
-import { episodeStatus, sonarr, type Episode, type EpisodeStatus, type Series } from "@/api/sonarr";
+import { episodeStatus, sonarr, type Episode, type EpisodeStatus, type Series, type SeriesType } from "@/api/sonarr";
 import { useEpisodes } from "@/hooks/useArr";
 import { t } from "@/i18n/es";
 import { errorMessage } from "@/lib/errors";
 import { formatBytes, formatDate } from "@/lib/format";
 import { cn } from "@/lib/cn";
+import { seriesTypeLabel } from "@/lib/anime";
 
 const epStyle: Record<EpisodeStatus, { cls: string; label: string }> = {
   downloaded: { cls: "bg-success/15 text-success", label: t.library.epDownloaded },
@@ -146,6 +147,23 @@ export function SeriesDetail({ series, onClose }: { series: Series | null; onClo
                 {st?.sizeOnDisk ? <span>{formatBytes(st.sizeOnDisk)}</span> : null}
                 <span>{series.monitored ? t.library.monitoredLabel : t.library.unmonitoredLabel}</span>
               </div>
+              <label className="flex items-center gap-2 text-sm">
+                <span className="text-muted">{t.library.seriesType}</span>
+                <select
+                  className="input w-auto py-1"
+                  value={series.seriesType ?? "standard"}
+                  onChange={(e) => {
+                    const type = e.target.value as SeriesType;
+                    run(() => sonarr.setSeriesType(series, type), t.library.typeChanged(series.title, seriesTypeLabel[type]));
+                  }}
+                >
+                  {(Object.keys(seriesTypeLabel) as SeriesType[]).map((v) => (
+                    <option key={v} value={v}>
+                      {seriesTypeLabel[v]}
+                    </option>
+                  ))}
+                </select>
+              </label>
               {series.overview && <p className="line-clamp-5 text-sm leading-relaxed text-muted">{series.overview}</p>}
               <div className="mt-auto flex flex-wrap gap-2">
                 <button className="btn-primary" onClick={() => run(() => sonarr.searchSeries(series.id), t.library.searchStarted)}>

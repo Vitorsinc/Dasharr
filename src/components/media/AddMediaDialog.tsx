@@ -16,6 +16,8 @@ export interface LookupItem {
   overview?: string;
   poster?: string;
   exists: boolean;
+  /** Etiqueta junto al título, p. ej. "Anime". */
+  tag?: string;
 }
 
 export interface AddOptions {
@@ -34,6 +36,8 @@ export function AddMediaDialog<T>({
   profiles,
   rootFolders,
   extra,
+  preset,
+  onPick,
   onAdd,
 }: {
   open: boolean;
@@ -44,6 +48,9 @@ export function AddMediaDialog<T>({
   profiles: QualityProfile[];
   rootFolders: RootFolder[];
   extra?: ReactNode;
+  /** Perfil y carpeta a preseleccionar; se aplican al elegir un resultado y cada vez que cambian. */
+  preset?: Partial<Pick<AddOptions, "qualityProfileId" | "rootFolderPath">>;
+  onPick?: (r: T) => void;
   onAdd: (r: T, o: AddOptions) => Promise<void>;
 }) {
   const [term, setTerm] = useState("");
@@ -59,6 +66,13 @@ export function AddMediaDialog<T>({
     if (profileId === "" && profiles[0]) setProfileId(profiles[0].id);
     if (!root && rootFolders[0]) setRoot(rootFolders[0].path);
   }, [profiles, rootFolders, profileId, root]);
+
+  const presetProfile = preset?.qualityProfileId;
+  const presetRoot = preset?.rootFolderPath;
+  useEffect(() => {
+    if (presetProfile != null) setProfileId(presetProfile);
+    if (presetRoot) setRoot(presetRoot);
+  }, [picked, presetProfile, presetRoot]);
 
   useEffect(() => {
     if (!open) {
@@ -126,13 +140,17 @@ export function AddMediaDialog<T>({
                 <button
                   key={it.key}
                   disabled={it.exists}
-                  onClick={() => setPicked(r)}
+                  onClick={() => {
+                    onPick?.(r);
+                    setPicked(r);
+                  }}
                   className="flex gap-3 rounded-lg p-2 text-left hover:bg-surface-2 disabled:opacity-50"
                 >
                   <Poster src={it.poster} title={it.title} className="w-14 shrink-0" />
                   <div className="min-w-0">
                     <div className="font-medium">
                       {it.title} {it.year ? <span className="text-muted">({it.year})</span> : null}
+                      {it.tag && <span className="chip ml-2 bg-accent/15 text-accent">{it.tag}</span>}
                     </div>
                     {it.exists && <div className="text-xs text-success">{t.library.alreadyAdded}</div>}
                     <p className="mt-1 line-clamp-2 text-xs text-muted">{it.overview}</p>

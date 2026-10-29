@@ -17,6 +17,8 @@ import { notifyUpdate } from "@/hooks/useUpdates";
 import { versionLabel } from "@/lib/version";
 import { errorMessage } from "@/lib/errors";
 import { settingsKey } from "@/hooks/useSettings";
+import { useSonarrMeta } from "@/hooks/useArr";
+import { defaultsFor, type SeriesKind } from "@/lib/anime";
 
 function readText(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -104,6 +106,67 @@ function Preferences() {
   );
 }
 
+function SeriesDefaults() {
+  const meta = useSonarrMeta();
+  const [prefs, setPrefs] = usePrefs();
+  const roots = meta.roots.data ?? [];
+  const profiles = meta.profiles.data ?? [];
+  if (meta.roots.configured === false)
+    return <section className="card p-4 text-sm text-muted">{t.settings.seriesDefaultsNeedSonarr}</section>;
+  if (meta.roots.isLoading || meta.profiles.isLoading) return <Loading />;
+  if (!roots.length || !profiles.length) return null;
+  const set = (kind: SeriesKind, patch: { rootFolderPath?: string; qualityProfileId?: number }) =>
+    setPrefs({
+      seriesDefaults: {
+        ...prefs.seriesDefaults,
+        [kind]: { ...defaultsFor(kind, roots, profiles, prefs.seriesDefaults[kind]), ...patch },
+      },
+    });
+  return (
+    <section className="card divide-y divide-border" aria-label={t.settings.seriesDefaults}>
+      {(["series", "anime"] as const).map((kind) => {
+        const d = defaultsFor(kind, roots, profiles, prefs.seriesDefaults[kind]);
+        const name = kind === "anime" ? t.nav.anime : t.nav.series;
+        return (
+          <div key={kind} className="flex flex-wrap items-center gap-4 p-4">
+            <span className="w-20 text-sm font-medium">{name}</span>
+            <label className="flex-1">
+              <span className="label">{t.library.rootFolder}</span>
+              <select
+                className="input"
+                aria-label={`${t.library.rootFolder} ${name}`}
+                value={d.rootFolderPath}
+                onChange={(e) => set(kind, { rootFolderPath: e.target.value })}
+              >
+                {roots.map((r) => (
+                  <option key={r.id} value={r.path}>
+                    {r.path}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex-1">
+              <span className="label">{t.library.qualityProfile}</span>
+              <select
+                className="input"
+                aria-label={`${t.library.qualityProfile} ${name}`}
+                value={d.qualityProfileId}
+                onChange={(e) => set(kind, { qualityProfileId: Number(e.target.value) })}
+              >
+                {profiles.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+        );
+      })}
+    </section>
+  );
+}
+
 function Updates() {
   const [state, setState] = useState<"idle" | "checking" | "latest">("idle");
   async function check() {
@@ -148,6 +211,11 @@ export default function SettingsPage() {
         ) : (
           SERVICE_KINDS.map((s) => <ServiceForm key={`${s}-${generation}`} service={s} view={data?.[s]} route={routes?.[s]} />)
         )}
+        <div className="mt-4">
+          <h2 className="text-lg font-semibold">{t.settings.seriesDefaults}</h2>
+          <p className="text-sm text-muted">{t.settings.seriesDefaultsHint}</p>
+        </div>
+        <SeriesDefaults />
         <h2 className="mt-4 text-lg font-semibold">{t.settings.preferences}</h2>
         <Preferences />
         <h2 className="mt-4 text-lg font-semibold">{t.updates.title}</h2>

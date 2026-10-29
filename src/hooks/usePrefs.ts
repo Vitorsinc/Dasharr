@@ -1,13 +1,20 @@
 import { useCallback, useEffect, useSyncExternalStore } from "react";
+import type { SeriesKind } from "@/lib/anime";
 
 export type Theme = "dark" | "light" | "system";
+export interface LibraryDefaults {
+  rootFolderPath?: string;
+  qualityProfileId?: number;
+}
 export interface Prefs {
   theme: Theme;
   notifications: boolean;
+  /** Carpeta y perfil de Sonarr con los que se añaden series y anime. */
+  seriesDefaults: Partial<Record<SeriesKind, LibraryDefaults>>;
 }
 
 const KEY = "dasharr.prefs";
-const DEFAULTS: Prefs = { theme: "dark", notifications: true };
+const DEFAULTS: Prefs = { theme: "dark", notifications: true, seriesDefaults: {} };
 const listeners = new Set<() => void>();
 let cache: Prefs | null = null;
 
