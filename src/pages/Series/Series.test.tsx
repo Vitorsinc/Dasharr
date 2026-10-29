@@ -84,6 +84,8 @@ function backend() {
               },
             ],
           };
+        if (req.path === "/api/v3/command" && req.method === "POST") return { id: 9, status: "queued" };
+        if (req.path === "/api/v3/command/9") return { id: 9, status: "completed", result: "successful" };
         if (req.path === "/api/v3/manualimport")
           return [
             {
@@ -171,4 +173,39 @@ test("importación manual desde la cola asociando serie y episodio con hardlink"
     importMode: "copy",
     files: [{ path: "/dl/Shogun.S01E02.mkv", seriesId: 7, seasonNumber: 1, episodeIds: [102], downloadId: "ABC", quality: { q: 1 } }],
   });
+});
+
+test("la importación manual avisa cuando Sonarr termina", async () => {
+  const calls = backend();
+  renderApp("/series");
+  await userEvent.click(await screen.findByRole("tab", { name: "Cola" }));
+  await userEvent.click(await screen.findByRole("button", { name: /Importar manualmente/ }));
+  const dialog = await screen.findByRole("dialog");
+  await userEvent.selectOptions(await within(dialog).findByLabelText("Serie"), "7");
+  await userEvent.selectOptions(await within(dialog).findByLabelText("Temporada"), "1");
+  await userEvent.click(within(dialog).getByLabelText("Episodios 2"));
+  await userEvent.click(within(dialog).getByLabelText(/Archivo Shogun/));
+  await userEvent.click(within(dialog).getByRole("button", { name: "Importar 1" }));
+  expect(await screen.findByText("Importación terminada")).toBeInTheDocument();
+  expect(calls.some((c) => c.path === "/api/v3/command/9")).toBe(true);
+});
+
+test("quitar de la cola con bloqueo de la release", async () => {
+  const calls = backend();
+  renderApp("/series");
+  await userEvent.click(await screen.findByRole("tab", { name: "Cola" }));
+  await userEvent.click(await screen.findByRole("button", { name: /Quitar de la cola:/ }));
+  const dialog = await screen.findByRole("dialog");
+  await userEvent.click(within(dialog).getByLabelText(/Bloquear esta release/));
+  await userEvent.click(within(dialog).getByRole("button", { name: "Quitar de la cola" }));
+  const del = await vi.waitFor(() => {
+    const c = calls.find((c) => c.method === "DELETE" && c.path === "/api/v3/queue/1");
+    if (!c) throw new Error("sin DELETE");
+    return c;
+  });
+  expect(del.query).toEqual([
+    ["removeFromClient", "true"],
+    ["blocklist", "true"],
+    ["skipRedownload", "false"],
+  ]);
 });

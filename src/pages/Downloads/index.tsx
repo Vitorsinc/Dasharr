@@ -265,6 +265,11 @@ function TorrentRow({
             {t.downloads.seeds}: {tr.num_seeds}
           </span>
         </div>
+        {group === "error" && tr.error && (
+          <div className="mt-0.5 truncate text-xs text-danger" title={tr.error}>
+            {tr.error}
+          </div>
+        )}
       </td>
       <td className="px-3 py-2.5 tabular-nums text-muted">{formatBytes(tr.size)}</td>
       <td className="px-3 py-2.5">

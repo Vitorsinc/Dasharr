@@ -1,4 +1,5 @@
-import { apiRequest } from "@/lib/tauri";
+import { apiRequest, fetchTorrent } from "@/lib/tauri";
+import { qbit } from "./qbit";
 
 export interface Indexer {
   id: number;
@@ -38,6 +39,19 @@ export function sortResults(list: SearchResult[], by: ResultSort): SearchResult[
 export function torrentLink(r: SearchResult): string | undefined {
   if (r.protocol !== "torrent") return undefined;
   return r.magnetUrl || r.downloadUrl;
+}
+
+/**
+ * Envía un resultado a qBittorrent. El magnet va tal cual; el `downloadUrl` es un enlace al propio Prowlarr construido
+ * con la dirección que usa Dasharr (quizá la externa, con proxy), así que Dasharr baja el .torrent y lo sube como archivo.
+ */
+export async function sendToQbit(r: SearchResult, category?: string) {
+  if (r.magnetUrl) return qbit.addUrls([r.magnetUrl], category);
+  if (!r.downloadUrl) throw new Error("Este resultado no tiene enlace de descarga");
+  const got = await fetchTorrent("prowlarr", r.downloadUrl);
+  if (got.type === "magnet") return qbit.addUrls([got.value], category);
+  const name = `${r.title.replace(/[\\/:*?"<>|]/g, "_").slice(0, 150)}.torrent`;
+  return qbit.addFile({ field: "torrents", filename: name, base64: got.value }, category);
 }
 
 export const prowlarr = {

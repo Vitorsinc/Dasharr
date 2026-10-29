@@ -1,4 +1,4 @@
-use dasharr_core::{ApiBody, ApiError, ApiRequest, ServiceClient, ServiceConfig, ServiceKind, ServiceSecrets};
+use dasharr_core::{ApiBody, ApiError, ApiRequest, FetchedTorrent, ServiceClient, ServiceConfig, ServiceKind, ServiceSecrets};
 use serde_json::json;
 use wiremock::matchers::{body_string, header, header_exists, method, path, query_param};
 use wiremock::{Mock, MockServer, ResponseTemplate};
@@ -248,4 +248,42 @@ async fn proxy_basic_auth_not_sent_to_local_address() {
     let secrets = ServiceSecrets { api_key: Some("k".into()), proxy_username: Some("u".into()), proxy_password: Some("p".into()), ..Default::default() };
     let client = ServiceClient::new(ServiceKind::Radarr, cfg(&server.uri()), secrets);
     assert_eq!(client.test().await.unwrap(), "5.0");
+}
+
+#[tokio::test]
+async fn fetch_torrent_downloads_file_through_authenticated_client() {
+    let s = MockServer::start().await;
+    ping_ok(&s).await;
+    Mock::given(path("/prowlarr/1/download"))
+        .and(query_param("link", "abc"))
+        .and(header("X-Api-Key", "k"))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(b"d8:announce3:urle".to_vec()))
+        .mount(&s)
+        .await;
+    let c = ServiceClient::new(ServiceKind::Prowlarr, cfg(&format!("{}/prowlarr", s.uri())), key("k"));
+    let link = format!("{}/prowlarr/1/download?apikey=k&link=abc", s.uri());
+    assert_eq!(c.fetch_torrent(&link).await.unwrap(), FetchedTorrent::File("ZDg6YW5ub3VuY2UzOnVybGU=".into()));
+}
+
+#[tokio::test]
+async fn fetch_torrent_returns_magnet_redirect() {
+    let s = MockServer::start().await;
+    ping_ok(&s).await;
+    Mock::given(path("/1/download"))
+        .respond_with(ResponseTemplate::new(301).insert_header("Location", "magnet:?xt=urn:btih:abc"))
+        .mount(&s)
+        .await;
+    let c = ServiceClient::new(ServiceKind::Prowlarr, cfg(&s.uri()), key("k"));
+    let r = c.fetch_torrent(&format!("{}/1/download?link=x", s.uri())).await.unwrap();
+    assert_eq!(r, FetchedTorrent::Magnet("magnet:?xt=urn:btih:abc".into()));
+}
+
+#[tokio::test]
+async fn fetch_torrent_rejects_foreign_links_and_html() {
+    let s = MockServer::start().await;
+    ping_ok(&s).await;
+    Mock::given(path("/1/download")).respond_with(ResponseTemplate::new(200).set_body_string("<html>error</html>")).mount(&s).await;
+    let c = ServiceClient::new(ServiceKind::Prowlarr, cfg(&s.uri()), key("k"));
+    assert!(matches!(c.fetch_torrent("http://otro.example/1/download").await, Err(ApiError::Http { status: 400, .. })));
+    assert!(matches!(c.fetch_torrent(&format!("{}/1/download", s.uri())).await, Err(ApiError::Http { .. })));
 }

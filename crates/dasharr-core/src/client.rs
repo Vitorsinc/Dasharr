@@ -6,7 +6,7 @@ use serde_json::Value;
 use tokio::sync::Mutex;
 
 use crate::error::ApiError;
-use crate::model::{ApiBody, ApiRequest, ApiResponse, Route, ServiceConfig, ServiceKind, ServiceSecrets};
+use crate::model::{ApiBody, ApiRequest, ApiResponse, FetchedTorrent, Route, ServiceConfig, ServiceKind, ServiceSecrets};
 use crate::url::join_url;
 
 const LOCAL_PROBE_TIMEOUT: Duration = Duration::from_millis(1500);
@@ -43,6 +43,14 @@ impl ServiceClient {
         let http = reqwest::Client::builder()
             .timeout(REQUEST_TIMEOUT)
             .user_agent(concat!("Dasharr/", env!("CARGO_PKG_VERSION")))
+            // Prowlarr redirige a un `magnet:` cuando el indexador no tiene .torrent: no se sigue, se lee la cabecera Location.
+            .redirect(reqwest::redirect::Policy::custom(|a| {
+                if matches!(a.url().scheme(), "http" | "https") && a.previous().len() < 10 {
+                    a.follow()
+                } else {
+                    a.stop()
+                }
+            }))
             .build()
             .expect("cliente HTTP");
         ServiceClient { kind, config, secrets, http, resolved: Mutex::new(None), sid: Mutex::new(None) }
@@ -298,6 +306,58 @@ impl ServiceClient {
         }
         let bytes = res.bytes().await.map_err(ApiError::network)?;
         Ok((bytes.to_vec(), ctype))
+    }
+
+    /// Ruta relativa (sin la base) de un enlace absoluto que apunta a este servicio, como el `downloadUrl` de Prowlarr.
+    /// Prowlarr lo construye con la dirección por la que se le llamó, que puede ser la local o la externa.
+    fn relative_link(&self, link: &url::Url, base: &str) -> Option<String> {
+        let bases = [self.config.local(), self.config.external(), Some(base)];
+        bases.into_iter().flatten().find_map(|b| {
+            let b = join_url(b, "").ok()?;
+            let prefix = b.path().trim_end_matches('/');
+            let same_host = b.host_str() == link.host_str() && b.port_or_known_default() == link.port_or_known_default();
+            let rest = link.path().strip_prefix(prefix)?;
+            (same_host && (rest.is_empty() || rest.starts_with('/'))).then(|| rest.to_string())
+        })
+    }
+
+    /// Descarga un enlace del propio servicio con el cliente autenticado (proxy incluido), para entregar a qBittorrent
+    /// el .torrent en vez de un enlace al que quizá no llega. Si el servicio redirige a un magnet, devuelve el magnet.
+    pub async fn fetch_torrent(&self, link: &str) -> Result<FetchedTorrent, ApiError> {
+        let parsed = url::Url::parse(link).map_err(|e| ApiError::network(format!("enlace no válido: {e}")))?;
+        let base = self.base(false).await?;
+        let path = self
+            .relative_link(&parsed, &base)
+            .ok_or_else(|| ApiError::Http { status: 400, message: "el enlace no apunta a este servicio".into() })?;
+        let req = ApiRequest {
+            method: "GET".into(),
+            path,
+            query: parsed.query_pairs().map(|(k, v)| (k.into_owned(), v.into_owned())).collect(),
+            body: None,
+        };
+        let res = self.send(&req).await?;
+        let status = res.status();
+        if status.is_redirection() {
+            let location = res.headers().get(header::LOCATION).and_then(|v| v.to_str().ok()).unwrap_or_default();
+            if location.starts_with("magnet:") {
+                return Ok(FetchedTorrent::Magnet(location.to_string()));
+            }
+            return Err(ApiError::Http { status: status.as_u16(), message: "redirección inesperada al descargar el torrent".into() });
+        }
+        let headers = res.headers().clone();
+        let bytes = res.bytes().await.map_err(ApiError::network)?;
+        if !status.is_success() {
+            Self::check_status(status, &headers, &String::from_utf8_lossy(&bytes))?;
+        }
+        let text = String::from_utf8_lossy(&bytes[..bytes.len().min(2048)]);
+        if text.trim_start().starts_with("magnet:") {
+            return Ok(FetchedTorrent::Magnet(text.trim().to_string()));
+        }
+        // Un .torrent es un diccionario bencode: empieza por "d". Si no, es una página de error del indexador.
+        if bytes.first() != Some(&b'd') {
+            return Err(ApiError::Http { status: status.as_u16(), message: "el indexador no ha devuelto un archivo .torrent".into() });
+        }
+        Ok(FetchedTorrent::File(base64::engine::general_purpose::STANDARD.encode(&bytes)))
     }
 
     /// Comprueba credenciales y devuelve la versión del servicio.

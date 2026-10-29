@@ -27,6 +27,7 @@ pub fn run() {
             commands::save_service,
             commands::test_service,
             commands::api_request,
+            commands::fetch_torrent,
             commands::get_connection_states,
             commands::refresh_connections,
             logs::read_log,

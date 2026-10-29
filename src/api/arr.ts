@@ -36,6 +36,30 @@ export interface QueueRecord {
 
 export type ArrService = Extract<ServiceKind, "radarr" | "sonarr">;
 
+export interface CommandStatus {
+  id: number;
+  name?: string;
+  status: "queued" | "started" | "completed" | "failed" | "aborted" | "cancelled" | "orphaned";
+  result?: "unknown" | "successful" | "unsuccessful";
+  message?: string;
+}
+
+const FINISHED = new Set(["completed", "failed", "aborted", "cancelled", "orphaned"]);
+
+/** Los comandos del *arr son asíncronos: consulta `command/{id}` hasta que termina (o se agota el tiempo). */
+export async function waitForCommand(service: ArrService, id: number, { intervalMs = 2000, timeoutMs = 10 * 60_000 } = {}) {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    const c = await apiRequest<CommandStatus>(service, { path: `/api/v3/command/${id}` });
+    if (FINISHED.has(c.status) || Date.now() > deadline) return c;
+    await new Promise((r) => setTimeout(r, intervalMs));
+  }
+}
+
+export function commandSucceeded(c: CommandStatus) {
+  return c.status === "completed" && c.result !== "unsuccessful";
+}
+
 /** Póster: la URL pública (TMDB/TVDB) si existe; si no, la imagen local a través del protocolo autenticado. */
 export function posterUrl(service: ArrService, item: { id?: number; images?: ArrImage[] }, size = 500): string | undefined {
   const img = item.images?.find((i) => i.coverType === "poster");
@@ -49,6 +73,15 @@ export function arrCommon(service: ArrService) {
     getQualityProfiles: () => apiRequest<QualityProfile[]>(service, { path: "/api/v3/qualityprofile" }),
     getRootFolders: () => apiRequest<RootFolder[]>(service, { path: "/api/v3/rootfolder" }),
     command: (body: Record<string, unknown>) => apiRequest<unknown>(service, { method: "POST", path: "/api/v3/command", json: body }),
+    /** Quita un elemento de la cola. `blocklist` evita que el *arr vuelva a bajar esa release. */
+    removeFromQueue: (id: number, o: { removeFromClient: boolean; blocklist: boolean }) =>
+      apiRequest<unknown>(service, {
+        method: "DELETE",
+        path: `/api/v3/queue/${id}`,
+        query: { removeFromClient: o.removeFromClient, blocklist: o.blocklist, skipRedownload: false },
+      }),
+    /** Descarga ya un elemento retrasado por el perfil de retraso. */
+    grabQueueItem: (id: number) => apiRequest<unknown>(service, { method: "POST", path: `/api/v3/queue/grab/${id}` }),
     getQueue: async () =>
       (
         await apiRequest<{ records: QueueRecord[] }>(service, {
@@ -157,7 +190,7 @@ export function runManualImport(
   files: { item: ManualImportItem; target: ManualImportTarget }[],
   importMode: ImportMode,
 ) {
-  return apiRequest<unknown>(service, {
+  return apiRequest<CommandStatus>(service, {
     method: "POST",
     path: "/api/v3/command",
     json: {
