@@ -21,6 +21,13 @@ import { cn } from "@/lib/cn";
 import { useItemDetail } from "@/pages/Calendar";
 import { NowWatching } from "@/components/NowWatching";
 import { RecentlyAdded } from "@/components/plex/RecentlyAdded";
+import radarrLogo from "@/assets/services/radarr.svg";
+import sonarrLogo from "@/assets/services/sonarr.svg";
+import prowlarrLogo from "@/assets/services/prowlarr.svg";
+import bazarrLogo from "@/assets/services/bazarr.svg";
+import qbittorrentLogo from "@/assets/services/qbittorrent.svg";
+import tracearrLogo from "@/assets/services/tracearr.svg";
+import plexLogo from "@/assets/services/plex.svg";
 
 const servicePage: Record<ServiceKind, string> = {
   radarr: "/peliculas",
@@ -30,6 +37,16 @@ const servicePage: Record<ServiceKind, string> = {
   qbittorrent: "/descargas",
   tracearr: "/historial",
   plex: "/plex",
+};
+
+const serviceLogo: Record<ServiceKind, string> = {
+  radarr: radarrLogo,
+  sonarr: sonarrLogo,
+  prowlarr: prowlarrLogo,
+  bazarr: bazarrLogo,
+  qbittorrent: qbittorrentLogo,
+  tracearr: tracearrLogo,
+  plex: plexLogo,
 };
 
 function ServiceCard({ service, route }: { service: ServiceKind; route: Parameters<typeof StatusBadge>[0]["route"] }) {
@@ -49,11 +66,22 @@ function ServiceCard({ service, route }: { service: ServiceKind; route: Paramete
     <Link
       to={notConfigured ? "/ajustes" : servicePage[service]}
       className={cn(
-        "card flex min-w-0 flex-col items-start gap-2 p-4 transition-colors hover:bg-surface-2",
+        "card group relative isolate flex min-w-0 flex-col items-start gap-2 overflow-hidden p-4 transition-colors hover:bg-surface-2",
         notConfigured && "border-dashed bg-transparent",
       )}
       aria-label={name}
     >
+      {/* Logo grande de marca de agua, recortado por la esquina inferior derecha. */}
+      <img
+        src={serviceLogo[service]}
+        alt=""
+        aria-hidden
+        draggable={false}
+        className={cn(
+          "pointer-events-none absolute -bottom-6 -right-6 -z-10 h-20 w-20 select-none transition-opacity",
+          notConfigured ? "opacity-10 grayscale" : "opacity-45 group-hover:opacity-70",
+        )}
+      />
       <span className={cn("w-full truncate font-semibold", notConfigured && "text-muted")} title={name}>
         {name}
       </span>
