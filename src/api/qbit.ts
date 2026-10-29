@@ -1,4 +1,5 @@
 import { apiRequest } from "@/lib/tauri";
+import { t } from "@/i18n/es";
 import { isApiError, type FilePart } from "@/lib/types";
 
 export interface Torrent {
@@ -17,6 +18,8 @@ export interface Torrent {
   added_on: number;
   completion_on: number;
   amount_left: number;
+  /** Motivo del error (qBittorrent 5.3+). */
+  error?: string;
 }
 
 export interface TransferInfo {
@@ -81,6 +84,32 @@ async function postWithFallback(path: string, legacy: string, form: Record<strin
   }
 }
 
+/** Error cuando qBittorrent rechaza todos los torrents de un `torrents/add`. */
+export class AddRejectedError extends Error {}
+
+/**
+ * `torrents/add` responde "Ok."/"Fails." hasta la 5.1 y JSON con `failure_count` desde la 5.2 (y 409 si fallan todos).
+ * Sin comprobarlo, un "Fails." con código 200 parecería un éxito.
+ */
+async function checkAdded(call: Promise<unknown>) {
+  let res: unknown;
+  try {
+    res = await call;
+  } catch (e) {
+    if (isApiError(e) && e.kind === "Http" && e.status === 409) throw new AddRejectedError(t.downloads.addRejected);
+    throw e;
+  }
+  const failed =
+    (typeof res === "string" && res.trim() === "Fails.") ||
+    (typeof res === "object" &&
+      res !== null &&
+      Number((res as { failure_count?: unknown }).failure_count) > 0 &&
+      !Number((res as { success_count?: unknown }).success_count) &&
+      !Number((res as { pending_count?: unknown }).pending_count));
+  if (failed) throw new AddRejectedError(t.downloads.addRejected);
+  return res;
+}
+
 export const qbit = {
   getTorrents: () => apiRequest<Torrent[]>("qbittorrent", { path: "/api/v2/torrents/info", query: { sort: "added_on", reverse: true } }),
   getServerState: async () =>
@@ -95,17 +124,21 @@ export const qbit = {
     post("/api/v2/torrents/delete", { hashes: join(hashes), deleteFiles: String(deleteFiles) }),
   toggleAltSpeed: () => post("/api/v2/transfer/toggleSpeedLimitsMode", {}),
   addUrls: (urls: string[], category?: string) =>
-    apiRequest<unknown>("qbittorrent", {
-      method: "POST",
-      path: "/api/v2/torrents/add",
-      multipart: true,
-      form: { urls: urls.join("\n"), ...(category ? { category } : {}) },
-    }),
+    checkAdded(
+      apiRequest<unknown>("qbittorrent", {
+        method: "POST",
+        path: "/api/v2/torrents/add",
+        multipart: true,
+        form: { urls: urls.join("\n"), ...(category ? { category } : {}) },
+      }),
+    ),
   addFile: (file: FilePart, category?: string) =>
-    apiRequest<unknown>("qbittorrent", {
-      method: "POST",
-      path: "/api/v2/torrents/add",
-      form: category ? { category } : {},
-      files: [{ ...file, field: "torrents" }],
-    }),
+    checkAdded(
+      apiRequest<unknown>("qbittorrent", {
+        method: "POST",
+        path: "/api/v2/torrents/add",
+        form: category ? { category } : {},
+        files: [{ ...file, field: "torrents" }],
+      }),
+    ),
 };

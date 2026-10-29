@@ -75,3 +75,29 @@ test("busca con categoría y envía a qBittorrent el magnet o el enlace", async 
   expect(qbitPosts[0].body).toEqual({ type: "multipart", value: { fields: [["urls", "magnet:?xt=1"]], files: [] } });
   expect(screen.getByRole("button", { name: "Enviar a qBittorrent: Dune NZB" })).toBeDisabled();
 });
+
+test("sin magnet, Dasharr descarga el .torrent de Prowlarr y lo sube como archivo", async () => {
+  const qbitPosts: any[] = [];
+  const fetched: any[] = [];
+  mockBackend({
+    commands: {
+      fetch_torrent: (args) => {
+        fetched.push(args);
+        return { type: "file", value: "ZDQ6dGVzdGU=" };
+      },
+    },
+    api: {
+      prowlarr: (req) => (req.path === "/api/v1/indexer" ? [] : results),
+      qbittorrent: (req) => {
+        if (req.method === "POST") qbitPosts.push(req);
+        return req.path === "/api/v2/torrents/categories" ? {} : "Ok.";
+      },
+    },
+  });
+  renderApp("/buscar");
+  await userEvent.type(await screen.findByRole("textbox", { name: "¿Qué quieres buscar?" }), "dune");
+  await userEvent.click(screen.getByRole("button", { name: "Buscar" }));
+  await userEvent.click(await screen.findByRole("button", { name: "Enviar a qBittorrent: Dune 1080p" }));
+  expect(fetched[0]).toEqual({ service: "prowlarr", url: "http://prowlarr/dl/2" });
+  expect(qbitPosts[0].body.value.files).toEqual([{ field: "torrents", filename: "Dune 1080p.torrent", base64: "ZDQ6dGVzdGU=" }]);
+});

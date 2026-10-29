@@ -5,8 +5,7 @@ import { Page } from "@/components/Page";
 import { ErrorPanel, NotConfigured } from "@/components/ErrorPanel";
 import { Empty, Loading, Segmented, Spinner } from "@/components/ui";
 import { t } from "@/i18n/es";
-import { prowlarr, sortResults, torrentLink, type ResultSort, type SearchCategory, type SearchResult } from "@/api/prowlarr";
-import { qbit } from "@/api/qbit";
+import { prowlarr, sendToQbit, sortResults, torrentLink, type ResultSort, type SearchCategory, type SearchResult } from "@/api/prowlarr";
 import { useServiceQuery, REFRESH } from "@/hooks/useServiceQuery";
 import { useCategories } from "@/hooks/useTorrents";
 import { errorMessage } from "@/lib/errors";
@@ -42,11 +41,10 @@ export default function SearchPage() {
   }
 
   async function send(r: SearchResult) {
-    const link = torrentLink(r);
-    if (!link) return;
+    if (!torrentLink(r)) return;
     setSending(r.guid);
     try {
-      await qbit.addUrls([link], qbCategory || undefined);
+      await sendToQbit(r, qbCategory || undefined);
       toast.success(t.search.sent);
     } catch (err) {
       toast.error(errorMessage(err));

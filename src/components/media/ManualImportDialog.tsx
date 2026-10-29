@@ -6,6 +6,7 @@ import { Dialog } from "@/components/Dialog";
 import { ErrorPanel } from "@/components/ErrorPanel";
 import { Empty, Spinner } from "@/components/ui";
 import {
+  commandSucceeded,
   getManualImport,
   rejectionText,
   runManualImport,
@@ -13,6 +14,7 @@ import {
   type ImportMode,
   type ManualImportItem,
   type ManualImportTarget,
+  waitForCommand,
 } from "@/api/arr";
 import { useEpisodes, useMovies, useSeries } from "@/hooks/useArr";
 import { t } from "@/i18n/es";
@@ -174,14 +176,27 @@ export function ManualImportDialog({
   async function submit() {
     setBusy(true);
     try {
-      await runManualImport(
+      const cmd = await runManualImport(
         service,
         chosen.map((r) => ({ item: r.item, target: targetOf(service, r)! })),
         mode,
       );
-      toast.success(t.manualImport.started);
-      void qc.invalidateQueries({ queryKey: [service] });
+      const id = toast.loading(t.manualImport.started);
       onClose();
+      // Se sigue el comando en segundo plano para avisar de cómo acaba.
+      if (cmd?.id != null) {
+        waitForCommand(service, cmd.id)
+          .then((c) => {
+            if (commandSucceeded(c)) toast.success(t.manualImport.done, { id });
+            else if (c.status === "queued" || c.status === "started") toast.message(t.manualImport.stillRunning, { id });
+            else toast.error(t.manualImport.failed(c.message), { id });
+          })
+          .catch((e) => toast.error(t.manualImport.failed(errorMessage(e, service)), { id }))
+          .finally(() => void qc.invalidateQueries({ queryKey: [service] }));
+      } else {
+        toast.success(t.manualImport.started, { id });
+        void qc.invalidateQueries({ queryKey: [service] });
+      }
     } catch (e) {
       toast.error(errorMessage(e));
     } finally {

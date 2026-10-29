@@ -24,6 +24,9 @@ crea la Release con las notas de esta página.
 - Versión visible en la barra lateral.
 - Actualización automática: aviso al abrir la app y botón en Ajustes; el instalador se verifica con SHA-256.
 - Script `scripts/dasharr-dev.bat` para probar cambios en modo desarrollo sin reinstalar.
+- Cola de Sonarr/Radarr: quitar una descarga (y opcionalmente bloquear la release) y "Descargar ya" para las retrasadas.
+- La importación manual avisa de si termina bien o falla, en vez de solo "iniciada".
+- Descargas: se muestra el motivo de un torrent en error (qBittorrent 5.3+).
 
 ### Corregido
 - qBittorrent 5.x: se acepta la cookie de sesión `QBT_SID_<puerto>` y el acceso sin sesión.
@@ -33,3 +36,6 @@ crea la Release con las notas de esta página.
 - El usuario y la contraseña del proxy solo se envían a la dirección externa.
 - qBittorrent 5.2+: API key opcional en lugar de usuario y contraseña.
 - Al descargar una release caducada se pide repetir la búsqueda.
+- Buscar (Prowlarr): sin enlace magnet, Dasharr descarga el .torrent y se lo entrega a qBittorrent, en vez de pasarle un enlace de Prowlarr que no podía abrir desde fuera de casa.
+- Añadir un torrent que qBittorrent rechaza ya no aparece como "enviado".
+- Mensajes claros cuando el indexador no entrega una release y cuando Bazarr no encuentra el elemento o no puede guardar el subtítulo.

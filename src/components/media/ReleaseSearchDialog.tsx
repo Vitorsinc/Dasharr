@@ -58,7 +58,8 @@ export function ReleaseSearchDialog({
       toast.success(t.releases.grabbed, { description: r.title });
       void qc.invalidateQueries({ queryKey: [service, "queue"] });
     } catch (e) {
-      toast.error(isApiError(e) && e.kind === "Http" && e.status === 404 ? t.releases.expired : errorMessage(e, service));
+      const status = isApiError(e) && e.kind === "Http" ? e.status : undefined;
+      toast.error(status === 404 ? t.releases.expired : status === 409 ? t.releases.indexerFailed : errorMessage(e, service));
     } finally {
       setGrabbing(null);
     }

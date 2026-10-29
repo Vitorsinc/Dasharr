@@ -39,6 +39,11 @@ export async function apiRequest<T>(service: ServiceKind, call: ApiCall): Promis
   return (await invoke<T>("api_request", { service, request })) as T;
 }
 
+export type FetchedTorrent = { type: "file"; value: string } | { type: "magnet"; value: string };
+
+/** Descarga con el cliente autenticado un enlace del servicio (el `downloadUrl` de Prowlarr). */
+export const fetchTorrent = (service: ServiceKind, url: string) => invoke<FetchedTorrent>("fetch_torrent", { service, url });
+
 export const getSettings = () => invoke<Record<ServiceKind, ServiceSettingsView>>("get_settings");
 
 export const saveService = (service: ServiceKind, config: ServiceConfig, secrets: SecretsPatch) =>

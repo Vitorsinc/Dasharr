@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use dasharr_core::{ApiError, ApiRequest, Route, ServiceClient, ServiceConfig, ServiceKind};
+use dasharr_core::{ApiError, ApiRequest, FetchedTorrent, Route, ServiceClient, ServiceConfig, ServiceKind};
 use serde_json::Value;
 use tauri::{AppHandle, State};
 
@@ -56,6 +56,18 @@ pub async fn test_service(service: String, config: ServiceConfig, secrets: Secre
 pub async fn api_request(state: State<'_, AppState>, service: String, request: ApiRequest) -> Result<Value, ApiError> {
     let client = state.registry.get(kind(&service)?).await.ok_or(ApiError::NotConfigured)?;
     Ok(client.request(request).await?.body)
+}
+
+/// Descarga un .torrent de un enlace del servicio (el `downloadUrl` de Prowlarr) para subirlo a qBittorrent.
+#[tauri::command]
+pub async fn fetch_torrent(state: State<'_, AppState>, service: String, url: String) -> Result<FetchedTorrent, ApiError> {
+    let client = state.registry.get(kind(&service)?).await.ok_or(ApiError::NotConfigured)?;
+    let result = client.fetch_torrent(&url).await;
+    // Sin la URL: lleva la API key de Prowlarr.
+    if let Err(e) = &result {
+        log::error!("{service}: descargar torrent -> {e}");
+    }
+    result
 }
 
 #[tauri::command]

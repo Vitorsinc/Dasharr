@@ -128,3 +128,11 @@ pub struct ApiResponse {
     pub status: u16,
     pub body: Value,
 }
+
+/// Resultado de descargar un enlace de torrent: el archivo (en base64) o el magnet al que redirige.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "type", content = "value", rename_all = "lowercase")]
+pub enum FetchedTorrent {
+    File(String),
+    Magnet(String),
+}
