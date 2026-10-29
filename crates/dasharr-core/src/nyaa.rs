@@ -139,7 +139,7 @@ fn mediainfo_langs(text: &str) -> Vec<String> {
         let line = raw.trim().trim_matches(|c| c == '`' || c == '*');
         if let Some(section) = section_name(line) {
             flush(&mut track, &mut out);
-            in_text = section == "text";
+            in_text = section == "text" || section.starts_with("subtitle");
             continue;
         }
         if !in_text {
@@ -147,7 +147,7 @@ fn mediainfo_langs(text: &str) -> Vec<String> {
         }
         if let Some((key, value)) = line.split_once(':') {
             let key = key.trim().to_lowercase();
-            if key == "language" || key == "title" {
+            if key.starts_with("language") || key == "title" {
                 track.push(value.trim().to_string());
             }
         }
@@ -156,11 +156,13 @@ fn mediainfo_langs(text: &str) -> Vec<String> {
     out
 }
 
-/// «Text», «Text #2», «Audio #1»… como cabecera de sección del MediaInfo.
+/// «Text», «Text #2», «Audio #1»… como cabecera de sección del MediaInfo; también el resumen de Rapta,
+/// «-- Subtitle --».
 fn section_name(line: &str) -> Option<String> {
+    let line = line.trim_matches(|c: char| c == '-' || c == '=' || c.is_whitespace());
     let first = line.split_whitespace().next()?.to_lowercase();
     let rest: Vec<&str> = line.split_whitespace().skip(1).collect();
-    let known = ["general", "video", "audio", "text", "menu", "chapters", "image", "other"];
+    let known = ["general", "video", "audio", "text", "subtitle", "subtitles", "menu", "chapters", "image", "other"];
     let numbered = rest.is_empty() || (rest.len() == 1 && rest[0].starts_with('#') && rest[0][1..].chars().all(|c| c.is_ascii_digit()));
     (known.contains(&first.as_str()) && numbered).then_some(first)
 }
@@ -172,6 +174,8 @@ fn described_langs(text: &str) -> Vec<String> {
     let mut out = Vec::new();
     // Dentro de una lista de subtítulos; `found` dice si ya se leyó algún elemento.
     let mut list: Option<bool> = None;
+    // Dentro de una tabla: `Some(Some(col))` lee esa columna en cada fila; `Some(None)`, filas «| Subs | … |».
+    let mut table: Option<Option<usize>> = None;
     for raw in text.lines() {
         let line = raw.trim();
         if line.is_empty() {
@@ -179,18 +183,49 @@ fn described_langs(text: &str) -> Vec<String> {
             if list == Some(true) {
                 list = None;
             }
+            table = None;
             continue;
         }
         if line.starts_with('|') {
-            list = None;
-            let cells: Vec<&str> = line.split('|').map(str::trim).collect();
-            if let Some(i) = cells.iter().position(|c| is_sub_label(c)) {
-                for cell in &cells[i + 1..] {
-                    out.extend(list_langs(cell));
+            let cells: Vec<&str> = line.trim_matches('|').split('|').map(str::trim).collect();
+            if cells.iter().all(|c| c.chars().all(|ch| "-: ".contains(ch))) {
+                continue;
+            }
+            if table.is_none() {
+                // Cabecera de la tabla: ¿tiene una columna con el idioma de los subtítulos?
+                // «| Subtitle Language | Sync/Edit By |» (Mr. Yosha) o «| Track | Language | Format |» bajo
+                // «### Subtitles» (AnoZu): el idioma va en esa columna de cada fila.
+                let under_subs = list.is_some();
+                let column = cells.iter().position(|c| is_sub_label(c) && fold(c).contains("lang")).or_else(|| {
+                    cells
+                        .iter()
+                        .position(|c| fold(c).trim_matches(|c: char| !c.is_alphanumeric()) == "language")
+                        .filter(|_| under_subs)
+                });
+                list = None;
+                if let Some(col) = column {
+                    table = Some(Some(col));
+                    continue;
+                }
+                table = Some(None);
+            }
+            match table {
+                Some(Some(col)) => {
+                    if let Some(cell) = cells.get(col) {
+                        out.extend(list_langs(cell));
+                    }
+                }
+                _ => {
+                    if let Some(i) = cells.iter().position(|c| is_sub_label(c)) {
+                        for cell in &cells[i + 1..] {
+                            out.extend(list_langs(cell));
+                        }
+                    }
                 }
             }
             continue;
         }
+        table = None;
         let clean = line.trim_start_matches(|c: char| "-*+>#• ".contains(c));
         if let Some((label, value)) = clean.split_once(':').or_else(|| clean.split_once('：')) {
             if is_label(label) {
@@ -204,7 +239,10 @@ fn described_langs(text: &str) -> Vec<String> {
                 continue;
             }
         } else if is_sub_label(clean) {
-            list = Some(false);
+            // «**Greek Subs**» o «English subbed releases» ya dicen el idioma.
+            let named = phrase_langs(clean, false);
+            list = named.is_empty().then_some(false);
+            out.extend(named);
             continue;
         }
         if list.is_some() {
@@ -230,11 +268,23 @@ fn is_sub_label(s: &str) -> bool {
 /// elemento es corto, para no confundir «it» o «de» de una frase con italiano o alemán.
 fn list_langs(value: &str) -> Vec<String> {
     let value = strip_markup(value).replace(" and ", ",").replace(" y ", ",");
-    value
-        .split(|c| ",/|+;&".contains(c))
-        // «Subtitles: English | Audio: Japanese»: lo que va tras otra etiqueta ya no son subtítulos.
-        .take_while(|item| !item.contains(':'))
+    let mut items = Vec::new();
+    for item in value.split(|c| ",/|+;&".contains(c)) {
+        match item.split_once(':') {
+            None => items.push(item),
+            // «Multi-Subs : ENG(US) ES(LA)…» (DKB): la etiqueta de subtítulos se salta.
+            Some((label, rest)) if is_sub_label(label) => items.push(rest),
+            // «Subtitles: English | Audio: Japanese»: lo que va tras otra etiqueta ya no son subtítulos.
+            Some(_) => break,
+        }
+    }
+    items
+        .into_iter()
         .flat_map(|item| {
+            // «ENG(US) ES(LA) FRE PT(BR)»: códigos separados por espacios.
+            if let Some(codes) = code_run(item) {
+                return codes;
+            }
             let words = words(item);
             let mut codes = phrase_langs(item, words.len() <= 2);
             // «Spanish (CR_Spanish(Latin_America))» es una sola pista: la variante regional.
@@ -247,6 +297,27 @@ fn list_langs(value: &str) -> Vec<String> {
             codes
         })
         .collect()
+}
+
+/// Una lista de códigos separados por espacios, si lo es entera (al menos dos y todos idiomas).
+fn code_run(item: &str) -> Option<Vec<String>> {
+    let tokens: Vec<&str> = item.split_whitespace().collect();
+    if tokens.len() < 2 {
+        return None;
+    }
+    let mut out = Vec::new();
+    for token in tokens {
+        let first = words(token).into_iter().next()?;
+        if !CODES.iter().chain(NAMES).any(|(c, _)| *c == first) {
+            return None;
+        }
+        for code in phrase_langs(token, true) {
+            if !out.contains(&code) {
+                out.push(code);
+            }
+        }
+    }
+    Some(out)
 }
 
 /// Quita lo que no es texto y tiene «:» o «/»: banderas como imagen (`![fr](https://…)`, `<img …>`),
@@ -363,6 +434,22 @@ const NAMES: &[(&str, &str)] = &[
     ("dutch", "nl"),
     ("catalan", "ca"),
     ("catala", "ca"),
+    ("greek", "el"),
+    ("hebrew", "he"),
+    ("czech", "cs"),
+    ("hungarian", "hu"),
+    ("romanian", "ro"),
+    ("swedish", "sv"),
+    ("finnish", "fi"),
+    ("norwegian", "no"),
+    ("danish", "da"),
+    ("ukrainian", "uk"),
+    ("bulgarian", "bg"),
+    ("croatian", "hr"),
+    ("serbian", "sr"),
+    ("persian", "fa"),
+    ("filipino", "fil"),
+    ("tagalog", "fil"),
 ];
 
 const CODES: &[(&str, &str)] = &[
@@ -396,6 +483,20 @@ const CODES: &[(&str, &str)] = &[
     ("dut", "nl"),
     ("nld", "nl"),
     ("cat", "ca"),
+    ("gre", "el"),
+    ("ell", "el"),
+    ("heb", "he"),
+    ("cze", "cs"),
+    ("ces", "cs"),
+    ("hun", "hu"),
+    ("rum", "ro"),
+    ("ron", "ro"),
+    ("swe", "sv"),
+    ("ukr", "uk"),
+    ("bul", "bg"),
+    ("hrv", "hr"),
+    ("srp", "sr"),
+    ("fil", "fil"),
     ("en", "en"),
     ("es", "es"),
     ("pt", "pt"),
@@ -550,6 +651,44 @@ mod tests {
             languages(&page(&line(["<img src=\"https://flagcdn.com/fr.png\">", "<img src=\"https://flagcdn.com/de.png\">", "<img src=\"https://flagcdn.com/pl.png\">"]), &[])),
             expected
         );
+    }
+
+    #[test]
+    fn reads_dkb_table_with_space_separated_codes() {
+        let d = "| Video | 1080p HEVC 10bit |\n|---|---|\n| Audio | Japanese AAC 2.0 |\n\
+| Subtitles | Multi-Subs : ENG(US) ES(LA) ES(EU) FRE PT(BR) ARA ITA GER RUS POL TH ID ZH-HK |";
+        assert_eq!(
+            languages(&page(d, &[])),
+            vec!["en", "es-419", "es", "fr", "pt-BR", "ar", "it", "de", "ru", "pl", "th", "id", "zh"]
+        );
+    }
+
+    #[test]
+    fn reads_anozu_track_table_under_subtitles_heading() {
+        let d = "### Audio\n\n| Track | Language | Format |\n|---|---|---|\n| **Japanese** | Japanese | AAC |\n\n\
+### Subtitles\n\n| Track | Language | Format | Default | Forced |\n|:--|:--|:--|:--|:--|\n\
+| **English** | English | ASS | Yes | No |\n| **Español (América Latina)** | Spanish (Latin America) | ASS | No | No |\n\
+| **Deutsch** | German | ASS | No | No |";
+        assert_eq!(languages(&page(d, &[])), vec!["en", "es-419", "de"]);
+    }
+
+    #[test]
+    fn reads_rapta_mediainfo_summary() {
+        let d = "-- General --\nFormat : Matroska\n\n-- Audio --\nLanguage(s) : Japanese\n\n\
+-- Subtitle --\nFormat : ASS\nLanguage(s) : English\n\n-- Subtitle #2 --\nLanguage(s) : Spanish";
+        assert_eq!(languages(&page(d, &[])), vec!["en", "es"]);
+    }
+
+    #[test]
+    fn reads_mr_yosha_subtitle_language_column() {
+        let d = "| Subtitle Language | Sync/Edit By |\n|---|---|\n| English | Mr. Yosha |\n| Portuguese (Brazil) | Mr. Yosha |";
+        assert_eq!(languages(&page(d, &[])), vec!["en", "pt-BR"]);
+    }
+
+    #[test]
+    fn reads_a_language_named_in_the_subs_line() {
+        assert_eq!(languages(&page("**Greek Subs**\n\nΚαλή προβολή!", &[])), vec!["el"]);
+        assert!(languages(&page("**Multi-Subs**", &[])).is_empty());
     }
 
     #[test]
