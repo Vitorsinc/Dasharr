@@ -4,6 +4,7 @@ mod error;
 pub mod filmaffinity;
 mod model;
 mod registry;
+pub mod unit3d;
 mod url;
 
 pub use client::ServiceClient;

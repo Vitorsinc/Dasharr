@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use dasharr_core::unit3d::{self, TrackerStats};
 use dasharr_core::{ApiError, ApiRequest, FetchedTorrent, Route, ServiceClient, ServiceConfig, ServiceKind};
 use serde_json::Value;
 use tauri::{AppHandle, State};
@@ -79,4 +80,21 @@ pub async fn get_connection_states(state: State<'_, AppState>) -> Result<HashMap
 pub async fn refresh_connections(app: AppHandle, state: State<'_, AppState>) -> Result<HashMap<ServiceKind, Option<Route>>, ()> {
     state.probe_all(&app, false).await;
     Ok(state.routes().await)
+}
+
+/// Estadísticas del usuario en los trackers UNIT3D configurados en Prowlarr. Los tokens se leen de Prowlarr en cada
+/// llamada y no salen de aquí.
+#[tauri::command]
+pub async fn unit3d_stats(state: State<'_, AppState>) -> Result<Vec<TrackerStats>, ApiError> {
+    let prowlarr = state.registry.get(ServiceKind::Prowlarr).await.ok_or(ApiError::NotConfigured)?;
+    let indexers = prowlarr.request(ApiRequest::get("/api/v1/indexer")).await?.body;
+    let http = unit3d::http_client();
+    let mut tasks = tokio::task::JoinSet::new();
+    for src in unit3d::unit3d_sources(&indexers) {
+        let http = http.clone();
+        tasks.spawn(async move { unit3d::fetch_stats(&http, &src).await });
+    }
+    let mut out: Vec<TrackerStats> = tasks.join_all().await;
+    out.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+    Ok(out)
 }

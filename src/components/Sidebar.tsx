@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { CalendarDays, Captions, Clapperboard, Download, Home, ScrollText, Search, Settings, Sparkles, Tv } from "lucide-react";
+import { CalendarDays, Captions, Clapperboard, Download, Gauge, Home, ScrollText, Search, Settings, Sparkles, Tv } from "lucide-react";
 import { t } from "@/i18n/es";
 import { cn } from "@/lib/cn";
 import { versionLabel } from "@/lib/version";
@@ -13,6 +13,7 @@ const items = [
   { to: "/buscar", label: t.nav.search, icon: Search },
   { to: "/subtitulos", label: t.nav.subtitles, icon: Captions },
   { to: "/calendario", label: t.nav.calendar, icon: CalendarDays },
+  { to: "/trackers", label: t.nav.trackers, icon: Gauge },
 ];
 
 function Item({ to, label, icon: Icon, end }: (typeof items)[number]) {
