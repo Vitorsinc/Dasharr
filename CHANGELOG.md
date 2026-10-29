@@ -28,6 +28,7 @@ crea la Release con las notas de esta página.
 - Cola de Sonarr/Radarr: quitar una descarga (y opcionalmente bloquear la release) y "Descargar ya" para las retrasadas.
 - La importación manual avisa de si termina bien o falla, en vez de solo "iniciada".
 - Descargas: se muestra el motivo de un torrent en error (qBittorrent 5.3+).
+- Espacio en disco del servidor siempre visible arriba a la derecha (según Radarr, Sonarr y qBittorrent); al pulsarlo se ven todos los discos, en amarillo o rojo cuando se llenan.
 
 ### Corregido
 - qBittorrent 5.x: se acepta la cookie de sesión `QBT_SID_<puerto>` y el acceso sin sesión.

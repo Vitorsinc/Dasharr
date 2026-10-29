@@ -266,6 +266,12 @@ export const es = {
     seeAll: "Ver todo",
     version: (v: string) => `v${v.replace(/^v/, "")}`,
   },
+  disk: {
+    title: "Espacio en disco",
+    freeOnly: (free: string) => `${free} libres`,
+    downloads: "Disco de descargas (qBittorrent)",
+    system: "Sistema",
+  },
   search: {
     placeholder: "¿Qué quieres buscar?",
     category: "Categoría",

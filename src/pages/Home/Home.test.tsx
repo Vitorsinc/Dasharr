@@ -1,4 +1,5 @@
 import { screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { mockBackend, renderApp } from "@/test/utils";
 
 test("Inicio: tarjetas de servicio, descargas activas y próximos estrenos; un servicio caído solo afecta a su tarjeta", async () => {
@@ -8,7 +9,12 @@ test("Inicio: tarjetas de servicio, descargas activas y próximos estrenos; un s
       radarr: (r) =>
         r.path === "/api/v3/system/status"
           ? { version: "5.2.0" }
-          : [{ id: 1, title: "Estreno", year: 2026, hasFile: false, digitalRelease: soon }],
+          : r.path === "/api/v3/diskspace"
+            ? [
+                { path: "/", freeSpace: 40e9, totalSpace: 100e9 },
+                { path: "/data", freeSpace: 1024 ** 4, totalSpace: 4 * 1024 ** 4 },
+              ]
+            : [{ id: 1, title: "Estreno", year: 2026, hasFile: false, digitalRelease: soon }],
       sonarr: () => Promise.reject({ kind: "Network", message: "timeout" }),
       prowlarr: () => ({ version: "1.20.0" }),
       bazarr: () => ({ data: { bazarr_version: "1.4.5" } }),
@@ -40,4 +46,12 @@ test("Inicio: tarjetas de servicio, descargas activas y próximos estrenos; un s
   expect(screen.queryByText("Activo 5")).not.toBeInTheDocument();
   expect(screen.queryByText("Sembrando")).not.toBeInTheDocument();
   expect(await screen.findByRole("button", { name: "Estreno" })).toBeInTheDocument();
+
+  // Espacio en disco: pequeño arriba a la derecha (el disco de contenido); al pulsarlo, todos los discos.
+  const disk = await screen.findByRole("button", { name: "Espacio en disco" });
+  expect(within(disk).getByText("1 TB libres")).toBeInTheDocument();
+  await userEvent.click(disk);
+  const panel = screen.getByRole("dialog", { name: "Espacio en disco" });
+  expect(within(panel).getByText("1 TB / 4 TB")).toBeInTheDocument();
+  expect(within(panel).getByText("Sistema (/)")).toBeInTheDocument();
 });
