@@ -5,10 +5,12 @@ import { DiskIndicator } from "./DiskIndicator";
 import { useApplyTheme } from "@/hooks/usePrefs";
 import { useDownloadNotifications } from "@/hooks/useDownloadNotifications";
 import { useUpdateCheck } from "@/hooks/useUpdates";
+import { usePlexNotifications } from "@/hooks/usePlex";
 
 export function Layout() {
   useApplyTheme();
   useDownloadNotifications();
+  usePlexNotifications();
   useUpdateCheck();
   return (
     <div className="flex h-full">

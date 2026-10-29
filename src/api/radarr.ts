@@ -16,6 +16,7 @@ export interface Movie {
   runtime?: number;
   genres?: string[];
   tmdbId: number;
+  imdbId?: string;
   qualityProfileId?: number;
   inCinemas?: string;
   digitalRelease?: string;

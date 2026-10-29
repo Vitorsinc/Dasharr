@@ -21,6 +21,7 @@ crea la Release con las notas de esta página.
 - Subtítulos que faltan (Bazarr) y búsqueda por idioma.
 - Trackers: ratio, subido, bajado, buffer, seed, bonus y H&R de los trackers UNIT3D que tienes en Prowlarr, sin meter claves nuevas.
 - Calendario semanal y mensual de estrenos y emisiones.
+- Plex: inicio de sesión con tu cuenta (sin copiar tokens), «Reproduciendo ahora» y «Añadido recientemente» en Inicio, página Plex con estado del servidor, escaneo de bibliotecas, papelera y mantenimiento, detener reproducciones (Plex Pass), y en cada ficha si ya está en Plex, si está vista, «Abrir en Plex» y actualizar metadatos. Aviso de Windows cuando alguien empieza a ver algo.
 - Ajustes con dirección local y externa por servicio y cambio automático entre ellas; importación de configuración desde archivo.
 - Registro de errores y eventos con visor en la app (sin API keys ni contraseñas).
 - Versión visible en la barra lateral.
@@ -31,6 +32,8 @@ crea la Release con las notas de esta página.
 - La importación manual avisa de si termina bien o falla, en vez de solo "iniciada".
 - Descargas: se muestra el motivo de un torrent en error (qBittorrent 5.3+).
 - Espacio en disco del servidor siempre visible arriba a la derecha (según Radarr, Sonarr y qBittorrent); al pulsarlo se ven todos los discos, en amarillo o rojo cuando se llenan.
+- Tracearr como servicio nuevo: en la ficha de una película se ve quién la ha visto, cuándo y hasta dónde; en la de una serie, quién la sigue y, en cada episodio, quién lo ha visto y cuándo.
+- Menú Historial: lo que se está viendo ahora y el historial de reproducciones de Tracearr, con filtro por usuario, por películas o episodios y por vistas completas.
 
 ### Corregido
 - qBittorrent 5.x: se acepta la cookie de sesión `QBT_SID_<puerto>` y el acceso sin sesión.

@@ -1,6 +1,6 @@
 # Dasharr
 
-Dashboard de escritorio para Windows que reúne Radarr, Sonarr, Prowlarr, Bazarr y qBittorrent, inspirado en nzb360.
+Dashboard de escritorio para Windows que reúne Radarr, Sonarr, Prowlarr, Bazarr, qBittorrent y Plex, inspirado en nzb360.
 
 ## Instalar
 
@@ -26,7 +26,7 @@ Especificación: `docs/superpowers/specs/2026-10-27-dasharr-mvp-design.md`.
 
 1. Abre **Ajustes**.
 2. Para cada servicio rellena la **dirección local** (por ejemplo `http://192.168.1.50:7878`) y, si accedes desde fuera de casa, la **dirección externa** (por ejemplo `https://radarr.midominio.com`).
-3. Pega la **API key** (en Radarr, Sonarr, Prowlarr y Bazarr está en *Settings → General*). En qBittorrent usa tu usuario y contraseña de la interfaz web.
+3. Pega la **API key** (en Radarr, Sonarr, Prowlarr y Bazarr está en *Settings → General*). En qBittorrent usa tu usuario y contraseña de la interfaz web. En Plex pulsa **Iniciar sesión con Plex** y elige tu servidor.
 4. Si tu proxy inverso pide usuario y contraseña, despliega *Autenticación del proxy*.
 5. Pulsa **Probar conexión** y después **Guardar**.
 

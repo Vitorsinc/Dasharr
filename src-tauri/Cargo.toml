@@ -1,7 +1,7 @@
 [package]
 name = "dasharr"
 version = "0.1.0"
-description = "Dashboard de escritorio para Radarr, Sonarr, Prowlarr, Bazarr y qBittorrent"
+description = "Dashboard de escritorio para Radarr, Sonarr, Prowlarr, Bazarr, qBittorrent y Plex"
 edition = "2021"
 
 [lib]
@@ -16,6 +16,7 @@ dasharr-core = { path = "../crates/dasharr-core" }
 tauri = { version = "2", features = [] }
 tauri-plugin-store = "2"
 tauri-plugin-notification = "2"
+tauri-plugin-opener = "2"
 tauri-plugin-autostart = "2"
 tauri-plugin-log = "2"
 log = "0.4"

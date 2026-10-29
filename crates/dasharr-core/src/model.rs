@@ -9,15 +9,19 @@ pub enum ServiceKind {
     Prowlarr,
     Bazarr,
     Qbittorrent,
+    Tracearr,
+    Plex,
 }
 
 impl ServiceKind {
-    pub const ALL: [ServiceKind; 5] = [
+    pub const ALL: [ServiceKind; 7] = [
         ServiceKind::Radarr,
         ServiceKind::Sonarr,
         ServiceKind::Prowlarr,
         ServiceKind::Bazarr,
         ServiceKind::Qbittorrent,
+        ServiceKind::Tracearr,
+        ServiceKind::Plex,
     ];
 
     pub fn as_str(self) -> &'static str {
@@ -27,6 +31,8 @@ impl ServiceKind {
             ServiceKind::Prowlarr => "prowlarr",
             ServiceKind::Bazarr => "bazarr",
             ServiceKind::Qbittorrent => "qbittorrent",
+            ServiceKind::Tracearr => "tracearr",
+            ServiceKind::Plex => "plex",
         }
     }
 
@@ -40,6 +46,9 @@ impl ServiceKind {
             ServiceKind::Radarr | ServiceKind::Sonarr | ServiceKind::Prowlarr => "/ping",
             ServiceKind::Bazarr => "/api/system/status",
             ServiceKind::Qbittorrent => "/api/v2/app/version",
+            ServiceKind::Tracearr => "/health",
+            // No necesita token.
+            ServiceKind::Plex => "/identity",
         }
     }
 }
@@ -77,6 +86,9 @@ pub struct ServiceSecrets {
     pub password: Option<String>,
     pub proxy_username: Option<String>,
     pub proxy_password: Option<String>,
+    /// Identificador de este equipo ante Plex (`X-Plex-Client-Identifier`): el token de Plex va ligado a él.
+    #[serde(default)]
+    pub client_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

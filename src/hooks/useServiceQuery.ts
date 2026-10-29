@@ -1,4 +1,4 @@
-import { useQuery, type UseQueryResult } from "@tanstack/react-query";
+import { useQuery, type Query, type UseQueryResult } from "@tanstack/react-query";
 import type { ServiceKind } from "@/lib/types";
 import { useIsConfigured } from "./useSettings";
 
@@ -14,7 +14,7 @@ export function useServiceQuery<T>(
   service: ServiceKind,
   key: unknown[],
   fn: () => Promise<T>,
-  opts: { refetchInterval?: number; enabled?: boolean; staleTime?: number } = {},
+  opts: { refetchInterval?: number | ((q: Query<T, Error, T, unknown[]>) => number); enabled?: boolean; staleTime?: number } = {},
 ): UseQueryResult<T> & { configured: boolean | undefined } {
   const configured = useIsConfigured(service);
   const q = useQuery({

@@ -23,6 +23,8 @@ export interface Series {
   network?: string;
   added?: string;
   tvdbId: number;
+  tmdbId?: number;
+  imdbId?: string;
   qualityProfileId?: number;
   images?: ArrImage[];
   seasons?: Season[];

@@ -41,6 +41,50 @@ async fn bazarr_sends_x_api_key_upper() {
 }
 
 #[tokio::test]
+async fn tracearr_sends_bearer_token() {
+    let s = MockServer::start().await;
+    Mock::given(path("/health")).respond_with(ResponseTemplate::new(200)).mount(&s).await;
+    Mock::given(path("/api/v2/public/servers"))
+        .and(header("Authorization", "Bearer trr_pub_x"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({"data": [], "tracearr_version": "3.1.2"})))
+        .mount(&s)
+        .await;
+    let c = ServiceClient::new(ServiceKind::Tracearr, cfg(&s.uri()), key("trr_pub_x"));
+    assert_eq!(c.test().await.unwrap(), "3.1.2");
+}
+
+#[tokio::test]
+async fn tracearr_ignores_proxy_basic_auth() {
+    let s = MockServer::start().await;
+    Mock::given(path("/health")).respond_with(ResponseTemplate::new(200)).mount(&s).await;
+    Mock::given(path("/api/v2/public/history"))
+        .and(header("Authorization", "Bearer trr_pub_x"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({"data": []})))
+        .mount(&s)
+        .await;
+    let secrets = ServiceSecrets { api_key: Some("trr_pub_x".into()), proxy_username: Some("user".into()), proxy_password: Some("pass".into()), ..Default::default() };
+    let external = ServiceConfig { local_url: None, external_url: Some(s.uri()), enabled: true };
+    let c = ServiceClient::new(ServiceKind::Tracearr, external, secrets);
+    assert_eq!(c.request(ApiRequest::get("/api/v2/public/history")).await.unwrap().status, 200);
+}
+
+#[tokio::test]
+async fn bytes_keeps_query_string() {
+    let s = MockServer::start().await;
+    Mock::given(path("/health")).respond_with(ResponseTemplate::new(200)).mount(&s).await;
+    Mock::given(path("/api/v1/images/proxy"))
+        .and(query_param("server", "abc"))
+        .and(query_param("url", "/library/metadata/1/thumb"))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(vec![1, 2, 3]).insert_header("Content-Type", "image/jpeg"))
+        .mount(&s)
+        .await;
+    let c = ServiceClient::new(ServiceKind::Tracearr, cfg(&s.uri()), key("trr_pub_x"));
+    let (bytes, ctype) = c.bytes("/api/v1/images/proxy?server=abc&url=%2Flibrary%2Fmetadata%2F1%2Fthumb").await.unwrap();
+    assert_eq!(bytes, vec![1, 2, 3]);
+    assert_eq!(ctype, "image/jpeg");
+}
+
+#[tokio::test]
 async fn proxy_credentials_add_basic_auth() {
     let s = MockServer::start().await;
     ping_ok(&s).await;
@@ -286,4 +330,69 @@ async fn fetch_torrent_rejects_foreign_links_and_html() {
     let c = ServiceClient::new(ServiceKind::Prowlarr, cfg(&s.uri()), key("k"));
     assert!(matches!(c.fetch_torrent("http://otro.example/1/download").await, Err(ApiError::Http { status: 400, .. })));
     assert!(matches!(c.fetch_torrent(&format!("{}/1/download", s.uri())).await, Err(ApiError::Http { .. })));
+}
+
+#[tokio::test]
+async fn plex_sends_token_identity_and_asks_for_json() {
+    let s = MockServer::start().await;
+    Mock::given(path("/identity")).respond_with(ResponseTemplate::new(200)).mount(&s).await;
+    Mock::given(path("/"))
+        .and(header("X-Plex-Token", "ptok"))
+        .and(header("X-Plex-Client-Identifier", "dasharr-1"))
+        .and(header("X-Plex-Product", "Dasharr"))
+        .and(header("Accept", "application/json"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({"MediaContainer": {"version": "1.41.2"}})))
+        .mount(&s)
+        .await;
+    let secrets = ServiceSecrets { api_key: Some("ptok".into()), client_id: Some("dasharr-1".into()), ..Default::default() };
+    let c = ServiceClient::new(ServiceKind::Plex, cfg(&s.uri()), secrets);
+    assert_eq!(c.test().await.unwrap(), "1.41.2");
+}
+
+#[tokio::test]
+async fn plex_image_transcode_keeps_query() {
+    let s = MockServer::start().await;
+    Mock::given(path("/identity")).respond_with(ResponseTemplate::new(200)).mount(&s).await;
+    Mock::given(path("/photo/:/transcode"))
+        .and(query_param("url", "/library/metadata/5/thumb/17"))
+        .and(query_param("width", "300"))
+        .and(header("X-Plex-Token", "ptok"))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(vec![9]).insert_header("Content-Type", "image/jpeg"))
+        .mount(&s)
+        .await;
+    let c = ServiceClient::new(ServiceKind::Plex, cfg(&s.uri()), key("ptok"));
+    let (bytes, _) = c.bytes("/photo/:/transcode?url=%2Flibrary%2Fmetadata%2F5%2Fthumb%2F17&width=300").await.unwrap();
+    assert_eq!(bytes, vec![9]);
+}
+
+#[tokio::test]
+async fn plex_pin_login_and_servers() {
+    use dasharr_core::plex::PlexAccount;
+    let s = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/api/v2/pins"))
+        .and(query_param("strong", "true"))
+        .and(header("X-Plex-Client-Identifier", "cid"))
+        .respond_with(ResponseTemplate::new(201).set_body_json(json!({"id": 42, "code": "abcd", "authToken": null})))
+        .mount(&s)
+        .await;
+    Mock::given(path("/api/v2/pins/42"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({"id": 42, "code": "abcd", "authToken": "user-token"})))
+        .mount(&s)
+        .await;
+    Mock::given(path("/api/v2/resources"))
+        .and(header("X-Plex-Token", "user-token"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!([
+            {"name": "Casa", "provides": "server", "clientIdentifier": "srv", "owned": true, "accessToken": "srv-token",
+             "connections": [{"local": true, "relay": false, "address": "10.0.0.2", "port": 32400, "uri": "https://x"}]}
+        ])))
+        .mount(&s)
+        .await;
+    let acc = PlexAccount::with_hosts("cid", &s.uri(), &s.uri());
+    let pin = acc.create_pin().await.unwrap();
+    assert_eq!(pin.id, 42);
+    let token = acc.check_pin(pin.id).await.unwrap().unwrap();
+    let servers = acc.servers(&token).await.unwrap();
+    assert_eq!(servers[0].token, "srv-token");
+    assert_eq!(servers[0].local_url.as_deref(), Some("http://10.0.0.2:32400"));
 }

@@ -4,6 +4,7 @@ use dasharr_core::{Registry, Route, ServiceClient, ServiceKind};
 use tauri::{AppHandle, Emitter, Runtime};
 use tokio::sync::Mutex;
 
+use crate::commands::PlexLogin;
 use crate::filmaffinity::FilmAffinity;
 use crate::settings;
 
@@ -14,6 +15,8 @@ pub struct AppState {
     pub registry: Registry,
     pub filmaffinity: FilmAffinity,
     last_routes: Mutex<HashMap<ServiceKind, Option<Route>>>,
+    /// Inicio de sesión con Plex en curso: los tokens no salen nunca hacia la interfaz.
+    pub plex_login: Mutex<Option<PlexLogin>>,
 }
 
 impl AppState {

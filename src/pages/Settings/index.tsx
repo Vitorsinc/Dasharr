@@ -96,6 +96,14 @@ function Preferences() {
         <span className="text-sm">{t.settings.notifications}</span>
         <Toggle label={t.settings.notifications} checked={prefs.notifications} onChange={(notifications) => setPrefs({ notifications })} />
       </div>
+      <div className="flex items-center justify-between gap-4 p-4">
+        <span className="text-sm">{t.settings.plexNotifications}</span>
+        <Toggle
+          label={t.settings.plexNotifications}
+          checked={prefs.plexNotifications}
+          onChange={(plexNotifications) => setPrefs({ plexNotifications })}
+        />
+      </div>
       {autostart !== null && (
         <div className="flex items-center justify-between gap-4 p-4">
           <span className="text-sm">{t.settings.autostart}</span>

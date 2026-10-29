@@ -9,12 +9,13 @@ export interface LibraryDefaults {
 export interface Prefs {
   theme: Theme;
   notifications: boolean;
+  plexNotifications: boolean;
   /** Carpeta y perfil de Sonarr con los que se añaden series y anime. */
   seriesDefaults: Partial<Record<SeriesKind, LibraryDefaults>>;
 }
 
 const KEY = "dasharr.prefs";
-const DEFAULTS: Prefs = { theme: "dark", notifications: true, seriesDefaults: {} };
+const DEFAULTS: Prefs = { theme: "dark", notifications: true, plexNotifications: true, seriesDefaults: {} };
 const listeners = new Set<() => void>();
 let cache: Prefs | null = null;
 

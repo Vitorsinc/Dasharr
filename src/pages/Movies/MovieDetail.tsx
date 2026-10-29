@@ -7,6 +7,9 @@ import { FaInfo } from "@/components/media/FilmAffinity";
 import { Poster } from "@/components/media/PosterCard";
 import { ReleaseSearchDialog } from "@/components/media/ReleaseSearchDialog";
 import { posterUrl } from "@/api/arr";
+import { movieRefs } from "@/api/tracearr";
+import { MovieWatchHistory } from "@/components/watch/WatchHistory";
+import { PlexBadge } from "@/components/plex/PlexBadge";
 import { movieItem } from "@/api/filmaffinity";
 import { radarr, type Movie } from "@/api/radarr";
 import { t } from "@/i18n/es";
@@ -66,6 +69,8 @@ export function MovieDetail({ movie, onClose }: { movie: Movie | null; onClose: 
                 ))}
               </div>
             ) : null}
+            <MovieWatchHistory refs={movieRefs(movie)} />
+            <PlexBadge kind="movie" ids={{ tmdbId: movie.tmdbId, imdbId: movie.imdbId }} />
             <div className="mt-auto flex flex-wrap gap-2">
               <button className="btn-primary" onClick={() => run(() => radarr.search([movie.id]), t.library.searchStarted)}>
                 <Search className="h-4 w-4" /> {t.library.searchNow}
