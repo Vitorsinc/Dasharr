@@ -6,6 +6,7 @@ use tokio::sync::Mutex;
 
 use crate::commands::PlexLogin;
 use crate::filmaffinity::FilmAffinity;
+use crate::nyaa::Nyaa;
 use crate::settings;
 
 pub const CONNECTION_EVENT: &str = "connection-changed";
@@ -14,6 +15,7 @@ pub const CONNECTION_EVENT: &str = "connection-changed";
 pub struct AppState {
     pub registry: Registry,
     pub filmaffinity: FilmAffinity,
+    pub nyaa: Nyaa,
     last_routes: Mutex<HashMap<ServiceKind, Option<Route>>>,
     /// Inicio de sesión con Plex en curso: los tokens no salen nunca hacia la interfaz.
     pub plex_login: Mutex<Option<PlexLogin>>,

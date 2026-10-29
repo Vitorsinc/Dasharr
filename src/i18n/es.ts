@@ -248,6 +248,16 @@ export const es = {
     confirmRejectedTitle: "Descargar una release rechazada",
     confirmRejected: (reasons: string) => `El *arr la rechazó por: ${reasons}. ¿Descargarla igualmente?`,
   },
+  releaseSubs: {
+    fromTitle: "Subtítulos según el título de la release",
+    fromNyaa: "Subtítulos según la página de Nyaa",
+    both: "Subtítulos según el título y la página de Nyaa",
+    reading: "Leyendo los subtítulos en la página de Nyaa…",
+    multiHint: "El título dice que trae varios idiomas, pero no cuáles",
+    unknown: "Subs no indicados",
+    unknownHint: "Ni el título ni la página de Nyaa dicen qué subtítulos trae",
+    error: "Subs: sin datos",
+  },
   updates: {
     title: "Actualizaciones",
     check: "Buscar actualizaciones",

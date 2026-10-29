@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { ConfirmDialog, Dialog } from "@/components/Dialog";
 import { ErrorPanel } from "@/components/ErrorPanel";
 import { Empty, Spinner } from "@/components/ui";
+import { SubtitleBadge } from "./SubtitleBadge";
 import { getReleases, grabRelease, sortReleases, type ArrService, type Release, type ReleaseQuery, type ReleaseSort } from "@/api/arr";
 import { t } from "@/i18n/es";
 import { errorMessage } from "@/lib/errors";
@@ -126,6 +127,7 @@ export function ReleaseSearchDialog({
                         <div className="mt-0.5 flex items-center gap-2 text-xs text-muted">
                           <span>{r.indexer}</span>
                           {r.languages?.length ? <span>{r.languages.map((l) => l.name).join(", ")}</span> : null}
+                          <SubtitleBadge title={r.title} infoUrl={r.infoUrl} />
                           {r.rejected && (
                             <span className="chip bg-danger/10 text-danger" title={r.rejections?.join("\n")}>
                               <AlertTriangle className="h-3 w-3" /> {t.releases.rejected}
