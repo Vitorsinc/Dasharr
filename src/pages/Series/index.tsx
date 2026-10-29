@@ -10,9 +10,11 @@ import { PosterCard, PosterGrid } from "@/components/media/PosterCard";
 import { QueueList } from "@/components/media/QueueList";
 import { filterSort, libState, type LibFilter, type LibSort } from "@/components/media/library";
 import { posterUrl } from "@/api/arr";
+import { faKey, seriesItem } from "@/api/filmaffinity";
 import { sonarr, type MonitorOption, type Series, type SeriesType } from "@/api/sonarr";
 import { useSeries, useSonarrMeta, useSonarrQueue } from "@/hooks/useArr";
 import { usePrefs } from "@/hooks/usePrefs";
+import { useFaRatings } from "@/hooks/useFilmAffinity";
 import { t } from "@/i18n/es";
 import { defaultsFor, kindOf, looksLikeAnime, seriesTypeLabel, typeForKind, type SeriesKind } from "@/lib/anime";
 import { SeriesDetail } from "./SeriesDetail";
@@ -62,6 +64,8 @@ export default function SeriesPage({ kind = "series" }: { kind?: SeriesKind }) {
       ),
     [mine, query, filter, sort],
   );
+  const faItems = useMemo(() => (tab === "library" ? items.map(seriesItem) : []), [items, tab]);
+  const ratings = useFaRatings(faItems);
   const existing = useMemo(() => new Set((series.data ?? []).map((s) => s.tvdbId)), [series.data]);
   const selected = series.data?.find((s) => s.id === selectedId) ?? null;
 
@@ -123,6 +127,7 @@ export default function SeriesPage({ kind = "series" }: { kind?: SeriesKind }) {
                   subtitle={s.statistics ? t.library.episodes(s.statistics.episodeFileCount, s.statistics.episodeCount) : String(s.year)}
                   poster={posterUrl("sonarr", s)}
                   state={libState(s)}
+                  rating={ratings[faKey(seriesItem(s))]?.rating}
                   onClick={() => setSelectedId(s.id)}
                 />
               ))}

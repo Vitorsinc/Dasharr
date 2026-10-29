@@ -199,6 +199,16 @@ export const es = {
     removed: "Quitado de la cola",
     emptyLibrary: "No hay nada en la biblioteca con este filtro.",
   },
+  filmaffinity: {
+    label: "FilmAffinity",
+    votes: (n: string) => `${n} votos`,
+    loading: "Buscando…",
+    notFound: "No encontrada",
+    noRating: "Sin nota todavía",
+    unavailable: "No disponible ahora",
+    open: "Ver en FilmAffinity",
+    badge: (r: string) => `Nota de FilmAffinity: ${r}`,
+  },
   releases: {
     manual: "Búsqueda manual",
     title: (what: string) => `Releases · ${what}`,

@@ -10,8 +10,10 @@ import { PosterCard, PosterGrid } from "@/components/media/PosterCard";
 import { QueueList } from "@/components/media/QueueList";
 import { filterSort, libState, type LibFilter, type LibSort } from "@/components/media/library";
 import { posterUrl } from "@/api/arr";
+import { faKey, movieItem } from "@/api/filmaffinity";
 import { radarr, type Movie } from "@/api/radarr";
 import { useMovies, useRadarrMeta, useRadarrQueue } from "@/hooks/useArr";
+import { useFaRatings } from "@/hooks/useFilmAffinity";
 import { t } from "@/i18n/es";
 import { MovieDetail } from "./MovieDetail";
 
@@ -37,6 +39,8 @@ export default function MoviesPage() {
       ),
     [movies.data, query, filter, sort],
   );
+  const faItems = useMemo(() => (tab === "library" ? items.map(movieItem) : []), [items, tab]);
+  const ratings = useFaRatings(faItems);
   const existing = useMemo(() => new Set((movies.data ?? []).map((m) => m.tmdbId)), [movies.data]);
   const selected = movies.data?.find((m) => m.id === selectedId) ?? null;
 
@@ -92,6 +96,7 @@ export default function MoviesPage() {
                   subtitle={String(m.year)}
                   poster={posterUrl("radarr", m)}
                   state={libState(m)}
+                  rating={ratings[faKey(movieItem(m))]?.rating}
                   onClick={() => setSelectedId(m.id)}
                 />
               ))}
