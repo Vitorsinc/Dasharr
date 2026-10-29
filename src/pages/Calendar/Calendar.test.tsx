@@ -44,3 +44,30 @@ test("coloca los elementos en su día de la semana y cambia a vista mensual", as
   await userEvent.click(screen.getByRole("tab", { name: "Mes" }));
   expect(screen.getAllByTestId(/^day-/)).toHaveLength(42);
 });
+
+test("mergeCalendar usa el fanart como fondo y, si no hay, el póster", () => {
+  const movies = [
+    {
+      id: 1,
+      title: "Con fanart",
+      year: 2025,
+      hasFile: false,
+      inCinemas: "2025-01-10T00:00:00Z",
+      images: [
+        { coverType: "poster", remoteUrl: "https://img/p1.jpg" },
+        { coverType: "fanart", remoteUrl: "https://img/f1.jpg" },
+      ],
+    },
+    {
+      id: 2,
+      title: "Solo póster",
+      year: 2025,
+      hasFile: false,
+      inCinemas: "2025-01-11T00:00:00Z",
+      images: [{ coverType: "poster", remoteUrl: "https://img/p2.jpg" }],
+    },
+  ] as Movie[];
+  const [a, b] = mergeCalendar(movies, []);
+  expect(a.backdrop).toBe("https://img/f1.jpg");
+  expect(b.backdrop).toBe("https://img/p2.jpg");
+});

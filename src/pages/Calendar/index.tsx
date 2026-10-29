@@ -17,18 +17,39 @@ const monthFmt = new Intl.DateTimeFormat("es-ES", { month: "long", year: "numeri
 const dayFmt = new Intl.DateTimeFormat("es-ES", { day: "numeric", month: "short" });
 
 export function CalendarChip({ item, onClick, compact }: { item: CalItem; onClick: () => void; compact?: boolean }) {
+  const [imgFailed, setImgFailed] = useState(false);
+  const withImage = !!item.backdrop && !imgFailed;
   return (
     <button
       onClick={onClick}
       title={`${item.title} · ${item.subtitle}`}
       className={cn(
-        "w-full rounded-md border-l-2 px-2 py-1 text-left text-xs transition-colors hover:brightness-110",
+        "group relative w-full overflow-hidden rounded-md border-l-2 text-left text-xs transition-[filter] hover:brightness-110",
         item.source === "radarr" ? "border-warning bg-warning/10" : "border-accent bg-accent/10",
+        withImage && "bg-black text-white",
+        withImage && !compact && "flex min-h-16 flex-col justify-end",
         item.hasFile && "opacity-60",
       )}
     >
-      <div className="truncate font-medium">{item.title}</div>
-      {!compact && <div className="truncate text-muted">{item.subtitle}</div>}
+      {withImage && (
+        <>
+          <img
+            src={item.backdrop}
+            alt=""
+            loading="lazy"
+            onError={() => setImgFailed(true)}
+            className="absolute inset-0 h-full w-full object-cover object-[center_25%] transition-transform duration-300 group-hover:scale-105"
+          />
+          {/* Degradado oscuro para que el texto se lea sobre cualquier imagen. */}
+          <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/55 to-black/15" />
+        </>
+      )}
+      <div className={cn("relative w-full px-2", compact ? "py-1" : "py-1.5")}>
+        <div className={cn("truncate font-medium", withImage && "drop-shadow")}>{item.title}</div>
+        {!compact && (
+          <div className={cn("truncate", withImage ? "text-white/75 drop-shadow" : "text-muted")}>{item.subtitle}</div>
+        )}
+      </div>
     </button>
   );
 }
