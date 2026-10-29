@@ -165,17 +165,24 @@ fn section_name(line: &str) -> Option<String> {
     (known.contains(&first.as_str()) && numbered).then_some(first)
 }
 
-/// Líneas tipo «Subtitles: English, Spanish», tablas «| Subs | ENG, SPA |» y listas bajo «Subtitles:».
+/// Líneas tipo «Subtitles: English, Spanish», tablas «| Subs | ENG, SPA |» y listas bajo «Subtitles:»
+/// (Erai-raws: «* `Subtitles Info:`» y debajo una línea por idioma, «**Spanish** (CR_Spanish) | ASS»).
 fn described_langs(text: &str) -> Vec<String> {
+    let text = text.replace("<br />", "\n").replace("<br/>", "\n").replace("<br>", "\n");
     let mut out = Vec::new();
-    let mut list_open = false;
+    // Dentro de una lista de subtítulos; `found` dice si ya se leyó algún elemento.
+    let mut list: Option<bool> = None;
     for raw in text.lines() {
         let line = raw.trim();
         if line.is_empty() {
-            list_open = false;
+            // Una línea en blanco justo tras la etiqueta no cierra la lista; tras los idiomas, sí.
+            if list == Some(true) {
+                list = None;
+            }
             continue;
         }
         if line.starts_with('|') {
+            list = None;
             let cells: Vec<&str> = line.split('|').map(str::trim).collect();
             if let Some(i) = cells.iter().position(|c| is_sub_label(c)) {
                 for cell in &cells[i + 1..] {
@@ -186,22 +193,32 @@ fn described_langs(text: &str) -> Vec<String> {
         }
         let clean = line.trim_start_matches(|c: char| "-*+>#• ".contains(c));
         if let Some((label, value)) = clean.split_once(':').or_else(|| clean.split_once('：')) {
-            if is_sub_label(label) {
-                list_open = value.trim().trim_matches('*').is_empty();
-                out.extend(list_langs(value));
+            if is_label(label) {
+                if is_sub_label(label) {
+                    let found = list_langs(value);
+                    list = found.is_empty().then_some(false);
+                    out.extend(found);
+                } else {
+                    list = None;
+                }
                 continue;
             }
         } else if is_sub_label(clean) {
-            list_open = true;
+            list = Some(false);
             continue;
         }
-        if list_open && clean.len() < line.len() {
+        if list.is_some() {
             out.extend(list_langs(clean));
-        } else {
-            list_open = false;
+            list = Some(true);
         }
     }
     out
+}
+
+/// Parece una etiqueta («Subtitles Info», «`Chapters», «**Audio**») y no una frase con dos puntos.
+fn is_label(s: &str) -> bool {
+    let s = s.trim_matches(|c: char| !c.is_alphanumeric());
+    !s.is_empty() && s.len() <= 30 && s.split_whitespace().count() <= 4
 }
 
 fn is_sub_label(s: &str) -> bool {
@@ -219,7 +236,15 @@ fn list_langs(value: &str) -> Vec<String> {
         .take_while(|item| !item.contains(':'))
         .flat_map(|item| {
             let words = words(item);
-            phrase_langs(item, words.len() <= 2)
+            let mut codes = phrase_langs(item, words.len() <= 2);
+            // «Spanish (CR_Spanish(Latin_America))» es una sola pista: la variante regional.
+            if codes.iter().any(|c| c == "es-419") {
+                codes.retain(|c| c != "es");
+            }
+            if codes.iter().any(|c| c == "pt-BR") {
+                codes.retain(|c| c != "pt");
+            }
+            codes
         })
         .collect()
 }
@@ -444,6 +469,21 @@ mod tests {
         assert_eq!(languages(&page(d, &[])), vec!["en"]);
         let d = "Subtítulos: Castellano y Latino";
         assert_eq!(languages(&page(d, &[])), vec!["es", "es-419"]);
+    }
+
+    #[test]
+    fn reads_erai_raws_subtitle_info() {
+        let d = "[Erai-raws]( https://www.erai-raws.info/anime-list/dragon-ball-super-beerus/ )\n\n\
+* `Video Info:`  \n**Japanese** ([Erai-raws]_HEVC_CR) | **HEVC** | **Main 10@L4** | **1920x1080** | **4099 kbps**  \n\n\
+* `Audio Info:`  \n**Japanese** ([Erai-raws]_AAC_CR) | **AAC** | **2.0** | **192 kbps**  \n\n\
+* `Subtitles Info:`  \n**English** (CR_English) | ASS  \n**Portuguese** (CR_Portuguese(Brazil)) | ASS  \n\
+**Spanish** (CR_Spanish(Latin_America)) | ASS  \n**Spanish** (CR_Spanish) | ASS  \n**Arabic** (CR_Arabic) | ASS  \n\
+**Chinese** (CR_Chinese(Traditional)) | ASS  \n**Polish** (CR_Polish) | ASS  \n\n\
+* `Chapters:` **Yes**\n* `Duration:` **~00:23:17**";
+        assert_eq!(languages(&page(d, &[])), vec!["en", "pt-BR", "es-419", "es", "ar", "zh", "pl"]);
+        // Igual con la lista en HTML y una línea en blanco tras la etiqueta.
+        let d = "<li><code>Subtitles Info:</code><br>\n\n<b>Spanish</b> (CR_Spanish) | ASS<br><b>French</b> (CR_French) | ASS</li>\n\nChapters: Yes";
+        assert_eq!(languages(&page(d, &[])), vec!["es", "fr"]);
     }
 
     #[test]
