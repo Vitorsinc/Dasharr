@@ -21,7 +21,8 @@ export const routes: RouteObject[] = [
         children: [
           { path: "/", element: <HomePage /> },
           { path: "/peliculas", element: <MoviesPage /> },
-          { path: "/series", element: <SeriesPage /> },
+          { path: "/series", element: <SeriesPage key="series" kind="series" /> },
+          { path: "/anime", element: <SeriesPage key="anime" kind="anime" /> },
           { path: "/descargas", element: <DownloadsPage /> },
           { path: "/buscar", element: <SearchPage /> },
           { path: "/subtitulos", element: <SubtitlesPage /> },

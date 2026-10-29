@@ -12,6 +12,7 @@ export interface Season {
   monitored: boolean;
   statistics?: SeasonStats;
 }
+export type SeriesType = "standard" | "anime" | "daily";
 export interface Series {
   id: number;
   title: string;
@@ -26,6 +27,8 @@ export interface Series {
   images?: ArrImage[];
   seasons?: Season[];
   genres?: string[];
+  seriesType?: SeriesType;
+  originalLanguage?: { id: number; name: string };
   statistics?: SeasonStats & { seasonCount?: number; percentOfEpisodes?: number };
 }
 export interface Episode {
@@ -45,6 +48,7 @@ export interface AddSeriesOptions {
   qualityProfileId: number;
   rootFolderPath: string;
   monitor: MonitorOption;
+  seriesType: SeriesType;
   search: boolean;
 }
 
@@ -84,11 +88,14 @@ export const sonarr = {
         rootFolderPath: o.rootFolderPath,
         monitored: true,
         seasonFolder: true,
+        seriesType: o.seriesType,
         addOptions: { monitor: o.monitor, searchForMissingEpisodes: o.search },
       },
     }),
   setMonitored: (series: Series, monitored: boolean) =>
     apiRequest<Series>("sonarr", { method: "PUT", path: `/api/v3/series/${series.id}`, json: { ...series, monitored } }),
+  setSeriesType: (series: Series, seriesType: SeriesType) =>
+    apiRequest<Series>("sonarr", { method: "PUT", path: `/api/v3/series/${series.id}`, json: { ...series, seriesType } }),
   setEpisodesMonitored: (episodeIds: number[], monitored: boolean) =>
     apiRequest<unknown>("sonarr", { method: "PUT", path: "/api/v3/episode/monitor", json: { episodeIds, monitored } }),
   deleteSeries: (id: number, deleteFiles: boolean) =>
