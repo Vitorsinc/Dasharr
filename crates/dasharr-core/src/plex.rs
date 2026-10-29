@@ -143,6 +143,56 @@ impl PlexAccount {
         let v = self.json(req).await?;
         Ok(parse_servers(&v))
     }
+
+    /// Dueño de la cuenta, amigos y usuarios de casa, con su avatar. `api/users` solo responde en XML.
+    pub async fn users(&self, token: &str) -> Result<Vec<PlexUser>, ApiError> {
+        let me = self.json(self.http.get(format!("{}/api/v2/user", self.plex_tv)).header("X-Plex-Token", token)).await?;
+        let mut out: Vec<PlexUser> = serde_json::from_value(me).into_iter().collect();
+        let res = identify(self.http.get(format!("{}/api/users/", self.plex_tv)), Some(&self.client_id))
+            .header(header::ACCEPT, "application/xml")
+            .header("X-Plex-Token", token)
+            .send()
+            .await
+            .map_err(ApiError::network)?;
+        let status = res.status();
+        let text = res.text().await.map_err(ApiError::network)?;
+        check(status, &text)?;
+        out.extend(parse_users_xml(&text));
+        Ok(out)
+    }
+}
+
+/// Usuario de Plex con su avatar (`thumb`, una URL pública de plex.tv).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct PlexUser {
+    #[serde(default)]
+    pub username: Option<String>,
+    #[serde(default)]
+    pub title: Option<String>,
+    #[serde(default)]
+    pub thumb: Option<String>,
+}
+
+fn unescape(v: &str) -> String {
+    v.replace("&quot;", "\"").replace("&apos;", "'").replace("&lt;", "<").replace("&gt;", ">").replace("&amp;", "&")
+}
+
+/// Atributos `username`, `title` y `thumb` de cada `<User …>` de `plex.tv/api/users`.
+pub fn parse_users_xml(xml: &str) -> Vec<PlexUser> {
+    xml.split("<User ")
+        .skip(1)
+        .map(|tag| {
+            let tag = tag.split('>').next().unwrap_or_default();
+            let attr = |name: &str| {
+                let start = tag.find(&format!(" {name}=\"")).or_else(|| tag.starts_with(&format!("{name}=\"")).then_some(0))?;
+                let rest = &tag[start..];
+                let rest = &rest[rest.find('"')? + 1..];
+                let value = unescape(&rest[..rest.find('"')?]);
+                (!value.is_empty()).then_some(value)
+            };
+            PlexUser { username: attr("username"), title: attr("title"), thumb: attr("thumb") }
+        })
+        .collect()
 }
 
 /// Elige una dirección local (IP sin plex.direct, que algunos routers bloquean) y una externa por servidor.
@@ -211,6 +261,17 @@ mod tests {
             url.starts_with("https://app.plex.tv/auth#?clientID=abc&code=XYZ&context"),
             "{url}"
         );
+    }
+
+    #[test]
+    fn reads_users_from_xml() {
+        let xml = r#"<?xml version="1.0"?><MediaContainer><User id="1" title="Ana" username="ana_p" thumb="https://plex.tv/users/a/avatar?c=1&amp;x=2" home="0"><Server/></User><User id="2" title="Peque" username="" thumb="https://plex.tv/users/b/avatar"/></MediaContainer>"#;
+        let users = parse_users_xml(xml);
+        assert_eq!(users.len(), 2);
+        assert_eq!(users[0].username.as_deref(), Some("ana_p"));
+        assert_eq!(users[0].thumb.as_deref(), Some("https://plex.tv/users/a/avatar?c=1&x=2"));
+        assert_eq!(users[1].username, None);
+        assert_eq!(users[1].title.as_deref(), Some("Peque"));
     }
 
     #[test]

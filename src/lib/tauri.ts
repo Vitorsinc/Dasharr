@@ -82,6 +82,13 @@ export interface PlexServerChoice {
 export const plexLoginStart = () => invoke<{ pinId: number; url: string }>("plex_login_start");
 /** `null` mientras el usuario no haya aceptado en la web de Plex. */
 export const plexLoginCheck = (pinId: number) => invoke<PlexServerChoice[] | null>("plex_login_check", { pinId });
+export interface PlexUser {
+  username?: string | null;
+  title?: string | null;
+  thumb?: string | null;
+}
+/** Usuarios de la cuenta de Plex (dueño, amigos y usuarios de casa) con su avatar. */
+export const plexUsers = () => invoke<PlexUser[]>("plex_users");
 export const plexLoginFinish = (serverId: string, config: ServiceConfig) => invoke<void>("plex_login_finish", { serverId, config });
 
 export interface LogFile {
