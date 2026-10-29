@@ -1,4 +1,4 @@
-import { posterUrl } from "./arr";
+import { backdropUrl, posterUrl } from "./arr";
 import { movieReleaseDate, type Movie } from "./radarr";
 import type { Episode } from "./sonarr";
 
@@ -10,6 +10,8 @@ export interface CalItem {
   date: Date;
   hasFile: boolean;
   poster?: string;
+  /** Imagen de fondo de la barra del calendario (fanart o póster). */
+  backdrop?: string;
   movie?: Movie;
   episode?: Episode;
 }
@@ -27,6 +29,7 @@ export function mergeCalendar(movies: Movie[], episodes: Episode[]): CalItem[] {
       date: new Date(d),
       hasFile: m.hasFile,
       poster: posterUrl("radarr", m, 250),
+      backdrop: backdropUrl("radarr", m),
       movie: m,
     });
   }
@@ -41,6 +44,7 @@ export function mergeCalendar(movies: Movie[], episodes: Episode[]): CalItem[] {
       date: new Date(e.airDateUtc),
       hasFile: e.hasFile,
       poster: e.series ? posterUrl("sonarr", e.series, 250) : undefined,
+      backdrop: e.series ? backdropUrl("sonarr", e.series) : undefined,
       episode: e,
     });
   }
