@@ -1,17 +1,22 @@
 import { useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { ChevronDown, Eye, EyeOff, Search, Trash2 } from "lucide-react";
+import { ChevronDown, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmDialog, Dialog } from "@/components/Dialog";
 import { FaInfo } from "@/components/media/FilmAffinity";
 import { Poster } from "@/components/media/PosterCard";
 import { ReleaseSearchDialog } from "@/components/media/ReleaseSearchDialog";
 import { SearchChoice } from "@/components/media/SearchChoice";
+import { EpisodeMark, type EpisodeMarkStyle } from "@/components/media/EpisodeMark";
+import { MonitorIcon, MonitorToggle } from "@/components/media/MonitorToggle";
+
+/** Cómo se marca el estado del episodio junto a su número. */
+const MARK: EpisodeMarkStyle = "dot";
 import { Loading, ProgressBar } from "@/components/ui";
 import { posterUrl, type ReleaseQuery } from "@/api/arr";
 import { PlexBadge } from "@/components/plex/PlexBadge";
 import { seriesItem } from "@/api/filmaffinity";
-import { episodeStatus, sonarr, type Episode, type EpisodeStatus, type Series, type SeriesType } from "@/api/sonarr";
+import { episodeStatus, sonarr, type Episode, type Series, type SeriesType } from "@/api/sonarr";
 import { useEpisodes } from "@/hooks/useArr";
 import { useMediaHistory } from "@/hooks/useTracearr";
 import { episodeKey, playsByEpisode, showRefs, type Play } from "@/api/tracearr";
@@ -21,12 +26,6 @@ import { errorMessage } from "@/lib/errors";
 import { formatBytes, formatDate } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import { seriesTypeLabel } from "@/lib/anime";
-
-const epStyle: Record<EpisodeStatus, { cls: string; label: string }> = {
-  downloaded: { cls: "bg-success/15 text-success", label: t.library.epDownloaded },
-  missing: { cls: "bg-danger/15 text-danger", label: t.library.epMissing },
-  unaired: { cls: "bg-surface-2 text-muted", label: t.library.epUnaired },
-};
 
 function SeasonBlock({
   series,
@@ -73,10 +72,14 @@ function SeasonBlock({
             return (
               <li key={e.id} className="px-4 py-2 text-sm">
                 <div className="flex items-center gap-3">
-                  <span className="w-8 tabular-nums text-muted">{e.episodeNumber}</span>
+                  <MonitorToggle
+                    monitored={e.monitored}
+                    what={e.title}
+                    onToggle={() => run(() => sonarr.setEpisodesMonitored([e.id], !e.monitored))}
+                  />
+                  <EpisodeMark status={st} number={e.episodeNumber} variant={MARK} />
                   <span className="min-w-0 flex-1 truncate">{e.title}</span>
                   <span className="w-20 text-xs text-muted">{formatDate(e.airDateUtc)}</span>
-                  <span className={cn("chip w-24 justify-center", epStyle[st].cls)}>{epStyle[st].label}</span>
                   {watch &&
                     (plays.length ? (
                       <EpisodeViewersButton
@@ -87,14 +90,6 @@ function SeasonBlock({
                     ) : (
                       <span className="w-20" />
                     ))}
-                  <button
-                    className="btn-ghost p-1"
-                    title={e.monitored ? t.library.monitorOff : t.library.monitorOn}
-                    aria-label={`${e.monitored ? t.library.monitorOff : t.library.monitorOn} ${e.title}`}
-                    onClick={() => run(() => sonarr.setEpisodesMonitored([e.id], !e.monitored))}
-                  >
-                    {e.monitored ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4 text-muted" />}
-                  </button>
                   <SearchChoice
                     what={e.title}
                     onAuto={() => run(() => sonarr.searchEpisodes([e.id]), t.library.searchStarted)}
@@ -181,7 +176,7 @@ export function SeriesDetail({ series, onClose }: { series: Series | null; onClo
                   <Search className="h-4 w-4" /> {t.library.searchNow}
                 </button>
                 <button className="btn-outline" onClick={() => run(() => sonarr.setMonitored(series, !series.monitored).then(onClose))}>
-                  {series.monitored ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  <MonitorIcon monitored={series.monitored} />
                   {series.monitored ? t.library.monitorOff : t.library.monitorOn}
                 </button>
                 <button className="btn-ghost ml-auto text-danger" onClick={() => setConfirm(true)}>

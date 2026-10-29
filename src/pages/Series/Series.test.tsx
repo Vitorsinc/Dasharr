@@ -147,8 +147,9 @@ test("filtra completas y abre la ficha con temporadas y búsqueda por temporada"
   const dialog = await screen.findByRole("dialog", { name: "Shōgun" });
   expect(await within(dialog).findByText("Temporada 1")).toBeInTheDocument();
   await userEvent.click(within(dialog).getByText("Temporada 1"));
-  expect(within(dialog).getByText("Falta")).toBeInTheDocument();
-  expect(within(dialog).getByText("Descargado")).toBeInTheDocument();
+  expect(within(dialog).getByTitle("Falta")).toBeInTheDocument();
+  expect(within(dialog).getAllByRole("button", { name: /^Monitorizado / }).length).toBeGreaterThan(0);
+  expect(within(dialog).getByTitle("Descargado")).toBeInTheDocument();
   expect(within(dialog).getByRole("button", { name: "Búsqueda manual: Temporada 1" })).toBeInTheDocument();
   // Cada episodio tiene las dos búsquedas.
   const autos = within(dialog).getAllByRole("button", { name: /^Búsqueda automática: / });

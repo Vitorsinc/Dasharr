@@ -196,6 +196,8 @@ export const es = {
     unmonitoredLabel: "No monitorizada",
     monitorOn: "Monitorizar",
     monitorOff: "Dejar de monitorizar",
+    monitoredClick: "Monitorizado (pulsa para dejar de monitorizar)",
+    unmonitoredClick: "No monitorizado (pulsa para monitorizar)",
     deleteMovie: "Borrar película",
     deleteSeries: "Borrar serie",
     deleteMessage: (title: string) => `Se quitará "${title}" de la biblioteca.`,
