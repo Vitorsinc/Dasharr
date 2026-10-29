@@ -14,7 +14,7 @@ crea la Release con las notas de esta página.
 - Inicio con el estado de cada servicio, descargas activas y próximos estrenos.
 - Películas (Radarr) y Series (Sonarr): biblioteca, fichas, añadir, buscar, monitorizar, borrar y cola.
 - Anime separado de Series: sección propia en el menú según el tipo de serie de Sonarr. Al buscar, lo que parece anime se marca y se añade ya como anime con su carpeta y perfil (elegibles en Ajustes). El tipo se puede cambiar desde la ficha.
-- Búsqueda manual de releases en películas, temporadas y episodios, eligiendo cuál descargar.
+- Búsqueda manual de releases en películas, temporadas y episodios, eligiendo cuál descargar. Cada temporada y episodio muestra las dos búsquedas con los iconos de Radarr/Sonarr (lupa = automática, persona = manual), y al añadir se puede elegir no buscar, búsqueda automática o manual.
 - Importación manual desde la cola de Sonarr/Radarr, asociando cada archivo a su serie/episodio o película, con hardlink.
 - Descargas (qBittorrent): control de torrents, añadir por enlace o archivo y aviso de Windows al terminar.
 - Buscar en los indexadores de Prowlarr y enviar a qBittorrent.

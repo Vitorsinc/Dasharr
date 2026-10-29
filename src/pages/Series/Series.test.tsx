@@ -149,7 +149,13 @@ test("filtra completas y abre la ficha con temporadas y búsqueda por temporada"
   await userEvent.click(within(dialog).getByText("Temporada 1"));
   expect(within(dialog).getByText("Falta")).toBeInTheDocument();
   expect(within(dialog).getByText("Descargado")).toBeInTheDocument();
-  await userEvent.click(within(dialog).getByRole("button", { name: "Buscar temporada 1" }));
+  expect(within(dialog).getByRole("button", { name: "Búsqueda manual: Temporada 1" })).toBeInTheDocument();
+  // Cada episodio tiene las dos búsquedas.
+  const autos = within(dialog).getAllByRole("button", { name: /^Búsqueda automática: / });
+  const manuals = within(dialog).getAllByRole("button", { name: /^Búsqueda manual: / });
+  expect(manuals.length).toBe(autos.length);
+  expect(manuals.length).toBeGreaterThan(1);
+  await userEvent.click(within(dialog).getByRole("button", { name: "Búsqueda automática: Temporada 1" }));
   expect(calls.find((c) => c.path === "/api/v3/command")?.body.value).toEqual({ name: "SeasonSearch", seriesId: 7, seasonNumber: 1 });
 });
 

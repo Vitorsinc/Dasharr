@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Eye, EyeOff, ListFilter, Search, Trash2 } from "lucide-react";
+import { Eye, EyeOff, Search, Trash2, User } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmDialog, Dialog } from "@/components/Dialog";
 import { FaInfo } from "@/components/media/FilmAffinity";
@@ -76,7 +76,7 @@ export function MovieDetail({ movie, onClose }: { movie: Movie | null; onClose: 
                 <Search className="h-4 w-4" /> {t.library.searchNow}
               </button>
               <button className="btn-outline" onClick={() => setManual(true)}>
-                <ListFilter className="h-4 w-4" /> {t.releases.manual}
+                <User className="h-4 w-4" /> {t.releases.manual}
               </button>
               <button className="btn-outline" onClick={() => run(() => radarr.setMonitored(movie, !movie.monitored).then(onClose))}>
                 {movie.monitored ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}

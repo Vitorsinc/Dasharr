@@ -177,9 +177,11 @@ export default function SeriesPage({ kind = "series" }: { kind?: SeriesKind }) {
             </label>
           </>
         }
+        manualHint={t.library.addManualSeriesHint}
         onAdd={async (s, o) => {
-          await sonarr.addSeries(s, { ...o, monitor, seriesType });
+          const added = await sonarr.addSeries(s, { ...o, monitor, seriesType });
           await qc.invalidateQueries({ queryKey: ["sonarr"] });
+          if (o.searchMode === "manual") setSelectedId(added.id);
         }}
       />
     </Page>
