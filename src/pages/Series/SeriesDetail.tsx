@@ -9,6 +9,9 @@ import { Loading, ProgressBar } from "@/components/ui";
 import { posterUrl, type ReleaseQuery } from "@/api/arr";
 import { episodeStatus, sonarr, type Episode, type EpisodeStatus, type Series, type SeriesType } from "@/api/sonarr";
 import { useEpisodes } from "@/hooks/useArr";
+import { useMediaHistory } from "@/hooks/useTracearr";
+import { episodeKey, playsByEpisode, showRefs, type Play } from "@/api/tracearr";
+import { EpisodeViewersButton, PlayList, SeriesWatchSummary } from "@/components/watch/WatchHistory";
 import { t } from "@/i18n/es";
 import { errorMessage } from "@/lib/errors";
 import { formatBytes, formatDate } from "@/lib/format";
@@ -27,14 +30,18 @@ function SeasonBlock({
   episodes,
   run,
   onManual,
+  watch,
 }: {
   series: Series;
   season: number;
   episodes: Episode[];
+  /** Reproducciones de Tracearr por episodio (`"1x3"`); undefined sin Tracearr. */
+  watch?: Map<string, Play[]>;
   run: (fn: () => Promise<unknown>, ok?: string) => void;
   onManual: (q: ReleaseQuery, what: string) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [openEp, setOpenEp] = useState<number | null>(null);
   const have = episodes.filter((e) => e.hasFile).length;
   const aired = episodes.filter((e) => episodeStatus(e) !== "unaired").length;
   return (
@@ -69,38 +76,56 @@ function SeasonBlock({
         <ul className="divide-y divide-border border-t border-border">
           {episodes.map((e) => {
             const st = episodeStatus(e);
+            const plays = watch?.get(episodeKey(e.seasonNumber, e.episodeNumber)) ?? [];
             return (
-              <li key={e.id} className="flex items-center gap-3 px-4 py-2 text-sm">
-                <span className="w-8 tabular-nums text-muted">{e.episodeNumber}</span>
-                <span className="min-w-0 flex-1 truncate">{e.title}</span>
-                <span className="w-20 text-xs text-muted">{formatDate(e.airDateUtc)}</span>
-                <span className={cn("chip w-24 justify-center", epStyle[st].cls)}>{epStyle[st].label}</span>
-                <button
-                  className="btn-ghost p-1"
-                  title={e.monitored ? t.library.monitorOff : t.library.monitorOn}
-                  aria-label={`${e.monitored ? t.library.monitorOff : t.library.monitorOn} ${e.title}`}
-                  onClick={() => run(() => sonarr.setEpisodesMonitored([e.id], !e.monitored))}
-                >
-                  {e.monitored ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4 text-muted" />}
-                </button>
-                <button
-                  className="btn-ghost p-1"
-                  title={t.library.searchEpisode}
-                  aria-label={`${t.library.searchEpisode} ${e.title}`}
-                  onClick={() => run(() => sonarr.searchEpisodes([e.id]), t.library.searchStarted)}
-                >
-                  <Search className="h-4 w-4" />
-                </button>
-                <button
-                  className="btn-ghost p-1"
-                  title={t.releases.manual}
-                  aria-label={`${t.releases.manual} ${e.title}`}
-                  onClick={() =>
-                    onManual({ episodeId: e.id }, `${series.title} · ${e.seasonNumber}x${String(e.episodeNumber).padStart(2, "0")}`)
-                  }
-                >
-                  <ListFilter className="h-4 w-4" />
-                </button>
+              <li key={e.id} className="px-4 py-2 text-sm">
+                <div className="flex items-center gap-3">
+                  <span className="w-8 tabular-nums text-muted">{e.episodeNumber}</span>
+                  <span className="min-w-0 flex-1 truncate">{e.title}</span>
+                  <span className="w-20 text-xs text-muted">{formatDate(e.airDateUtc)}</span>
+                  <span className={cn("chip w-24 justify-center", epStyle[st].cls)}>{epStyle[st].label}</span>
+                  {watch &&
+                    (plays.length ? (
+                      <EpisodeViewersButton
+                        plays={plays}
+                        open={openEp === e.id}
+                        onToggle={() => setOpenEp(openEp === e.id ? null : e.id)}
+                      />
+                    ) : (
+                      <span className="w-20" />
+                    ))}
+                  <button
+                    className="btn-ghost p-1"
+                    title={e.monitored ? t.library.monitorOff : t.library.monitorOn}
+                    aria-label={`${e.monitored ? t.library.monitorOff : t.library.monitorOn} ${e.title}`}
+                    onClick={() => run(() => sonarr.setEpisodesMonitored([e.id], !e.monitored))}
+                  >
+                    {e.monitored ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4 text-muted" />}
+                  </button>
+                  <button
+                    className="btn-ghost p-1"
+                    title={t.library.searchEpisode}
+                    aria-label={`${t.library.searchEpisode} ${e.title}`}
+                    onClick={() => run(() => sonarr.searchEpisodes([e.id]), t.library.searchStarted)}
+                  >
+                    <Search className="h-4 w-4" />
+                  </button>
+                  <button
+                    className="btn-ghost p-1"
+                    title={t.releases.manual}
+                    aria-label={`${t.releases.manual} ${e.title}`}
+                    onClick={() =>
+                      onManual({ episodeId: e.id }, `${series.title} · ${e.seasonNumber}x${String(e.episodeNumber).padStart(2, "0")}`)
+                    }
+                  >
+                    <ListFilter className="h-4 w-4" />
+                  </button>
+                </div>
+                {openEp === e.id && plays.length > 0 && (
+                  <div className="mt-2 rounded-lg bg-surface-2 px-3 py-2">
+                    <PlayList plays={plays} />
+                  </div>
+                )}
               </li>
             );
           })}
@@ -115,6 +140,8 @@ export function SeriesDetail({ series, onClose }: { series: Series | null; onClo
   const [confirm, setConfirm] = useState(false);
   const [manual, setManual] = useState<{ query: ReleaseQuery; what: string } | null>(null);
   const episodes = useEpisodes(series?.id);
+  const watchQ = useMediaHistory(series ? showRefs(series) : []);
+  const watch = useMemo(() => (watchQ.data && !watchQ.data.notFound ? playsByEpisode(watchQ.data.plays) : undefined), [watchQ.data]);
   const seasons = useMemo(() => {
     const map = new Map<number, Episode[]>();
     for (const e of episodes.data ?? []) map.set(e.seasonNumber, [...(map.get(e.seasonNumber) ?? []), e]);
@@ -179,6 +206,7 @@ export function SeriesDetail({ series, onClose }: { series: Series | null; onClo
               </div>
             </div>
           </div>
+          <SeriesWatchSummary q={watchQ} />
           {episodes.isLoading ? (
             <Loading />
           ) : (
@@ -190,6 +218,7 @@ export function SeriesDetail({ series, onClose }: { series: Series | null; onClo
                   season={n}
                   episodes={eps}
                   run={run}
+                  watch={watch}
                   onManual={(query, what) => setManual({ query, what })}
                 />
               ))}

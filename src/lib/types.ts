@@ -1,5 +1,5 @@
-export type ServiceKind = "radarr" | "sonarr" | "prowlarr" | "bazarr" | "qbittorrent";
-export const SERVICE_KINDS: ServiceKind[] = ["radarr", "sonarr", "prowlarr", "bazarr", "qbittorrent"];
+export type ServiceKind = "radarr" | "sonarr" | "prowlarr" | "bazarr" | "qbittorrent" | "tracearr";
+export const SERVICE_KINDS: ServiceKind[] = ["radarr", "sonarr", "prowlarr", "bazarr", "qbittorrent", "tracearr"];
 
 export type Route = "local" | "remote" | "offline";
 

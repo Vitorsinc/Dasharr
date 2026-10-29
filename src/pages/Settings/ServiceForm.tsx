@@ -11,7 +11,14 @@ import { Spinner } from "@/components/ui";
 import { settingsKey } from "@/hooks/useSettings";
 import { connectionKey } from "@/hooks/useConnectionStates";
 
-const defaultPorts: Record<ServiceKind, number> = { radarr: 7878, sonarr: 8989, prowlarr: 9696, bazarr: 6767, qbittorrent: 8080 };
+const defaultPorts: Record<ServiceKind, number> = {
+  radarr: 7878,
+  sonarr: 8989,
+  prowlarr: 9696,
+  bazarr: 6767,
+  qbittorrent: 8080,
+  tracearr: 3000,
+};
 
 function Field({ label, children, hint }: { label: string; children: React.ReactNode; hint?: string }) {
   return (
@@ -28,6 +35,7 @@ type Result = { ok: true; version: string } | { ok: false; message: string } | n
 export function ServiceForm({ service, view, route }: { service: ServiceKind; view?: ServiceSettingsView; route?: Route | null }) {
   const qc = useQueryClient();
   const isQbit = service === "qbittorrent";
+  const isTracearr = service === "tracearr";
   const [localUrl, setLocalUrl] = useState(view?.config.localUrl ?? "");
   const [externalUrl, setExternalUrl] = useState(view?.config.externalUrl ?? "");
   const [apiKey, setApiKey] = useState("");
@@ -44,7 +52,7 @@ export function ServiceForm({ service, view, route }: { service: ServiceKind; vi
     apiKey: apiKey || undefined,
     username: isQbit ? username.trim() : undefined,
     password: isQbit ? password || undefined : undefined,
-    proxyUsername: proxyUsername.trim(),
+    proxyUsername: isTracearr ? undefined : proxyUsername.trim(),
     proxyPassword: proxyPassword || undefined,
   });
   const hasUrl = !!(config.localUrl || config.externalUrl);
@@ -132,7 +140,7 @@ export function ServiceForm({ service, view, route }: { service: ServiceKind; vi
             </Field>
           </>
         ) : (
-          <Field label={t.settings.apiKey} hint={t.settings.apiKeyHint}>
+          <Field label={t.settings.apiKey} hint={isTracearr ? t.settings.tracearrApiKeyHint : t.settings.apiKeyHint}>
             <input
               className="input font-mono"
               value={apiKey}
@@ -145,16 +153,20 @@ export function ServiceForm({ service, view, route }: { service: ServiceKind; vi
         )}
       </div>
 
-      <button
-        type="button"
-        className="mt-4 flex items-center gap-1 text-sm text-muted hover:text-fg"
-        onClick={() => setShowProxy((v) => !v)}
-        aria-expanded={showProxy}
-      >
-        <ChevronDown className={`h-4 w-4 transition-transform ${showProxy ? "rotate-180" : ""}`} />
-        {t.settings.proxy}
-      </button>
-      {showProxy && (
+      {isTracearr ? (
+        <p className="mt-4 text-xs text-muted">{t.settings.tracearrNoProxy}</p>
+      ) : (
+        <button
+          type="button"
+          className="mt-4 flex items-center gap-1 text-sm text-muted hover:text-fg"
+          onClick={() => setShowProxy((v) => !v)}
+          aria-expanded={showProxy}
+        >
+          <ChevronDown className={`h-4 w-4 transition-transform ${showProxy ? "rotate-180" : ""}`} />
+          {t.settings.proxy}
+        </button>
+      )}
+      {showProxy && !isTracearr && (
         <div className="mt-3 grid gap-4 md:grid-cols-2">
           <Field label={t.settings.proxyUsername}>
             <input className="input" value={proxyUsername} onChange={(e) => setProxyUsername(e.target.value)} autoComplete="off" />

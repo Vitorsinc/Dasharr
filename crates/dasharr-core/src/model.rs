@@ -9,15 +9,17 @@ pub enum ServiceKind {
     Prowlarr,
     Bazarr,
     Qbittorrent,
+    Tracearr,
 }
 
 impl ServiceKind {
-    pub const ALL: [ServiceKind; 5] = [
+    pub const ALL: [ServiceKind; 6] = [
         ServiceKind::Radarr,
         ServiceKind::Sonarr,
         ServiceKind::Prowlarr,
         ServiceKind::Bazarr,
         ServiceKind::Qbittorrent,
+        ServiceKind::Tracearr,
     ];
 
     pub fn as_str(self) -> &'static str {
@@ -27,6 +29,7 @@ impl ServiceKind {
             ServiceKind::Prowlarr => "prowlarr",
             ServiceKind::Bazarr => "bazarr",
             ServiceKind::Qbittorrent => "qbittorrent",
+            ServiceKind::Tracearr => "tracearr",
         }
     }
 
@@ -40,6 +43,7 @@ impl ServiceKind {
             ServiceKind::Radarr | ServiceKind::Sonarr | ServiceKind::Prowlarr => "/ping",
             ServiceKind::Bazarr => "/api/system/status",
             ServiceKind::Qbittorrent => "/api/v2/app/version",
+            ServiceKind::Tracearr => "/health",
         }
     }
 }
