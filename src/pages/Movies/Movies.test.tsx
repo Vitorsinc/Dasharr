@@ -42,6 +42,8 @@ function backend() {
             { title: "Interstellar", year: 2014, tmdbId: 157336, images: [] },
             { title: "Dune", year: 2021, tmdbId: 10 },
           ];
+        if (req.path === "/api/v3/movie" && req.method === "POST") return { id: 99, title: "Interstellar", year: 2014 };
+        if (req.path === "/api/v3/release") return [];
         return {};
       },
     },
@@ -84,13 +86,31 @@ test("añadir película envía el perfil, la carpeta y buscar al añadir", async
   });
 });
 
-test("ficha: buscar ahora y borrar con confirmación", async () => {
+test("añadir película con búsqueda manual abre las releases para elegir", async () => {
+  const calls = backend();
+  renderApp("/peliculas");
+  await userEvent.click(await screen.findByRole("button", { name: "Añadir película" }));
+  const dialog = await screen.findByRole("dialog");
+  await userEvent.type(within(dialog).getByRole("textbox"), "inter");
+  await userEvent.click(within(dialog).getByRole("button", { name: "Buscar" }));
+  await userEvent.click(await within(dialog).findByRole("button", { name: /Interstellar/ }));
+  await userEvent.click(within(dialog).getByRole("tab", { name: "Búsqueda manual" }));
+  await userEvent.click(within(dialog).getByRole("button", { name: "Añadir" }));
+  expect(await screen.findByRole("dialog", { name: "Releases · Interstellar" })).toBeInTheDocument();
+  const post = calls.find((c) => c.method === "POST" && c.path === "/api/v3/movie");
+  expect(post.body.value.addOptions).toEqual({ searchForMovie: false });
+  await vi.waitFor(() =>
+    expect(calls.find((c) => c.path === "/api/v3/release" && c.method === "GET")?.query).toEqual([["movieId", "99"]]),
+  );
+});
+
+test("ficha: búsqueda automática y borrar con confirmación", async () => {
   const calls = backend();
   renderApp("/peliculas");
   await userEvent.click(await screen.findByRole("button", { name: "Dune" }));
   const dialog = await screen.findByRole("dialog", { name: "Dune (2021)" });
   expect(within(dialog).getByText("Bluray-2160p")).toBeInTheDocument();
-  await userEvent.click(within(dialog).getByRole("button", { name: "Buscar ahora" }));
+  await userEvent.click(within(dialog).getByRole("button", { name: "Búsqueda automática" }));
   expect(calls.find((c) => c.path === "/api/v3/command")?.body.value).toEqual({ name: "MoviesSearch", movieIds: [1] });
   await userEvent.click(within(dialog).getByRole("button", { name: "Borrar" }));
   const confirm = await screen.findByRole("dialog", { name: "Borrar película" });
@@ -144,6 +164,14 @@ test("búsqueda manual: lista releases y descarga la elegida", async () => {
   expect(screen.getByText("2 releases · 1 aceptadas")).toBeInTheDocument();
   const get = calls.find((c) => c.path === "/api/v3/release" && c.method === "GET");
   expect(get.query).toEqual([["movieId", "1"]]);
+  // Ordenar por columna (semillas, de más a menos) y filtrar por palabras.
+  await userEvent.click(screen.getByRole("button", { name: "Semillas" }));
+  expect(screen.getAllByRole("row")[1]).toHaveTextContent("Dune.2021.CAM");
+  await userEvent.click(screen.getByRole("button", { name: "Semillas" }));
+  expect(screen.getAllByRole("row")[1]).toHaveTextContent("Dune.2021.1080p.WEB");
+  await userEvent.type(screen.getByRole("textbox", { name: /Filtrar por palabras/ }), "-web");
+  expect(screen.queryByText("Dune.2021.1080p.WEB")).not.toBeInTheDocument();
+  await userEvent.clear(screen.getByRole("textbox", { name: /Filtrar por palabras/ }));
   await userEvent.click(screen.getByRole("button", { name: "Descargar: Dune.2021.1080p.WEB" }));
   await vi.waitFor(() =>
     expect(calls.find((c) => c.path === "/api/v3/release" && c.method === "POST")?.body).toEqual({

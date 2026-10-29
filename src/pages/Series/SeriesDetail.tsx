@@ -1,11 +1,12 @@
 import { useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { ChevronDown, Eye, EyeOff, ListFilter, Search, Trash2 } from "lucide-react";
+import { ChevronDown, Eye, EyeOff, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmDialog, Dialog } from "@/components/Dialog";
 import { FaInfo } from "@/components/media/FilmAffinity";
 import { Poster } from "@/components/media/PosterCard";
 import { ReleaseSearchDialog } from "@/components/media/ReleaseSearchDialog";
+import { SearchChoice } from "@/components/media/SearchChoice";
 import { Loading, ProgressBar } from "@/components/ui";
 import { posterUrl, type ReleaseQuery } from "@/api/arr";
 import { PlexBadge } from "@/components/plex/PlexBadge";
@@ -58,22 +59,11 @@ function SeasonBlock({
         <div className="w-28">
           <ProgressBar value={aired ? have / aired : 0} tone={have >= aired && aired > 0 ? "success" : "accent"} />
         </div>
-        <button
-          className="btn-ghost p-1.5"
-          title={t.library.searchSeason}
-          aria-label={`${t.library.searchSeason} ${season}`}
-          onClick={() => run(() => sonarr.searchSeason(series.id, season), t.library.searchStarted)}
-        >
-          <Search className="h-4 w-4" />
-        </button>
-        <button
-          className="btn-ghost p-1.5"
-          title={t.releases.manual}
-          aria-label={`${t.releases.manual} ${t.library.season(season)}`}
-          onClick={() => onManual({ seriesId: series.id, seasonNumber: season }, `${series.title} · ${t.library.season(season)}`)}
-        >
-          <ListFilter className="h-4 w-4" />
-        </button>
+        <SearchChoice
+          what={t.library.season(season)}
+          onAuto={() => run(() => sonarr.searchSeason(series.id, season), t.library.searchStarted)}
+          onManual={() => onManual({ seriesId: series.id, seasonNumber: season }, `${series.title} · ${t.library.season(season)}`)}
+        />
       </div>
       {open && (
         <ul className="divide-y divide-border border-t border-border">
@@ -105,24 +95,13 @@ function SeasonBlock({
                   >
                     {e.monitored ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4 text-muted" />}
                   </button>
-                  <button
-                    className="btn-ghost p-1"
-                    title={t.library.searchEpisode}
-                    aria-label={`${t.library.searchEpisode} ${e.title}`}
-                    onClick={() => run(() => sonarr.searchEpisodes([e.id]), t.library.searchStarted)}
-                  >
-                    <Search className="h-4 w-4" />
-                  </button>
-                  <button
-                    className="btn-ghost p-1"
-                    title={t.releases.manual}
-                    aria-label={`${t.releases.manual} ${e.title}`}
-                    onClick={() =>
+                  <SearchChoice
+                    what={e.title}
+                    onAuto={() => run(() => sonarr.searchEpisodes([e.id]), t.library.searchStarted)}
+                    onManual={() =>
                       onManual({ episodeId: e.id }, `${series.title} · ${e.seasonNumber}x${String(e.episodeNumber).padStart(2, "0")}`)
                     }
-                  >
-                    <ListFilter className="h-4 w-4" />
-                  </button>
+                  />
                 </div>
                 {openEp === e.id && plays.length > 0 && (
                   <div className="mt-2 rounded-lg bg-surface-2 px-3 py-2">
@@ -150,7 +129,7 @@ export function SeriesDetail({ series, onClose }: { series: Series | null; onClo
     for (const e of episodes.data ?? []) map.set(e.seasonNumber, [...(map.get(e.seasonNumber) ?? []), e]);
     return [...map.entries()]
       .sort(([a], [b]) => (a === 0 ? 1 : b === 0 ? -1 : b - a))
-      .map(([n, eps]) => [n, eps.sort((x, y) => x.episodeNumber - y.episodeNumber)] as const);
+      .map(([n, eps]) => [n, eps.sort((x, y) => y.episodeNumber - x.episodeNumber)] as const);
   }, [episodes.data]);
   if (!series) return null;
   const run = async (fn: () => Promise<unknown>, ok?: string) => {
@@ -209,6 +188,7 @@ export function SeriesDetail({ series, onClose }: { series: Series | null; onClo
                   <Trash2 className="h-4 w-4" /> {t.common.delete}
                 </button>
               </div>
+              <p className="-mt-2 text-xs text-muted">{t.library.seriesManualHint}</p>
             </div>
           </div>
           <SeriesWatchSummary q={watchQ} />

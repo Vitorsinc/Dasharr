@@ -12,7 +12,11 @@ export const useRadarrMeta = () => ({
 
 export const useSeries = () => useServiceQuery("sonarr", ["series"], sonarr.getSeries, { refetchInterval: REFRESH.library });
 export const useEpisodes = (seriesId: number | undefined) =>
-  useServiceQuery("sonarr", ["episodes", seriesId], () => sonarr.getEpisodes(seriesId!), { enabled: seriesId != null });
+  useServiceQuery("sonarr", ["episodes", seriesId], () => sonarr.getEpisodes(seriesId!), {
+    enabled: seriesId != null,
+    // Recién añadida, Sonarr tarda unos segundos en crear los episodios.
+    refetchInterval: (q) => (q.state.data?.length ? false : 3000),
+  });
 export const useSonarrQueue = (enabled = true) =>
   useServiceQuery("sonarr", ["queue"], sonarr.getQueue, { refetchInterval: REFRESH.queue, enabled });
 export const useSonarrMeta = () => ({
