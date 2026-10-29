@@ -115,6 +115,8 @@ export interface Release {
   publishDate?: string;
   protocol: "torrent" | "usenet";
   quality?: { quality?: { name?: string } };
+  /** Peso de la calidad según el perfil; lo usan los *arr para ordenar por calidad. */
+  qualityWeight?: number;
   customFormatScore?: number;
   rejected?: boolean;
   rejections?: string[];
@@ -134,23 +136,62 @@ export function grabRelease(service: ArrService, r: Pick<Release, "guid" | "inde
   return apiRequest<unknown>(service, { method: "POST", path: "/api/v3/release", json: { guid: r.guid, indexerId: r.indexerId } });
 }
 
-export type ReleaseSort = "default" | "seeders" | "size" | "age" | "score";
+export type ReleaseSortKey = "default" | "title" | "indexer" | "quality" | "size" | "seeders" | "age" | "score";
+export type SortDir = "asc" | "desc";
+export interface ReleaseSort {
+  key: ReleaseSortKey;
+  dir: SortDir;
+}
 
-export function sortReleases(list: Release[], by: ReleaseSort): Release[] {
+/** Sentido con el que empieza cada columna al pulsarla, como en Radarr/Sonarr. */
+export const releaseSortDefaultDir: Record<ReleaseSortKey, SortDir> = {
+  default: "asc",
+  title: "asc",
+  indexer: "asc",
+  quality: "desc",
+  size: "desc",
+  seeders: "desc",
+  age: "asc",
+  score: "desc",
+};
+
+const ageOf = (r: Release) => r.ageHours ?? (r.age != null ? r.age * 24 : Number.MAX_SAFE_INTEGER);
+const releaseValue: Record<Exclude<ReleaseSortKey, "default">, (r: Release) => number | string> = {
+  title: (r) => r.title.toLowerCase(),
+  indexer: (r) => r.indexer.toLowerCase(),
+  quality: (r) => r.qualityWeight ?? 0,
+  size: (r) => r.size,
+  seeders: (r) => r.seeders ?? -1,
+  age: ageOf,
+  score: (r) => r.customFormatScore ?? 0,
+};
+
+export function sortReleases(list: Release[], sort: ReleaseSort): Release[] {
   const out = [...list];
-  switch (by) {
-    case "seeders":
-      return out.sort((a, b) => (b.seeders ?? -1) - (a.seeders ?? -1));
-    case "size":
-      return out.sort((a, b) => b.size - a.size);
-    case "age":
-      return out.sort((a, b) => (a.ageHours ?? a.age ?? 0) - (b.ageHours ?? b.age ?? 0));
-    case "score":
-      return out.sort((a, b) => (b.customFormatScore ?? 0) - (a.customFormatScore ?? 0));
-    default:
-      // Orden del *arr (ya prioriza calidad y puntuación), con las rechazadas al final.
-      return out.sort((a, b) => Number(!!a.rejected) - Number(!!b.rejected));
+  if (sort.key === "default") {
+    // Orden del *arr (ya prioriza calidad y puntuación), con las rechazadas al final.
+    return out.sort((a, b) => Number(!!a.rejected) - Number(!!b.rejected));
   }
+  const value = releaseValue[sort.key];
+  const sign = sort.dir === "asc" ? 1 : -1;
+  return out.sort((a, b) => {
+    const x = value(a);
+    const y = value(b);
+    return sign * (typeof x === "string" ? x.localeCompare(y as string) : x - (y as number));
+  });
+}
+
+/**
+ * Filtro por palabras sobre el título y el indexador: todas las palabras deben aparecer
+ * y las que empiezan por «-» excluyen (p. ej. `1080p x265 -hdr`).
+ */
+export function filterReleases(list: Release[], text: string): Release[] {
+  const words = text.toLowerCase().split(/\s+/).filter((w) => w && w !== "-");
+  if (!words.length) return list;
+  return list.filter((r) => {
+    const hay = `${r.title} ${r.indexer}`.toLowerCase();
+    return words.every((w) => (w.startsWith("-") ? !hay.includes(w.slice(1)) : hay.includes(w)));
+  });
 }
 
 export interface ManualImportItem {

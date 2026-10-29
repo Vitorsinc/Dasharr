@@ -129,7 +129,7 @@ export function SeriesDetail({ series, onClose }: { series: Series | null; onClo
     for (const e of episodes.data ?? []) map.set(e.seasonNumber, [...(map.get(e.seasonNumber) ?? []), e]);
     return [...map.entries()]
       .sort(([a], [b]) => (a === 0 ? 1 : b === 0 ? -1 : b - a))
-      .map(([n, eps]) => [n, eps.sort((x, y) => x.episodeNumber - y.episodeNumber)] as const);
+      .map(([n, eps]) => [n, eps.sort((x, y) => y.episodeNumber - x.episodeNumber)] as const);
   }, [episodes.data]);
   if (!series) return null;
   const run = async (fn: () => Promise<unknown>, ok?: string) => {

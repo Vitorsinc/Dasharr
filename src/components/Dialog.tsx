@@ -15,7 +15,8 @@ export function Dialog({
   onOpenChange: (o: boolean) => void;
   title: string;
   children: ReactNode;
-  wide?: boolean;
+  /** true = ancho; "xl" = extra ancho (tablas como la búsqueda manual). */
+  wide?: boolean | "xl";
 }) {
   return (
     <RD.Root open={open} onOpenChange={onOpenChange}>
@@ -25,7 +26,7 @@ export function Dialog({
           aria-describedby={undefined}
           className={cn(
             "card fixed left-1/2 top-1/2 z-50 flex max-h-[88vh] w-[92vw] -translate-x-1/2 -translate-y-1/2 flex-col shadow-2xl outline-none",
-            wide ? "max-w-4xl" : "max-w-lg",
+            wide === "xl" ? "max-w-6xl" : wide ? "max-w-4xl" : "max-w-lg",
           )}
         >
           <div className="flex items-center justify-between border-b border-border px-5 py-3">

@@ -164,6 +164,14 @@ test("búsqueda manual: lista releases y descarga la elegida", async () => {
   expect(screen.getByText("2 releases · 1 aceptadas")).toBeInTheDocument();
   const get = calls.find((c) => c.path === "/api/v3/release" && c.method === "GET");
   expect(get.query).toEqual([["movieId", "1"]]);
+  // Ordenar por columna (semillas, de más a menos) y filtrar por palabras.
+  await userEvent.click(screen.getByRole("button", { name: "Semillas" }));
+  expect(screen.getAllByRole("row")[1]).toHaveTextContent("Dune.2021.CAM");
+  await userEvent.click(screen.getByRole("button", { name: "Semillas" }));
+  expect(screen.getAllByRole("row")[1]).toHaveTextContent("Dune.2021.1080p.WEB");
+  await userEvent.type(screen.getByRole("textbox", { name: /Filtrar por palabras/ }), "-web");
+  expect(screen.queryByText("Dune.2021.1080p.WEB")).not.toBeInTheDocument();
+  await userEvent.clear(screen.getByRole("textbox", { name: /Filtrar por palabras/ }));
   await userEvent.click(screen.getByRole("button", { name: "Descargar: Dune.2021.1080p.WEB" }));
   await vi.waitFor(() =>
     expect(calls.find((c) => c.path === "/api/v3/release" && c.method === "POST")?.body).toEqual({
