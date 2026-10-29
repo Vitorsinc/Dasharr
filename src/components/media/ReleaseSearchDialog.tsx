@@ -8,6 +8,7 @@ import { Empty, Spinner } from "@/components/ui";
 import { getReleases, grabRelease, sortReleases, type ArrService, type Release, type ReleaseQuery, type ReleaseSort } from "@/api/arr";
 import { t } from "@/i18n/es";
 import { errorMessage } from "@/lib/errors";
+import { isApiError } from "@/lib/types";
 import { formatBytes } from "@/lib/format";
 import { cn } from "@/lib/cn";
 
@@ -57,7 +58,7 @@ export function ReleaseSearchDialog({
       toast.success(t.releases.grabbed, { description: r.title });
       void qc.invalidateQueries({ queryKey: [service, "queue"] });
     } catch (e) {
-      toast.error(errorMessage(e));
+      toast.error(isApiError(e) && e.kind === "Http" && e.status === 404 ? t.releases.expired : errorMessage(e, service));
     } finally {
       setGrabbing(null);
     }

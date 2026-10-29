@@ -28,4 +28,8 @@ crea la Release con las notas de esta página.
 ### Corregido
 - qBittorrent 5.x: se acepta la cookie de sesión `QBT_SID_<puerto>` y el acceso sin sesión.
 - Las API keys se guardan sin espacios ni saltos de línea al pegarlas.
-- Un 401 del proxy inverso se distingue de una API key incorrecta.
+- Un 401 del proxy inverso se distingue de una API key incorrecta, y el error dice dónde copiar la clave correcta (en Bazarr, la de Settings → General → Security).
+- Si el servicio responde una página web en vez de la API, se avisa de que falta la base URL.
+- El usuario y la contraseña del proxy solo se envían a la dirección externa.
+- qBittorrent 5.2+: API key opcional en lugar de usuario y contraseña.
+- Al descargar una release caducada se pide repetir la búsqueda.

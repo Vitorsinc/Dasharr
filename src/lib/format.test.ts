@@ -24,3 +24,9 @@ test("formatAge", () => {
   expect(formatAge("2026-10-24T12:00:00Z", now)).toBe("3 d");
   expect(formatAge("2026-10-27T10:00:00Z", now)).toBe("2 h");
 });
+
+test("errorMessage indica dónde está la API key de Bazarr", async () => {
+  const { errorMessage } = await import("./errors");
+  expect(errorMessage({ kind: "Unauthorized" }, "bazarr")).toMatch(/Settings → General → Security.*no la de Sonarr\/Radarr/);
+  expect(errorMessage({ kind: "Unauthorized" })).toBe("API key o credenciales incorrectas.");
+});

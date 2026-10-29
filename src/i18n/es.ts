@@ -39,6 +39,14 @@ export const es = {
     NotConfigured: "Este servicio no está configurado.",
     Network: "No se puede conectar con el servidor.",
     Unauthorized: "API key o credenciales incorrectas.",
+    unauthorizedHint: {
+      radarr: "Cópiala de Radarr → Settings → General → Security → API Key.",
+      sonarr: "Cópiala de Sonarr → Settings → General → Security → API Key.",
+      prowlarr: "Cópiala de Prowlarr → Settings → General → Security → API Key.",
+      bazarr:
+        "Usa la clave de Bazarr → Settings → General → Security → API Key, no la de Sonarr/Radarr que aparece en Settings → Sonarr o Radarr.",
+      qbittorrent: "Revisa el usuario y la contraseña de la interfaz web, o usa una API key (qBittorrent 5.2 o superior).",
+    },
     Http: "El servidor respondió con un error",
     unknown: "Error desconocido",
     cannotConnect: (service: string) => `No se puede conectar con ${service}`,
@@ -51,6 +59,9 @@ export const es = {
     externalUrlHint: "Ej.: https://radarr.midominio.com",
     apiKey: "API key",
     apiKeyHint: "Ajustes → General → Seguridad en el servicio",
+    qbitApiKey: "API key (opcional)",
+    qbitApiKeyHint:
+      "qBittorrent 5.2 o superior: Herramientas → Opciones → Interfaz web. Si la pones, no hacen falta usuario ni contraseña.",
     username: "Usuario",
     password: "Contraseña",
     savedSecret: "•••••••• (guardada)",
@@ -181,6 +192,7 @@ export const es = {
     rejected: "Rechazada",
     download: "Descargar",
     grabbed: "Enviada al cliente de descargas",
+    expired: "Esta release ya no está en la caché del *arr (dura 30 minutos). Vuelve a buscar.",
     confirmRejectedTitle: "Descargar una release rechazada",
     confirmRejected: (reasons: string) => `El *arr la rechazó por: ${reasons}. ¿Descargarla igualmente?`,
   },

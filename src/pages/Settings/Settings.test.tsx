@@ -31,7 +31,7 @@ test("muestra el error de API key incorrecta", async () => {
   renderApp("/ajustes");
   const radarr = await screen.findByRole("region", { name: "Radarr" });
   await userEvent.click(within(radarr).getByRole("button", { name: "Probar conexión" }));
-  expect(await within(radarr).findByText("API key o credenciales incorrectas.")).toBeInTheDocument();
+  expect(await within(radarr).findByText(/API key o credenciales incorrectas\. Cópiala de Radarr/)).toBeInTheDocument();
 });
 
 test("guarda con semántica de parche: el secreto no tocado no se envía", async () => {

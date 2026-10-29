@@ -1,7 +1,8 @@
 import { t } from "@/i18n/es";
-import { isApiError } from "./types";
+import { isApiError, type ServiceKind } from "./types";
 
-export function errorMessage(e: unknown): string {
+/** Mensaje en español; con el servicio, añade dónde se consigue la clave correcta si falla la autenticación. */
+export function errorMessage(e: unknown, service?: ServiceKind): string {
   if (isApiError(e)) {
     switch (e.kind) {
       case "NotConfigured":
@@ -9,7 +10,7 @@ export function errorMessage(e: unknown): string {
       case "Network":
         return e.message ? `${t.errors.Network} (${e.message})` : t.errors.Network;
       case "Unauthorized":
-        return t.errors.Unauthorized;
+        return service ? `${t.errors.Unauthorized} ${t.errors.unauthorizedHint[service]}` : t.errors.Unauthorized;
       case "Http":
         return `${t.errors.Http} ${e.status}${e.message ? `: ${e.message}` : ""}`;
     }

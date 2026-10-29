@@ -41,7 +41,7 @@ export function ServiceForm({ service, view, route }: { service: ServiceKind; vi
 
   const config: ServiceConfig = { localUrl: localUrl.trim() || null, externalUrl: externalUrl.trim() || null, enabled: true };
   const patch = (): SecretsPatch => ({
-    apiKey: isQbit ? undefined : apiKey || undefined,
+    apiKey: apiKey || undefined,
     username: isQbit ? username.trim() : undefined,
     password: isQbit ? password || undefined : undefined,
     proxyUsername: proxyUsername.trim(),
@@ -57,7 +57,7 @@ export function ServiceForm({ service, view, route }: { service: ServiceKind; vi
     try {
       setResult({ ok: true, version: await testService(service, config, patch()) });
     } catch (e) {
-      setResult({ ok: false, message: errorMessage(e) });
+      setResult({ ok: false, message: errorMessage(e, service) });
     } finally {
       setBusy(null);
     }
@@ -118,6 +118,16 @@ export function ServiceForm({ service, view, route }: { service: ServiceKind; vi
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder={view?.hasPassword ? t.settings.savedSecret : ""}
+              />
+            </Field>
+            <Field label={t.settings.qbitApiKey} hint={t.settings.qbitApiKeyHint}>
+              <input
+                className="input font-mono"
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                placeholder={view?.hasApiKey ? t.settings.savedSecret : ""}
+                autoComplete="off"
+                spellCheck={false}
               />
             </Field>
           </>

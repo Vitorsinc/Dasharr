@@ -47,7 +47,9 @@ async fn proxy_credentials_add_basic_auth() {
     // "user:pass" en base64
     Mock::given(path("/api/v1/indexer")).and(header("Authorization", "Basic dXNlcjpwYXNz")).respond_with(ResponseTemplate::new(200).set_body_json(json!([]))).mount(&s).await;
     let secrets = ServiceSecrets { api_key: Some("k".into()), proxy_username: Some("user".into()), proxy_password: Some("pass".into()), ..Default::default() };
-    let c = ServiceClient::new(ServiceKind::Prowlarr, cfg(&s.uri()), secrets);
+    // Solo hacia la dirección externa, que es la que pasa por el proxy.
+    let external = ServiceConfig { local_url: None, external_url: Some(s.uri()), enabled: true };
+    let c = ServiceClient::new(ServiceKind::Prowlarr, external, secrets);
     assert_eq!(c.request(ApiRequest::get("/api/v1/indexer")).await.unwrap().status, 200);
 }
 
@@ -204,4 +206,46 @@ async fn proxy_basic_auth_challenge_is_reported_separately() {
         Err(ApiError::Http { status: 401, message }) => assert!(message.contains("proxy")),
         other => panic!("esperaba error de proxy, llegó {other:?}"),
     }
+}
+
+#[tokio::test]
+async fn html_instead_of_api_hints_base_url() {
+    let server = MockServer::start().await;
+    Mock::given(path("/api/system/status"))
+        .respond_with(ResponseTemplate::new(200).set_body_raw("<html></html>", "text/html; charset=utf-8"))
+        .mount(&server)
+        .await;
+    let client = ServiceClient::new(ServiceKind::Bazarr, cfg(&server.uri()), key("k"));
+    match client.test().await {
+        Err(ApiError::Http { message, .. }) => assert!(message.contains("base URL")),
+        other => panic!("esperaba aviso de base URL, llegó {other:?}"),
+    }
+}
+
+#[tokio::test]
+async fn qbit_api_key_skips_login() {
+    let server = MockServer::start().await;
+    Mock::given(path("/api/v2/app/version"))
+        .and(header("X-API-Key", "qbkey"))
+        .respond_with(ResponseTemplate::new(200).set_body_string("v5.2.0"))
+        .mount(&server)
+        .await;
+    let secrets = ServiceSecrets { api_key: Some("qbkey".into()), username: Some("admin".into()), password: Some("x".into()), ..Default::default() };
+    let client = ServiceClient::new(ServiceKind::Qbittorrent, cfg(&server.uri()), secrets);
+    assert_eq!(client.test().await.unwrap(), "v5.2.0");
+}
+
+#[tokio::test]
+async fn proxy_basic_auth_not_sent_to_local_address() {
+    let server = MockServer::start().await;
+    ping_ok(&server).await;
+    Mock::given(path("/api/v3/system/status"))
+        .and(header_exists("authorization"))
+        .respond_with(ResponseTemplate::new(401))
+        .mount(&server)
+        .await;
+    Mock::given(path("/api/v3/system/status")).respond_with(ResponseTemplate::new(200).set_body_json(json!({"version": "5.0"}))).mount(&server).await;
+    let secrets = ServiceSecrets { api_key: Some("k".into()), proxy_username: Some("u".into()), proxy_password: Some("p".into()), ..Default::default() };
+    let client = ServiceClient::new(ServiceKind::Radarr, cfg(&server.uri()), secrets);
+    assert_eq!(client.test().await.unwrap(), "5.0");
 }

@@ -84,7 +84,7 @@ impl ServiceClient {
     async fn reachable(&self, base: Option<&str>, timeout: Duration) -> Option<String> {
         let base = base?;
         let url = join_url(base, self.kind.probe_path()).ok()?;
-        let req = self.with_proxy_auth(self.http.get(url)).timeout(timeout);
+        let req = self.with_proxy_auth(self.http.get(url), base).timeout(timeout);
         req.send().await.ok().map(|_| base.to_string())
     }
 
@@ -103,15 +103,27 @@ impl ServiceClient {
         resolved.base.ok_or_else(|| ApiError::network("no responde ni la dirección local ni la externa"))
     }
 
-    fn with_proxy_auth(&self, req: reqwest::RequestBuilder) -> reqwest::RequestBuilder {
+    /// Usuario y contraseña del proxy inverso, solo hacia la dirección externa: en local no hay proxy, y
+    /// qBittorrent 5.2+ interpretaría esa cabecera Basic como sus propias credenciales.
+    fn with_proxy_auth(&self, req: reqwest::RequestBuilder, base: &str) -> reqwest::RequestBuilder {
+        if self.config.external() != Some(base) {
+            return req;
+        }
         match (&self.secrets.proxy_username, &self.secrets.proxy_password) {
             (Some(u), p) if !u.is_empty() => req.basic_auth(u, p.as_deref()),
             _ => req,
         }
     }
 
+    fn qbit_api_key(&self) -> Option<&str> {
+        self.secrets.api_key.as_deref().filter(|k| self.kind == ServiceKind::Qbittorrent && !k.is_empty())
+    }
+
+    /// qBittorrent 5.2+ acepta una API key sin sesión; si no la hay, se inicia sesión con usuario y contraseña.
     fn uses_qbit_login(&self) -> bool {
-        self.kind == ServiceKind::Qbittorrent && self.secrets.username.as_deref().is_some_and(|u| !u.is_empty())
+        self.kind == ServiceKind::Qbittorrent
+            && self.qbit_api_key().is_none()
+            && self.secrets.username.as_deref().is_some_and(|u| !u.is_empty())
     }
 
     async fn qbit_login(&self, base: &str) -> Result<String, ApiError> {
@@ -121,7 +133,7 @@ impl ServiceClient {
             ("password", self.secrets.password.clone().unwrap_or_default()),
         ];
         let res = self
-            .with_proxy_auth(self.http.post(url))
+            .with_proxy_auth(self.http.post(url), base)
             .header(header::REFERER, base)
             .form(&form)
             .send()
@@ -150,7 +162,7 @@ impl ServiceClient {
     async fn send_once(&self, base: &str, req: &ApiRequest, sid: Option<&str>) -> Result<reqwest::Response, ApiError> {
         let url = join_url(base, &req.path)?;
         let method = Method::from_bytes(req.method.to_uppercase().as_bytes()).unwrap_or(Method::GET);
-        let mut b = self.with_proxy_auth(self.http.request(method, url));
+        let mut b = self.with_proxy_auth(self.http.request(method, url), base);
         if !req.query.is_empty() {
             b = b.query(&req.query);
         }
@@ -161,8 +173,9 @@ impl ServiceClient {
             ServiceKind::Bazarr => b.header("X-API-KEY", self.secrets.api_key.clone().unwrap_or_default()),
             ServiceKind::Qbittorrent => {
                 let b = b.header(header::REFERER, base);
-                match sid {
-                    Some(cookie) if !cookie.is_empty() => b.header(header::COOKIE, cookie),
+                match (self.qbit_api_key(), sid) {
+                    (Some(key), _) => b.header("X-API-Key", key),
+                    (None, Some(cookie)) if !cookie.is_empty() => b.header(header::COOKIE, cookie),
                     _ => b,
                 }
             }
@@ -251,6 +264,16 @@ impl ServiceClient {
         let headers = res.headers().clone();
         let text = res.text().await.map_err(ApiError::network)?;
         Self::check_status(status, &headers, &text)?;
+        let is_html = headers
+            .get(header::CONTENT_TYPE)
+            .and_then(|v| v.to_str().ok())
+            .is_some_and(|v| v.starts_with("text/html"));
+        if is_html {
+            return Err(ApiError::Http {
+                status: status.as_u16(),
+                message: "responde una página web en vez de la API: revisa la dirección (¿falta la base URL, p. ej. /bazarr?)".into(),
+            });
+        }
         let body = if text.trim().is_empty() {
             Value::Null
         } else {

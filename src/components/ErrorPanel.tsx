@@ -38,7 +38,7 @@ export function ErrorPanel({
       <AlertTriangle className="h-8 w-8 text-danger" aria-hidden />
       <div>
         <p className="font-medium">{t.errors.cannotConnect(t.services[service])}</p>
-        <p className="mt-1 text-sm text-muted">{errorMessage(error)}</p>
+        <p className="mt-1 text-sm text-muted">{errorMessage(error, service)}</p>
       </div>
       {onRetry && (
         <button className="btn-outline" onClick={onRetry}>
