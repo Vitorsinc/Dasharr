@@ -1,5 +1,6 @@
 //! Nota de FilmAffinity a partir del título y el año. No hay API: se lee la búsqueda avanzada de la web
 //! y, si la tarjeta no trae la nota, la ficha. El ritmo de peticiones lo marca quien llama con `Throttle`.
+use std::path::Path;
 use std::time::{Duration, Instant};
 
 use reqwest::StatusCode;
@@ -61,7 +62,11 @@ pub struct FaQuery<'a> {
     pub titles: Vec<&'a str>,
     pub year: Option<i32>,
     pub series: bool,
+    /// Carpeta donde guardar la última búsqueda que no se ha sabido leer, para poder revisarla.
+    pub dump_dir: Option<&'a Path>,
 }
+
+const DUMP_FILE: &str = "filmaffinity-busqueda.html";
 
 pub fn http_client() -> reqwest::Client {
     reqwest::Client::builder()
@@ -82,12 +87,24 @@ pub async fn lookup(http: &reqwest::Client, throttle: &Throttle, gap: Duration, 
         }
         tried.push(norm);
         let (html, final_url) = get(http, throttle, gap, &search_url(title, q.year)).await?;
-        let candidates = match film_id(&final_url) {
-            // Con un único resultado la web salta directamente a la ficha.
+        // Con un único resultado la web salta directamente a la ficha.
+        let candidates = match film_id(&final_url).or_else(|| detail_id(&html)) {
             Some(id) => parse_detail(&html, id).into_iter().collect(),
             None => parse_search(&html),
         };
-        let Some(mut found) = best_match(candidates, &q.titles, q.year, q.series) else { continue };
+        let year = q.year.map_or_else(String::new, |y| format!(" ({y})"));
+        if candidates.is_empty() {
+            log::info!("FilmAffinity: «{title}»{year} sin resultados");
+            if let Some(dir) = q.dump_dir {
+                let _ = std::fs::write(dir.join(DUMP_FILE), &html);
+            }
+            continue;
+        }
+        let n = candidates.len();
+        let Some(mut found) = best_match(candidates, &q.titles, q.year, q.series) else {
+            log::info!("FilmAffinity: «{title}»{year}: {n} resultados, ninguno encaja");
+            continue;
+        };
         if found.rating.is_none() {
             let (html, _) = get(http, throttle, gap, &found.url).await?;
             if let Some(detail) = parse_detail(&html, found.id) {
@@ -104,6 +121,7 @@ async fn get(http: &reqwest::Client, throttle: &Throttle, gap: Duration, url: &s
     throttle.wait(gap).await;
     let res = http
         .get(url)
+        .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
         .header("Accept-Language", "es-ES,es;q=0.9")
         .send()
         .await
@@ -115,6 +133,10 @@ async fn get(http: &reqwest::Client, throttle: &Throttle, gap: Duration, url: &s
     }
     let final_url = res.url().to_string();
     let body = res.text().await.map_err(|e| FaError::Network(e.to_string()))?;
+    // Cuando limita, FilmAffinity puede responder 200 con una página de aviso.
+    if is_rate_limited(&body) {
+        return Err(FaError::Blocked);
+    }
     Ok((body, final_url))
 }
 
@@ -139,6 +161,19 @@ fn film_id(url: &str) -> Option<u64> {
     name.strip_prefix("film")?.strip_suffix(".html")?.parse().ok()
 }
 
+fn is_rate_limited(html: &str) -> bool {
+    let head = &html[..html.len().min(4000)];
+    head.to_ascii_lowercase().contains("too many request")
+}
+
+/// Id de la ficha si la página es una ficha (enlace canónico u og:url).
+fn detail_id(html: &str) -> Option<u64> {
+    let doc = Html::parse_document(html);
+    doc.select(&sel("link[rel='canonical'], meta[property='og:url']"))
+        .filter_map(|e| e.value().attr("href").or_else(|| e.value().attr("content")))
+        .find_map(film_id)
+}
+
 fn sel(s: &str) -> Selector {
     Selector::parse(s).expect("selector")
 }
@@ -151,8 +186,14 @@ fn first_text(root: ElementRef, s: &str) -> Option<String> {
     root.select(&sel(s)).next().map(text).filter(|t| !t.is_empty())
 }
 
-/// "8,1" → 8.1; "--" o vacío → None.
+/// El primer selector, en orden de preferencia, que tenga texto.
+fn first_of(root: ElementRef, selectors: &[&str]) -> Option<String> {
+    selectors.iter().find_map(|s| first_text(root, s))
+}
+
+/// "8,1" → 8.1; "--" o vacío → None. Si llega "7,6 58.120 votos" se queda con la primera cifra.
 fn parse_rating(s: &str) -> Option<f32> {
+    let s = s.split_whitespace().next()?;
     let cleaned: String = s.chars().filter(|c| c.is_ascii_digit() || *c == ',' || *c == '.').collect();
     let v: f32 = cleaned.replace(',', ".").parse().ok()?;
     (0.0..=10.0).contains(&v).then_some(v)
@@ -171,26 +212,48 @@ fn year_in(s: &str) -> Option<i32> {
         .find(|y| (1880..=2100).contains(y))
 }
 
+/// Lee los resultados de la búsqueda. FilmAffinity cambia a menudo el marcado (2026: `.fa-card` con el enlace en
+/// `a.d-md-inline-block` y el año en `.mc-year`), así que se aceptan varias formas y el id sale del enlace a la ficha.
 pub fn parse_search(html: &str) -> Vec<FaMatch> {
     let doc = Html::parse_document(html);
-    let card_sel = sel(".movie-card[data-movie-id]");
-    // En la web el año va fuera de la tarjeta, dentro del mismo `.se-it`.
-    let items: Vec<ElementRef> = doc.select(&sel(".se-it")).collect();
-    let containers: Vec<ElementRef> = if items.is_empty() { doc.select(&card_sel).collect() } else { items };
-    containers
-        .into_iter()
+    let link_sel = sel("a[href*='film']");
+    let mut seen = Vec::new();
+    // Del contenedor más externo al más interno: el primero que aparece se queda con el resultado.
+    doc.select(&sel(".se-it, .item-search, .fa-card, .movie-card"))
         .filter_map(|c| {
-            let card = if c.value().attr("data-movie-id").is_some() { c } else { c.select(&card_sel).next()? };
-            let id: u64 = card.value().attr("data-movie-id")?.parse().ok()?;
-            let title = first_text(c, ".mc-title a").or_else(|| first_text(c, ".mc-title"))?;
+            let film_link = c.select(&link_sel).find(|a| a.value().attr("href").and_then(film_id).is_some());
+            let id = c
+                .value()
+                .attr("data-movie-id")
+                .or_else(|| c.select(&sel("[data-movie-id]")).next().and_then(|e| e.value().attr("data-movie-id")))
+                .and_then(|v| v.parse().ok())
+                .or_else(|| film_link.and_then(|a| a.value().attr("href")).and_then(film_id))?;
+            if seen.contains(&id) {
+                return None;
+            }
+            seen.push(id);
+            let title = first_text(c, ".mc-title a")
+                .or_else(|| first_text(c, ".mc-title"))
+                .or_else(|| first_text(c, "a.d-md-inline-block"))
+                .or_else(|| {
+                    c.select(&link_sel)
+                        .filter(|a| a.value().attr("href").and_then(film_id) == Some(id))
+                        .map(|a| {
+                            let t = text(a);
+                            if t.is_empty() { a.value().attr("title").unwrap_or_default().trim().to_string() } else { t }
+                        })
+                        .find(|t| !t.is_empty())
+                })?;
             let year = first_text(c, ".mc-year, .ye-w").and_then(|y| year_in(&y)).or_else(|| year_in(&title));
             Some(FaMatch {
                 id,
                 url: film_url(id),
                 title,
                 year,
-                rating: first_text(c, ".avgrat-box, .avg, .avg-rating").and_then(|r| parse_rating(&r)),
-                votes: first_text(c, ".ratcount-box, .count, .rat-count").and_then(|v| parse_votes(&v)),
+                rating: first_of(c, &[".avgrat-box", ".avg", ".avg-rating", "[class*='avgrat']", "[class*='avg-rat']"])
+                    .and_then(|r| parse_rating(&r)),
+                votes: first_of(c, &[".ratcount-box", ".count", ".rat-count", "[class*='ratcount']", "[class*='rat-count']"])
+                    .and_then(|v| parse_votes(&v)),
             })
         })
         .collect()
@@ -327,6 +390,46 @@ mod tests {
         assert_eq!(r[0].rating, Some(7.3));
     }
 
+    /// Marcado de la búsqueda avanzada tras el cambio de 2026 (según el script de Ant Movie Catalog 5.1).
+    const SEARCH_2026: &str = r#"<html><body>
+      <div class="fa-card">
+        <div class="mc-poster"><a href="https://www.filmaffinity.com/es/film872585.html"><img alt="Oppenheimer"></a></div>
+        <div class="mc-info">
+          <a class="d-none d-md-inline-block" href="https://www.filmaffinity.com/es/film872585.html" title="Oppenheimer">Oppenheimer</a>
+          <span class="mc-year ms-1">2023</span>
+          <div class="mt-2 mc-director"><a href="/es/search.php?stype=director&stext=Nolan">Christopher Nolan</a></div>
+        </div>
+        <div class="fa-avg-rat-box"><div class="avg">7,6</div><div class="count">58.120</div></div>
+      </div>
+      <div class="fa-card">
+        <a class="d-none d-md-inline-block" href="/es/film999.html">Oppenheimer: la historia</a>
+        <span class="mc-year ms-1">2023</span>
+      </div>
+    </body></html>"#;
+
+    #[test]
+    fn parses_2026_search_cards() {
+        let r = parse_search(SEARCH_2026);
+        assert_eq!(r.len(), 2);
+        assert_eq!(r[0].id, 872585);
+        assert_eq!(r[0].title, "Oppenheimer");
+        assert_eq!(r[0].year, Some(2023));
+        assert_eq!(r[0].rating, Some(7.6));
+        assert_eq!(r[0].votes, Some(58120));
+        assert_eq!(r[1].id, 999);
+        assert_eq!(r[1].rating, None);
+        assert_eq!(best_match(r, &["Oppenheimer"], Some(2023), false).unwrap().id, 872585);
+    }
+
+    #[test]
+    fn detects_detail_page_and_rate_limit() {
+        let html = r#"<html><head><link rel="canonical" href="https://www.filmaffinity.com/es/film123.html"></head></html>"#;
+        assert_eq!(detail_id(html), Some(123));
+        assert_eq!(detail_id(SEARCH_2026), None);
+        assert!(is_rate_limited(r#"<html><head><meta name="description" content="Too many request"></head></html>"#));
+        assert!(!is_rate_limited(SEARCH_2026));
+    }
+
     #[test]
     fn parses_detail_page() {
         let d = parse_detail(DETAIL, 42).unwrap();
@@ -376,6 +479,7 @@ mod tests {
     fn reads_ratings_and_votes() {
         assert_eq!(parse_rating("6,2"), Some(6.2));
         assert_eq!(parse_rating("--"), None);
+        assert_eq!(parse_rating("7,6 58.120"), Some(7.6));
         assert_eq!(parse_votes("68.397 votos"), Some(68397));
     }
 }
