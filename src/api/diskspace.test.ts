@@ -15,12 +15,18 @@ test("agrupa las rutas del mismo disco (Docker) y entre Radarr, Sonarr y qBittor
         ],
       },
       // Sonarr lo lee unos segundos después: el espacio libre ha cambiado un poco.
-      { service: "sonarr", disks: [{ path: "/data", freeSpace: 1 * TB - 2e9, totalSpace: 4 * TB }] },
+      {
+        service: "sonarr",
+        disks: [
+          { path: "/data", freeSpace: 1 * TB - 2e9, totalSpace: 4 * TB },
+          { path: "/tv", freeSpace: 1 * TB - 2e9, totalSpace: 4 * TB },
+        ],
+      },
     ],
     1 * TB - 3e9,
   );
   expect(disks).toHaveLength(2);
-  expect(disks[0]).toMatchObject({ paths: ["/data", "/movies"], total: 4 * TB, sources: ["radarr", "sonarr", "qbittorrent"] });
+  expect(disks[0]).toMatchObject({ paths: ["/data", "/tv", "/movies"], total: 4 * TB, sources: ["radarr", "sonarr", "qbittorrent"] });
   expect(disks[0].label).toBeUndefined();
   expect(disks[1].paths).toEqual(["/", "/config"]);
   expect(isSystemDisk(disks[1])).toBe(true);

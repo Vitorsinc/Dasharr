@@ -39,9 +39,12 @@ function sameDisk(free: number, total: number | undefined, d: Disk) {
  */
 export function mergeDisks(arr: { service: ArrService; disks: ArrDiskSpace[] | undefined }[], qbitFree: number | undefined): Disk[] {
   const disks: Disk[] = [];
+  // Cuántos servicios ven cada ruta: la compartida (p. ej. `/data`) es mejor nombre que `/tv` o `/movies`.
+  const seen = new Map<string, number>();
   for (const { service, disks: list } of arr) {
     for (const x of Array.isArray(list) ? list : []) {
       if (typeof x?.totalSpace !== "number" || typeof x.freeSpace !== "number" || x.totalSpace <= 0) continue;
+      seen.set(x.path, (seen.get(x.path) ?? 0) + 1);
       const d = disks.find((d) => sameDisk(x.freeSpace, x.totalSpace, d));
       if (d) {
         if (!d.paths.includes(x.path)) d.paths.push(x.path);
@@ -58,7 +61,10 @@ export function mergeDisks(arr: { service: ArrService; disks: ArrDiskSpace[] | u
       if (!d.sources.includes("qbittorrent")) d.sources.push("qbittorrent");
     } else disks.push({ paths: [], free: qbitFree, sources: ["qbittorrent"] });
   }
-  for (const d of disks) d.paths.sort((a, b) => Number(SYSTEM_PATH.test(a)) - Number(SYSTEM_PATH.test(b)) || a.length - b.length);
+  for (const d of disks)
+    d.paths.sort(
+      (a, b) => Number(SYSTEM_PATH.test(a)) - Number(SYSTEM_PATH.test(b)) || (seen.get(b) ?? 0) - (seen.get(a) ?? 0) || a.length - b.length,
+    );
   // Los discos con contenido primero; el del sistema (solo `/`, `/config`…) al final.
   return disks.sort((a, b) => Number(isSystemDisk(a)) - Number(isSystemDisk(b)) || (b.total ?? 0) - (a.total ?? 0));
 }
