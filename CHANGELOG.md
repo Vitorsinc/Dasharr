@@ -13,6 +13,7 @@ crea la Release con las notas de esta página.
 ### Añadido
 - Inicio con el estado de cada servicio, descargas activas y próximos estrenos.
 - Películas (Radarr) y Series (Sonarr): biblioteca, fichas, añadir, buscar, monitorizar, borrar y cola.
+- Anime separado de Series: sección propia en el menú según el tipo de serie de Sonarr. Al buscar, lo que parece anime se marca y se añade ya como anime con su carpeta y perfil (elegibles en Ajustes). El tipo se puede cambiar desde la ficha.
 - Búsqueda manual de releases en películas, temporadas y episodios, eligiendo cuál descargar.
 - Importación manual desde la cola de Sonarr/Radarr, asociando cada archivo a su serie/episodio o película, con hardlink.
 - Descargas (qBittorrent): control de torrents, añadir por enlace o archivo y aviso de Windows al terminar.
@@ -28,6 +29,7 @@ crea la Release con las notas de esta página.
 - Cola de Sonarr/Radarr: quitar una descarga (y opcionalmente bloquear la release) y "Descargar ya" para las retrasadas.
 - La importación manual avisa de si termina bien o falla, en vez de solo "iniciada".
 - Descargas: se muestra el motivo de un torrent en error (qBittorrent 5.3+).
+- Espacio en disco del servidor siempre visible arriba a la derecha (según Radarr, Sonarr y qBittorrent); al pulsarlo se ven todos los discos, en amarillo o rojo cuando se llenan.
 
 ### Corregido
 - qBittorrent 5.x: se acepta la cookie de sesión `QBT_SID_<puerto>` y el acceso sin sesión.

@@ -22,6 +22,16 @@ const series = [
     images: [],
     statistics: { episodeFileCount: 9, episodeCount: 9, totalEpisodeCount: 19, sizeOnDisk: 0 },
   },
+  {
+    id: 9,
+    title: "Frieren",
+    year: 2023,
+    tvdbId: 90,
+    monitored: true,
+    seriesType: "anime",
+    images: [],
+    statistics: { episodeFileCount: 28, episodeCount: 28, totalEpisodeCount: 28, sizeOnDisk: 0 },
+  },
 ];
 const episodes = [
   {
@@ -64,10 +74,23 @@ function backend() {
         calls.push(req);
         if (req.path === "/api/v3/series" && req.method === "GET") return series;
         if (req.path === "/api/v3/episode") return episodes;
-        if (req.path === "/api/v3/qualityprofile") return [{ id: 1, name: "HD" }];
-        if (req.path === "/api/v3/rootfolder") return [{ id: 1, path: "/tv" }];
+        if (req.path === "/api/v3/qualityprofile")
+          return [
+            { id: 1, name: "HD" },
+            { id: 2, name: "Anime" },
+          ];
+        if (req.path === "/api/v3/rootfolder")
+          return [
+            { id: 1, path: "/tv" },
+            { id: 2, path: "/anime" },
+          ];
         if (req.path === "/api/v3/languageprofile") throw { kind: "Http", status: 404 };
-        if (req.path === "/api/v3/series/lookup") return [{ title: "The Bear", year: 2022, tvdbId: 99 }];
+        if (req.path === "/api/v3/series/lookup")
+          return [
+            { title: "The Bear", year: 2022, tvdbId: 99, seriesType: "standard", genres: ["Comedy"] },
+            { title: "Dandadan", year: 2024, tvdbId: 98, seriesType: "standard", genres: ["Anime", "Action"] },
+          ];
+        if (req.path === "/api/v3/series/9" && req.method === "PUT") return req.body.value;
         if (req.path === "/api/v3/queue")
           return {
             records: [
@@ -145,6 +168,7 @@ test("añadir serie con opción de monitorización", async () => {
     tvdbId: 99,
     qualityProfileId: 1,
     rootFolderPath: "/tv",
+    seriesType: "standard",
     addOptions: { monitor: "future", searchForMissingEpisodes: true },
   });
   expect(post.body.value.languageProfileId).toBeUndefined();
@@ -208,4 +232,55 @@ test("quitar de la cola con bloqueo de la release", async () => {
     ["blocklist", "true"],
     ["skipRedownload", "false"],
   ]);
+});
+
+test("Series y Anime separan la biblioteca por tipo de serie", async () => {
+  backend();
+  renderApp("/series");
+  expect(await screen.findByRole("button", { name: "Shōgun" })).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Frieren" })).not.toBeInTheDocument();
+  await userEvent.click(screen.getByRole("link", { name: "Anime" }));
+  expect(await screen.findByRole("button", { name: "Frieren" })).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Shōgun" })).not.toBeInTheDocument();
+});
+
+test("al añadir desde Series, lo que parece anime ya viene como anime con su carpeta y perfil", async () => {
+  const calls = backend();
+  renderApp("/series");
+  await userEvent.click(await screen.findByRole("button", { name: "Añadir serie" }));
+  const dialog = await screen.findByRole("dialog");
+  await userEvent.type(within(dialog).getByRole("textbox"), "dan");
+  await userEvent.click(within(dialog).getByRole("button", { name: "Buscar" }));
+  const result = await within(dialog).findByRole("button", { name: /Dandadan/ });
+  expect(within(result).getByText("Anime")).toBeInTheDocument();
+  await userEvent.click(result);
+  expect(within(dialog).getByLabelText(/^Tipo/)).toHaveValue("anime");
+  expect(within(dialog).getByLabelText("Carpeta raíz")).toHaveValue("/anime");
+  expect(within(dialog).getByLabelText("Perfil de calidad")).toHaveValue("2");
+  await userEvent.click(within(dialog).getByRole("button", { name: "Añadir" }));
+  const post = calls.find((c) => c.method === "POST" && c.path === "/api/v3/series");
+  expect(post.body.value).toMatchObject({ tvdbId: 98, seriesType: "anime", rootFolderPath: "/anime", qualityProfileId: 2 });
+});
+
+test("desde Anime todo arranca como anime aunque no lo parezca", async () => {
+  const calls = backend();
+  renderApp("/anime");
+  await userEvent.click(await screen.findByRole("button", { name: "Añadir anime" }));
+  const dialog = await screen.findByRole("dialog");
+  await userEvent.type(within(dialog).getByRole("textbox"), "bear");
+  await userEvent.click(within(dialog).getByRole("button", { name: "Buscar" }));
+  await userEvent.click(await within(dialog).findByRole("button", { name: /The Bear/ }));
+  await userEvent.click(within(dialog).getByRole("button", { name: "Añadir" }));
+  const post = calls.find((c) => c.method === "POST" && c.path === "/api/v3/series");
+  expect(post.body.value).toMatchObject({ tvdbId: 99, seriesType: "anime", rootFolderPath: "/anime" });
+});
+
+test("cambiar el tipo de una serie desde su ficha", async () => {
+  const calls = backend();
+  renderApp("/anime");
+  await userEvent.click(await screen.findByRole("button", { name: "Frieren" }));
+  const dialog = await screen.findByRole("dialog", { name: "Frieren" });
+  await userEvent.selectOptions(within(dialog).getByLabelText("Tipo"), "standard");
+  const put = calls.find((c) => c.method === "PUT" && c.path === "/api/v3/series/9");
+  expect(put.body.value).toMatchObject({ id: 9, seriesType: "standard" });
 });

@@ -30,6 +30,7 @@ export interface QueueRecord {
   statusMessages?: { title?: string; messages?: string[] }[];
   errorMessage?: string;
   movie?: { title: string; year?: number };
+  seriesId?: number;
   series?: { title: string };
   episode?: { seasonNumber: number; episodeNumber: number; title: string };
 }
