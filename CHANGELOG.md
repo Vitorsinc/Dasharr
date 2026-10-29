@@ -19,6 +19,7 @@ crea la Release con las notas de esta página.
 - Descargas (qBittorrent): control de torrents, añadir por enlace o archivo y aviso de Windows al terminar.
 - Buscar en los indexadores de Prowlarr y enviar a qBittorrent.
 - Subtítulos que faltan (Bazarr) y búsqueda por idioma.
+- Trackers: ratio, subido, bajado, buffer, seed, bonus y H&R de los trackers UNIT3D que tienes en Prowlarr, sin meter claves nuevas.
 - Calendario semanal y mensual de estrenos y emisiones.
 - Ajustes con dirección local y externa por servicio y cambio automático entre ellas; importación de configuración desde archivo.
 - Registro de errores y eventos con visor en la app (sin API keys ni contraseñas).

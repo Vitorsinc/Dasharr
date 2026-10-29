@@ -30,6 +30,7 @@ pub fn run() {
             commands::fetch_torrent,
             commands::get_connection_states,
             commands::refresh_connections,
+            commands::unit3d_stats,
             logs::read_log,
             logs::clear_log,
             logs::write_log,

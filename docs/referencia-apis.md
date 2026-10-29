@@ -277,5 +277,8 @@ Guardar el resultado por tracker y volver a probar solo al pulsar "Actualizar" o
   `********` o vacío, pedir el token a mano.
 - Detección: indexador habilitado, `implementation == "Cardigann"`, con campo `apikey` no vacío;
   después confirmar con `GET api/user`. No hace falta una lista fija de trackers.
-- El token leído de Prowlarr no se guarda en Dasharr: se vuelve a leer cuando hace falta. Si el
-  usuario lo escribe a mano, va al almacén seguro de Dasharr como el resto de claves. Nunca en logs.
+- El token leído de Prowlarr no se guarda en Dasharr: se vuelve a leer cuando hace falta. Nunca en logs.
+
+En Dasharr: comando Tauri `unit3d_stats` (`src-tauri/src/commands.rs`) con la lógica en
+`crates/dasharr-core/src/unit3d.rs`. El token no llega a la interfaz; la página Trackers refresca cada
+30 min o con el botón. Solo trackers de Prowlarr (decisión de Vitor, 2026-10-29), sin alta manual.

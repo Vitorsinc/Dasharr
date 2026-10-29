@@ -11,6 +11,7 @@ import SubtitlesPage from "@/pages/Subtitles";
 import CalendarPage from "@/pages/Calendar";
 import SettingsPage from "@/pages/Settings";
 import LogsPage from "@/pages/Logs";
+import TrackersPage from "@/pages/Trackers";
 
 export const routes: RouteObject[] = [
   {
@@ -27,6 +28,7 @@ export const routes: RouteObject[] = [
           { path: "/buscar", element: <SearchPage /> },
           { path: "/subtitulos", element: <SubtitlesPage /> },
           { path: "/calendario", element: <CalendarPage /> },
+          { path: "/trackers", element: <TrackersPage /> },
           { path: "/registro", element: <LogsPage /> },
           { path: "/ajustes", element: <SettingsPage /> },
         ],
