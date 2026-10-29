@@ -69,10 +69,35 @@ function bracketCodes(title: string): string[] {
   return out;
 }
 
+/** Grupos populares de Nyaa que siempre sacan los mismos subtítulos y nunca lo dicen ni en el título ni en la
+ * página (SubsPlease solo «English subbed releases» en prosa; ASW reencodea SubsPlease). Solo se usan si no hay
+ * nada más. */
+const GROUP_LANGUAGES: Record<string, string[]> = {
+  subsplease: ["en"],
+  asw: ["en"],
+  horriblesubs: ["en"],
+  "half-baked": ["en"],
+  "knight-subs": ["en"],
+  mtbb: ["en"],
+  commie: ["en"],
+  whomst: ["en"],
+  "whomst-mini": ["en"],
+  "whomst-mega": ["en"],
+  "sick-fansubs": ["el"],
+  "naruto-kun.hu": ["hu"],
+};
+
+// Releases francesas (Kaerizaki-Fansub, Tsundere-Raws): «VOSTFR», «SUBFRENCH».
+const FRENCH = /\b(?:vostfr|subfrench)\b/i;
+
 export function titleSubtitles(title: string): TitleSubs {
   const languages = bracketCodes(title);
   if (SPANISH.test(title) && !languages.some((l) => l.startsWith("es"))) languages.unshift("es");
-  return { languages: [...new Set(languages)], multi: MULTI.test(title) };
+  if (FRENCH.test(title) && !languages.includes("fr")) languages.push("fr");
+  const multi = MULTI.test(title);
+  const group = /^\s*\[([^\]]+)\]/.exec(title)?.[1].trim().toLowerCase();
+  if (!languages.length && !multi && group && GROUP_LANGUAGES[group]) languages.push(...GROUP_LANGUAGES[group]);
+  return { languages: [...new Set(languages)], multi };
 }
 
 export const isNyaaPage = (url?: string) => !!url && /^https?:\/\/[^/]*nyaa[^/]*\/view\/\d+\/?(?:[?#]|$)/i.test(url);
