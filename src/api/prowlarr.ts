@@ -1,4 +1,6 @@
 import { apiRequest, fetchTorrent } from "@/lib/tauri";
+import { isApiError } from "@/lib/types";
+import type { HealthItem } from "./arr";
 import { qbit } from "./qbit";
 
 export interface Indexer {
@@ -6,6 +8,27 @@ export interface Indexer {
   name: string;
   enable: boolean;
   protocol: "torrent" | "usenet";
+  privacy?: "public" | "semiPrivate" | "private";
+  priority?: number;
+  definitionName?: string;
+}
+
+/** Fallos recientes de un indexador; con `disabledTill` en el futuro, Prowlarr no lo usa hasta esa hora. */
+export interface IndexerStatus {
+  indexerId: number;
+  disabledTill?: string;
+  mostRecentFailure?: string;
+  initialFailure?: string;
+}
+
+/**
+ * Texto de una prueba fallida: Prowlarr responde 400 con la lista de fallos de validación
+ * (`[{ "errorMessage": "…" }]`). El cuerpo puede llegar recortado, así que se buscan los mensajes con una expresión.
+ */
+export function testFailure(e: unknown): string | undefined {
+  if (!isApiError(e) || e.kind !== "Http" || !e.message) return undefined;
+  const found = [...e.message.matchAll(/"errorMessage"\s*:\s*"((?:[^"\\]|\\.)*)"/g)].map((m) => m[1].replace(/\\"/g, '"'));
+  return found.length ? [...new Set(found)].join(" · ") : undefined;
 }
 
 export interface SearchResult {
@@ -56,6 +79,14 @@ export async function sendToQbit(r: SearchResult, category?: string) {
 
 export const prowlarr = {
   getIndexers: () => apiRequest<Indexer[]>("prowlarr", { path: "/api/v1/indexer" }),
+  getIndexerStatus: () => apiRequest<IndexerStatus[]>("prowlarr", { path: "/api/v1/indexerstatus" }),
+  getHealth: () => apiRequest<HealthItem[]>("prowlarr", { path: "/api/v1/health" }),
+  /** Se manda el indexador completo tal como lo devolvió Prowlarr, cambiando solo `enable`. */
+  setEnabled: (indexer: Indexer, enable: boolean) =>
+    apiRequest<Indexer>("prowlarr", { method: "PUT", path: `/api/v1/indexer/${indexer.id}`, json: { ...indexer, enable } }),
+  /** Prueba un indexador (conexión y credenciales); lanza un error con el motivo si falla. */
+  test: (indexer: Indexer) =>
+    apiRequest<unknown>("prowlarr", { method: "POST", path: "/api/v1/indexer/test", query: { forceTest: true }, json: indexer }),
   search: (query: string, category: SearchCategory, indexerIds: number[]) =>
     apiRequest<SearchResult[]>("prowlarr", {
       path: "/api/v1/search",

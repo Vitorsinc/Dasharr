@@ -14,6 +14,7 @@ import LogsPage from "@/pages/Logs";
 import HistoryPage from "@/pages/History";
 import PlexPage from "@/pages/Plex";
 import TrackersPage from "@/pages/Trackers";
+import IndexersPage from "@/pages/Indexers";
 
 export const routes: RouteObject[] = [
   {
@@ -33,6 +34,7 @@ export const routes: RouteObject[] = [
           { path: "/historial", element: <HistoryPage /> },
           { path: "/plex", element: <PlexPage /> },
           { path: "/trackers", element: <TrackersPage /> },
+          { path: "/indexadores", element: <IndexersPage /> },
           { path: "/registro", element: <LogsPage /> },
           { path: "/ajustes", element: <SettingsPage /> },
         ],

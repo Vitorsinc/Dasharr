@@ -20,6 +20,8 @@ import { formatDate, formatEta, formatSpeed } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import { useItemDetail } from "@/pages/Calendar";
 import { NowWatching } from "@/components/NowWatching";
+import { HealthList } from "@/components/HealthList";
+import { HEALTH_SERVICES } from "@/api/health";
 import { RecentlyAdded } from "@/components/plex/RecentlyAdded";
 import radarrLogo from "@/assets/services/radarr.svg";
 import sonarrLogo from "@/assets/services/sonarr.svg";
@@ -90,10 +92,7 @@ function ServiceCard({ service, route }: { service: ServiceKind; route: Paramete
       ) : (
         <StatusBadge route={v.isError ? "offline" : route} />
       )}
-      <span
-        className={cn("line-clamp-2 w-full break-words text-xs tabular-nums", v.isError ? "text-danger" : "text-muted")}
-        title={detail}
-      >
+      <span className={cn("line-clamp-2 w-full break-words text-xs tabular-nums", v.isError ? "text-danger" : "text-muted")} title={detail}>
         {detail}
       </span>
     </Link>
@@ -201,6 +200,7 @@ export default function HomePage() {
           <ServiceCard key={s} service={s} route={routes?.[s]} />
         ))}
       </section>
+      <HealthList services={HEALTH_SERVICES} hideWhenOk />
       <NowWatching title={t.home.nowPlaying} hideWhenEmpty />
       <ActiveDownloads />
       <Upcoming />
