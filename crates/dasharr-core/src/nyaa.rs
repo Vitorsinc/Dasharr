@@ -120,44 +120,74 @@ pub fn languages(page: &NyaaPage) -> Vec<String> {
     out
 }
 
-/// Pistas «Text» de un MediaInfo pegado en la descripción.
+/// Pistas de subtítulos de un MediaInfo pegado en la descripción: secciones «Text» (o «-- Subtitle --» en el
+/// formato resumido) y, si el MediaInfo viene sin cabeceras, bloques cuyo «Format» es de subtítulos (ASS, PGS…).
 fn mediainfo_langs(text: &str) -> Vec<String> {
     let mut out = Vec::new();
     let mut in_text = false;
+    let mut sub_format = false;
+    let mut last_key = String::new();
     let mut track: Vec<String> = Vec::new();
-    let flush = |track: &mut Vec<String>, out: &mut Vec<String>| {
-        if !track.is_empty() {
-            let mut codes = phrase_langs(&track.join(" "), true);
-            if codes.contains(&"es-419".to_string()) {
-                codes.retain(|c| c != "es");
-            }
-            out.extend(codes);
-            track.clear();
+    let flush = |track: &mut Vec<String>, is_text: bool, out: &mut Vec<String>| {
+        if is_text && !track.is_empty() {
+            out.extend(regional(phrase_langs(&track.join(" "), true)));
         }
+        track.clear();
     };
     for raw in text.lines() {
         let line = raw.trim().trim_matches(|c| c == '`' || c == '*');
         if let Some(section) = section_name(line) {
-            flush(&mut track, &mut out);
+            flush(&mut track, in_text || sub_format, &mut out);
             in_text = section == "text";
+            sub_format = false;
             continue;
         }
-        if !in_text {
+        if line.is_empty() {
+            flush(&mut track, in_text || sub_format, &mut out);
+            sub_format = false;
             continue;
         }
-        if let Some((key, value)) = line.split_once(':') {
-            let key = key.trim().to_lowercase();
-            if key == "language" || key == "title" {
-                track.push(value.trim().to_string());
-            }
+        let Some((key, value)) = line.split_once(':') else { continue };
+        let key = key.trim().to_lowercase();
+        // «Language(s) : English» y debajo «   : Brazilian Portuguese»: cada línea es una pista.
+        if key.is_empty() && last_key.starts_with("language") {
+            flush(&mut track, in_text || sub_format, &mut out);
+            track.push(value.trim().to_string());
+            flush(&mut track, in_text || sub_format, &mut out);
+            continue;
         }
+        let first = value.split_whitespace().next().unwrap_or("").to_lowercase();
+        if key == "format" && SUB_FORMATS.contains(&first.as_str()) {
+            sub_format = true;
+        }
+        if key == "language" || key == "language(s)" || key == "title" {
+            track.push(value.trim().to_string());
+        }
+        last_key = key;
     }
-    flush(&mut track, &mut out);
+    flush(&mut track, in_text || sub_format, &mut out);
     out
 }
 
-/// «Text», «Text #2», «Audio #1»… como cabecera de sección del MediaInfo.
+const SUB_FORMATS: &[&str] = &["ass", "ssa", "utf-8", "pgs", "subrip", "srt", "vobsub", "webvtt", "vtt"];
+
+/// «Spanish (Latin America)» es una sola pista: si sale la variante regional, sobra el idioma a secas.
+fn regional(mut codes: Vec<String>) -> Vec<String> {
+    if codes.iter().any(|c| c == "es-419") {
+        codes.retain(|c| c != "es");
+    }
+    if codes.iter().any(|c| c == "pt-BR") {
+        codes.retain(|c| c != "pt");
+    }
+    codes
+}
+
+/// «Text», «Text #2», «Audio #1»… como cabecera de sección del MediaInfo; también «-- Subtitle --».
 fn section_name(line: &str) -> Option<String> {
+    if let Some(inner) = line.strip_prefix("--").and_then(|l| l.strip_suffix("--")) {
+        let name = inner.trim().to_lowercase();
+        return Some(if name.starts_with("subtitle") { "text".into() } else { name });
+    }
     let first = line.split_whitespace().next()?.to_lowercase();
     let rest: Vec<&str> = line.split_whitespace().skip(1).collect();
     let known = ["general", "video", "audio", "text", "menu", "chapters", "image", "other"];
@@ -165,25 +195,62 @@ fn section_name(line: &str) -> Option<String> {
     (known.contains(&first.as_str()) && numbered).then_some(first)
 }
 
-/// Líneas tipo «Subtitles: English, Spanish», tablas «| Subs | ENG, SPA |» y listas bajo «Subtitles:»
-/// (Erai-raws: «* `Subtitles Info:`» y debajo una línea por idioma, «**Spanish** (CR_Spanish) | ASS»).
+/// Líneas tipo «Subtitles: English, Spanish», listas bajo «Subtitles:» (Erai-raws: «* `Subtitles Info:`» y debajo
+/// una línea por idioma, «**Spanish** (CR_Spanish) | ASS») y tablas markdown, con o sin «|» al principio:
+/// - fila con etiqueta: «| Subs | ENG, SPA |», «**Subtitles** | English, French» (Trix);
+/// - columna con etiqueta: «| Subtitle Language | Sync/Edit By |» (Mr. Yosha), «**General** | … | **Subtitle**» (EMBER);
+/// - tabla bajo un título «### Subtitles», una pista por fila (AnoZu).
 fn described_langs(text: &str) -> Vec<String> {
     let text = text.replace("<br />", "\n").replace("<br/>", "\n").replace("<br>", "\n");
+    let lines: Vec<&str> = text.lines().map(str::trim).collect();
     let mut out = Vec::new();
     // Dentro de una lista de subtítulos; `found` dice si ya se leyó algún elemento.
     let mut list: Option<bool> = None;
-    for raw in text.lines() {
-        let line = raw.trim();
+    // Columna de subtítulos de la tabla en curso, y si ya se pasó la fila separadora («---|---»).
+    let mut column: Option<usize> = None;
+    let mut in_table = false;
+    for (i, &line) in lines.iter().enumerate() {
         if line.is_empty() {
             // Una línea en blanco justo tras la etiqueta no cierra la lista; tras los idiomas, sí.
             if list == Some(true) {
                 list = None;
             }
+            column = None;
+            in_table = false;
             continue;
         }
-        if line.starts_with('|') {
-            list = None;
-            let cells: Vec<&str> = line.split('|').map(str::trim).collect();
+        let cells = table_cells(line);
+        let next_is_separator = lines.get(i + 1).is_some_and(|l| l.contains('|') && is_separator(&table_cells(l)));
+        let label_row = cells.first().is_some_and(|c| !c.contains(':') && is_sub_label(c));
+        let is_row = line.contains('|') && (line.starts_with('|') || in_table || column.is_some() || next_is_separator || label_row);
+        if !is_row {
+            column = None;
+            in_table = false;
+        } else {
+            if is_separator(&cells) {
+                in_table = true;
+                continue;
+            }
+            if let Some(col) = column {
+                if let Some(cell) = cells.get(col) {
+                    // «**Language:** English-Signs + Dialogue»: de una celda con etiqueta vale lo de detrás.
+                    let value = cell.split_once(':').filter(|(l, _)| is_label(l)).map_or(*cell, |(_, v)| v);
+                    out.extend(regional(list_langs(value)));
+                }
+                continue;
+            }
+            if next_is_separator {
+                if let Some(col) = cells.iter().position(|c| is_sub_label(c)) {
+                    column = Some(col);
+                    list = None;
+                    continue;
+                }
+            }
+            if list.is_some() {
+                out.extend(regional(cells.iter().flat_map(|c| list_langs(c)).collect()));
+                list = Some(true);
+                continue;
+            }
             if let Some(i) = cells.iter().position(|c| is_sub_label(c)) {
                 for cell in &cells[i + 1..] {
                     out.extend(list_langs(cell));
@@ -204,6 +271,8 @@ fn described_langs(text: &str) -> Vec<String> {
                 continue;
             }
         } else if is_sub_label(clean) {
+            // «**Greek Subs**»: el idioma puede venir en la propia etiqueta.
+            out.extend(phrase_langs(clean, false));
             list = Some(false);
             continue;
         }
@@ -213,6 +282,19 @@ fn described_langs(text: &str) -> Vec<String> {
         }
     }
     out
+}
+
+/// Celdas de una fila de tabla markdown, sin las vacías de los «|» de los extremos.
+fn table_cells(line: &str) -> Vec<&str> {
+    let line = line.trim();
+    let line = line.strip_prefix('|').unwrap_or(line);
+    let line = line.strip_suffix('|').unwrap_or(line);
+    line.split('|').map(str::trim).collect()
+}
+
+/// «|---|:---:|» o «--- | ---».
+fn is_separator(cells: &[&str]) -> bool {
+    cells.iter().any(|c| c.contains('-')) && cells.iter().all(|c| !c.is_empty() && c.chars().all(|c| "-: ".contains(c)))
 }
 
 /// Parece una etiqueta («Subtitles Info», «`Chapters», «**Audio**») y no una frase con dos puntos.
@@ -229,24 +311,32 @@ fn is_sub_label(s: &str) -> bool {
 /// Cada elemento de una lista: el nombre completo vale siempre; los códigos (ENG, es-LA) solo si el
 /// elemento es corto, para no confundir «it» o «de» de una frase con italiano o alemán.
 fn list_langs(value: &str) -> Vec<String> {
+    // «Multi-Subs : ENG(US) ES(LA) …» (DKB): lo que va tras una etiqueta de subtítulos es la lista.
+    let value = match value.split_once(':') {
+        Some((label, rest)) if is_sub_label(label) => rest,
+        _ => value,
+    };
     let value = strip_markup(value).replace(" and ", ",").replace(" y ", ",");
     value
         .split(|c| ",/|+;&".contains(c))
         // «Subtitles: English | Audio: Japanese»: lo que va tras otra etiqueta ya no son subtítulos.
         .take_while(|item| !item.contains(':'))
         .flat_map(|item| {
-            let words = words(item);
-            let mut codes = phrase_langs(item, words.len() <= 2);
+            // «ENG(US) ES(LA) FRE PT(BR)»: códigos separados solo por espacios, cada uno es un idioma.
+            let tokens: Vec<&str> = item.split_whitespace().collect();
+            if tokens.len() > 2 && tokens.iter().all(|t| is_lang_token(t)) {
+                return tokens.iter().flat_map(|t| regional(phrase_langs(t, true))).collect();
+            }
             // «Spanish (CR_Spanish(Latin_America))» es una sola pista: la variante regional.
-            if codes.iter().any(|c| c == "es-419") {
-                codes.retain(|c| c != "es");
-            }
-            if codes.iter().any(|c| c == "pt-BR") {
-                codes.retain(|c| c != "pt");
-            }
-            codes
+            regional(phrase_langs(item, words(item).len() <= 2))
         })
         .collect()
+}
+
+/// «ENG», «ES(LA)», «ZH-HK», «Spanish»: un idioma con, como mucho, su región.
+fn is_lang_token(token: &str) -> bool {
+    let ws = words(token);
+    ws.len() <= 2 && ws.first().is_some_and(|w| NAMES.iter().chain(CODES).any(|(n, _)| n == w))
 }
 
 /// Quita lo que no es texto y tiene «:» o «/»: banderas como imagen (`![fr](https://…)`, `<img …>`),
@@ -363,6 +453,17 @@ const NAMES: &[(&str, &str)] = &[
     ("dutch", "nl"),
     ("catalan", "ca"),
     ("catala", "ca"),
+    ("greek", "el"),
+    ("hungarian", "hu"),
+    ("czech", "cs"),
+    ("romanian", "ro"),
+    ("swedish", "sv"),
+    ("ukrainian", "uk"),
+    ("hebrew", "he"),
+    ("finnish", "fi"),
+    ("danish", "da"),
+    ("bulgarian", "bg"),
+    ("croatian", "hr"),
 ];
 
 const CODES: &[(&str, &str)] = &[
@@ -396,6 +497,20 @@ const CODES: &[(&str, &str)] = &[
     ("dut", "nl"),
     ("nld", "nl"),
     ("cat", "ca"),
+    ("gre", "el"),
+    ("ell", "el"),
+    ("hun", "hu"),
+    ("cze", "cs"),
+    ("ces", "cs"),
+    ("rum", "ro"),
+    ("ron", "ro"),
+    ("swe", "sv"),
+    ("ukr", "uk"),
+    ("heb", "he"),
+    ("fin", "fi"),
+    ("dan", "da"),
+    ("bul", "bg"),
+    ("hrv", "hr"),
     ("en", "en"),
     ("es", "es"),
     ("pt", "pt"),
@@ -433,10 +548,12 @@ fn phrase_langs(phrase: &str, codes: bool) -> Vec<String> {
             .map(|(_, code)| code.to_string());
         let Some(mut code) = hit else { continue };
         let next: Vec<&str> = ws[i + 1..].iter().take(2).map(String::as_str).collect();
-        if code == "es" && next.iter().any(|n| LATAM.contains(n)) {
+        // «Latin America Spanish», «Brazilian Portuguese»: la región también puede ir delante.
+        let prev = i.checked_sub(1).map(|j| ws[j].as_str());
+        if code == "es" && (next.iter().any(|n| LATAM.contains(n)) || prev.is_some_and(|p| ["latin", "america", "latam", "latino"].contains(&p))) {
             code = "es-419".into();
         }
-        if code == "pt" && next.iter().any(|n| BRAZIL.contains(n)) {
+        if code == "pt" && (next.iter().any(|n| BRAZIL.contains(n)) || prev.is_some_and(|p| BRAZIL.contains(&p))) {
             code = "pt-BR".into();
         }
         // «la» o «lat» detrás de otro idioma ya cuenta como su variante, no como idioma propio.
@@ -550,6 +667,60 @@ mod tests {
             languages(&page(&line(["<img src=\"https://flagcdn.com/fr.png\">", "<img src=\"https://flagcdn.com/de.png\">", "<img src=\"https://flagcdn.com/pl.png\">"]), &[])),
             expected
         );
+    }
+
+    #[test]
+    fn reads_dkb_multi_subs_codes() {
+        let d = "| Anime | Dragon Ball Super: Beerus - (Season 01) |\n| ------------- |:-------------:| -----:|\n\
+| Audio | Japanese AAC |\n| Subtitles | Multi-Subs : ENG(US) ES(LA) ES(EU) FRE PT(BR) ARA ITA GER RUS POL TH ID ZH-HK |\n\
+| Discord | [Here](https://discord.gg/x) |";
+        assert_eq!(languages(&page(d, &[])), vec!["en", "es-419", "es", "fr", "pt-BR", "ar", "it", "de", "ru", "pl", "th", "id", "zh"]);
+    }
+
+    #[test]
+    fn reads_anozu_subtitles_table() {
+        let d = "### Audio\n\n| Track | Codec | Channels | Source | Default | Forced |\n| --- | --- | --- | --- | --- | --- |\n\
+| **Japanese** | AAC | 2.0 | Crunchyroll | Yes | No |\n\n### Subtitles\n\n| Track | Language | Format | Default | Forced |\n\
+| --- | --- | --- | --- | --- |\n| **English** | English | ASS | Yes | No |\n| **Spanish (Latin America)** | Spanish | ASS | Yes | No |\n\
+| **Spanish (Spain)** | Spanish | ASS | Yes | No |\n| **Portuguese (Brazil)** | Portuguese | ASS | Yes | No |\n\n### Chapters: Yes";
+        assert_eq!(languages(&page(d, &[])), vec!["en", "es-419", "es", "pt-BR"]);
+    }
+
+    #[test]
+    fn reads_subtitle_columns() {
+        // Mr. Yosha: la cabecera de la columna dice que son subtítulos.
+        let d = "| Audio Source | Codec |\n|:---:|:---:|\n| AMZN | E-AC3 |\n\n| Subtitle Language        | Sync/Edit By |\n\
+|:-------------:|:-------------:|\n| English        | emr3ald/SonicMaster |\n| Japanese | SonicMaster |\n\n[Video Comparison](https://slow.pics/c/x)";
+        assert_eq!(languages(&page(d, &[])), vec!["en", "ja"]);
+        // EMBER: tabla sin «|» en los extremos, una columna por tipo de pista y celdas «**Clave:** valor».
+        let d = "**General** | **Video** | **Audio** | **Subtitle**\n--- | --- | --- | ---\n\
+**File Name:** S02E15.mkv | **Format:** HEVC | **Format:** E-AC-3 | **Format:** ASS [MALD]\n\
+**Size:** 363 MiB | **Profile:** Main 10 | **Bit rate:** 224 kb/s | **Language:** English-Signs + Dialogue\n\
+ --- | **Frame Rate:** 23.976 FPS | **Language:** Japanese+English | ---";
+        assert_eq!(languages(&page(d, &[])), vec!["en"]);
+        // Trix: fila con etiqueta en una tabla sin «|» al principio.
+        let d = "Get [DDL](https://x.org) | **Shingeki no Kyojin**\n:---:|:---:\n**Audio Language** | Japanese, English\n\
+**Subtitles** | English (Full), English (Signs), French";
+        assert_eq!(languages(&page(d, &[])), vec!["en", "fr"]);
+    }
+
+    #[test]
+    fn reads_short_and_headerless_mediainfo() {
+        // Rapta: MediaInfo resumido, un idioma por línea.
+        let d = "-- Audio --\nFormat                      : AAC\nLanguage(s)                 : Japanese\n\n-- Subtitle --\n\
+Language(s)                 : English\n                            : Brazilian Portuguese\n                            : European Spanish\n\
+                            : Latin America Spanish\n\n-- Screenshots --\nhttps://i.ibb.co/x/000001.png";
+        assert_eq!(languages(&page(d, &[])), vec!["en", "pt-BR", "es", "es-419"]);
+        // YURASUKA: MediaInfo sin cabeceras de sección; las pistas de subtítulos se reconocen por el formato.
+        let d = "```\nTitle : SPY x FAMILY - S03E02\n\nVideo\nFormat : HEVC\nLanguage : Japanese\n\nFormat : E-AC-3\nTitle : English E-AC-3 2.0\n\
+Language : English\n\nFormat : ASS\nTitle : Full Subtitles [CrappySubs]\nLanguage : English\n\nFormat : PGS\nLanguage : French\n\nMenu\n```";
+        assert_eq!(languages(&page(d, &[])), vec!["en", "fr"]);
+    }
+
+    #[test]
+    fn reads_language_in_the_label() {
+        let d = "**Greek Subs**\n\nΕπισκεφθείτε τον Discord Server μας για περισσότερα!\n\nDiscord: https://discord.gg/x";
+        assert_eq!(languages(&page(d, &[])), vec!["el"]);
     }
 
     #[test]

@@ -27,6 +27,6 @@ test("añade los idiomas de la página de Nyaa", async () => {
 
 test("avisa cuando ni el título ni Nyaa dicen nada", async () => {
   vi.mocked(invoke).mockImplementation(async (cmd: string) => (cmd === "nyaa_subtitles" ? [] : undefined));
-  renderBadge("[SubsPlease] Frieren - 01 (1080p)", "https://nyaa.si/view/9");
+  renderBadge("[Shiniori-Raws] Frieren - 01 (1080p)", "https://nyaa.si/view/9");
   expect(await screen.findByText("Subs no indicados")).toBeInTheDocument();
 });
