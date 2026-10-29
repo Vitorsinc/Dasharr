@@ -20,6 +20,9 @@ crea la Release con las notas de esta página.
 - Lista de episodios más limpia: el número del episodio coloreado (verde descargado, borde rojo falta, gris sin emitir) y el marcador de Sonarr/Radarr para monitorizado (relleno) o no (vacío).
 - Subtítulos en la búsqueda manual: cada release muestra los idiomas de subtítulos que indica su título (Multi-Subs, [ESP], [ENG][SPA-LA]…) y, en las de Nyaa, los que dice la página del torrent (descripción, MediaInfo o archivos de subtítulos). El español se resalta en verde. Lee también la lista «Subtitles Info» de Erai-raws.
 - Importación manual desde la cola de Sonarr/Radarr, asociando cada archivo a su serie/episodio o película, con hardlink.
+- Películas y Series: pestaña «Buscadas» con lo que falta y lo que puede mejorar de calidad, con búsqueda de todo de una vez (en Series y Anime, solo los de su sección).
+- Fichas de película y serie: historial de descargas de Radarr/Sonarr (enviada, importada, fallida, borrada…) y botón «Editar» para cambiar el perfil de calidad y la carpeta (moviendo los archivos). En películas, también la disponibilidad mínima; en series, qué episodios se monitorizan.
+- Series: monitorizar o dejar de monitorizar una temporada entera de un clic, ver la calidad y el tamaño del archivo de cada episodio y borrarlo, y botones para actualizar, reescanear la carpeta y renombrar (con vista previa).
 - Descargas (qBittorrent): control de torrents, añadir por enlace o archivo y aviso de Windows al terminar.
 - Buscar en los indexadores de Prowlarr y enviar a qBittorrent.
 - Subtítulos que faltan (Bazarr) y búsqueda por idioma.

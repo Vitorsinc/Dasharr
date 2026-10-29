@@ -9,17 +9,24 @@ import { LibraryToolbar } from "@/components/media/LibraryToolbar";
 import { PosterCard, PosterGrid } from "@/components/media/PosterCard";
 import { QueueList } from "@/components/media/QueueList";
 import { filterSort, libState, type LibFilter, type LibSort } from "@/components/media/library";
-import { posterUrl } from "@/api/arr";
+import { posterUrl, type ReleaseQuery, type WantedKind } from "@/api/arr";
+import { WantedList } from "@/components/media/WantedList";
+import { ReleaseSearchDialog } from "@/components/media/ReleaseSearchDialog";
+import { toast } from "sonner";
+import { errorMessage } from "@/lib/errors";
+import { formatDate } from "@/lib/format";
 import { faKey, seriesItem } from "@/api/filmaffinity";
 import { sonarr, type MonitorOption, type Series, type SeriesType } from "@/api/sonarr";
-import { useSeries, useSonarrMeta, useSonarrQueue } from "@/hooks/useArr";
+import { useSeries, useSonarrMeta, useSonarrQueue, useSonarrWanted } from "@/hooks/useArr";
 import { usePrefs } from "@/hooks/usePrefs";
 import { useFaRatings } from "@/hooks/useFilmAffinity";
 import { t } from "@/i18n/es";
 import { defaultsFor, kindOf, looksLikeAnime, seriesTypeLabel, typeForKind, type SeriesKind } from "@/lib/anime";
 import { SeriesDetail } from "./SeriesDetail";
 
-type Tab = "library" | "queue";
+type Tab = "library" | "wanted" | "queue";
+
+const pad = (n: number) => String(n).padStart(2, "0");
 
 export function seriesLibFlags(s: Series) {
   const have = s.statistics?.episodeFileCount ?? 0;
@@ -34,6 +41,9 @@ export default function SeriesPage({ kind = "series" }: { kind?: SeriesKind }) {
   const series = useSeries();
   const queue = useSonarrQueue(tab === "queue");
   const meta = useSonarrMeta();
+  const [wantedKind, setWantedKind] = useState<WantedKind>("missing");
+  const wanted = useSonarrWanted(wantedKind, tab === "wanted");
+  const [manual, setManual] = useState<{ query: ReleaseQuery; what: string } | null>(null);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<LibFilter>("all");
   const [sort, setSort] = useState<LibSort>("title");
@@ -51,6 +61,11 @@ export default function SeriesPage({ kind = "series" }: { kind?: SeriesKind }) {
   const queueRecords = useMemo(
     () => (queue.data ?? []).filter((r) => r.seriesId == null || !otherIds.has(r.seriesId)),
     [queue.data, otherIds],
+  );
+  // Buscadas de esta sección: las de Anime en Anime y el resto en Series.
+  const wantedEpisodes = useMemo(
+    () => (wanted.data ?? []).filter((e) => (e.series ? kindOf(e.series) === kind : !otherIds.has(e.seriesId))),
+    [wanted.data, kind, otherIds],
   );
   const addKind: SeriesKind = seriesType === "anime" ? "anime" : "series";
   const preset = defaultsFor(addKind, meta.roots.data ?? [], meta.profiles.data ?? [], seriesDefaults[addKind]);
@@ -86,6 +101,7 @@ export default function SeriesPage({ kind = "series" }: { kind?: SeriesKind }) {
             onChange={setTab}
             options={[
               { value: "library", label: t.library.library },
+              { value: "wanted", label: t.wanted.tab },
               { value: "queue", label: t.library.queue },
             ]}
           />
@@ -101,7 +117,45 @@ export default function SeriesPage({ kind = "series" }: { kind?: SeriesKind }) {
         </>
       }
     >
-      {tab === "queue" ? (
+      {tab === "wanted" ? (
+        <WantedList
+          service="sonarr"
+          kind={wantedKind}
+          onKind={setWantedKind}
+          isLoading={wanted.isLoading}
+          error={wanted.error}
+          onRetry={() => wanted.refetch()}
+          searchAllLabel={t.wanted.searchAllEpisodes}
+          onSearchAll={() =>
+            sonarr.searchEpisodes(wantedEpisodes.map((e) => e.id)).then(
+              () => toast.success(t.wanted.searchAllStarted),
+              (err) => toast.error(errorMessage(err, "sonarr")),
+            )
+          }
+          rows={wantedEpisodes.map((e) => {
+            const code = `${e.seasonNumber}x${pad(e.episodeNumber)}`;
+            const name = `${e.series?.title ?? ""} · ${code}`;
+            return {
+              key: e.id,
+              title: `${name} · ${e.title}`,
+              subtitle:
+                wantedKind === "cutoff"
+                  ? t.wanted.current(e.episodeFile?.quality?.quality?.name ?? "?")
+                  : e.airDateUtc
+                    ? t.wanted.aired(formatDate(e.airDateUtc))
+                    : undefined,
+              poster: e.series ? posterUrl("sonarr", e.series, 250) : undefined,
+              onOpen: () => setSelectedId(e.seriesId),
+              onAuto: () =>
+                sonarr.searchEpisodes([e.id]).then(
+                  () => toast.success(t.library.searchStarted, { description: name }),
+                  (err) => toast.error(errorMessage(err, "sonarr")),
+                ),
+              onManual: () => setManual({ query: { episodeId: e.id }, what: name }),
+            };
+          })}
+        />
+      ) : tab === "queue" ? (
         queue.isLoading ? (
           <Loading />
         ) : queue.isError ? (
@@ -136,6 +190,7 @@ export default function SeriesPage({ kind = "series" }: { kind?: SeriesKind }) {
         </>
       )}
       <SeriesDetail series={selected} onClose={() => setSelectedId(null)} />
+      <ReleaseSearchDialog service="sonarr" query={manual?.query ?? null} what={manual?.what ?? ""} onClose={() => setManual(null)} />
       <AddMediaDialog<Series>
         open={adding}
         onOpenChange={setAdding}

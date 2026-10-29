@@ -10,15 +10,19 @@ import { PosterCard, PosterGrid } from "@/components/media/PosterCard";
 import { QueueList } from "@/components/media/QueueList";
 import { ReleaseSearchDialog } from "@/components/media/ReleaseSearchDialog";
 import { filterSort, libState, type LibFilter, type LibSort } from "@/components/media/library";
-import { posterUrl } from "@/api/arr";
+import { posterUrl, type WantedKind } from "@/api/arr";
+import { WantedList } from "@/components/media/WantedList";
+import { toast } from "sonner";
+import { errorMessage } from "@/lib/errors";
+import { formatDate } from "@/lib/format";
 import { faKey, movieItem } from "@/api/filmaffinity";
-import { radarr, type Movie } from "@/api/radarr";
-import { useMovies, useRadarrMeta, useRadarrQueue } from "@/hooks/useArr";
+import { movieReleaseDate, radarr, type Movie } from "@/api/radarr";
+import { useMovies, useRadarrMeta, useRadarrQueue, useRadarrWanted } from "@/hooks/useArr";
 import { useFaRatings } from "@/hooks/useFilmAffinity";
 import { t } from "@/i18n/es";
 import { MovieDetail } from "./MovieDetail";
 
-type Tab = "library" | "queue";
+type Tab = "library" | "wanted" | "queue";
 
 export default function MoviesPage() {
   const qc = useQueryClient();
@@ -26,6 +30,8 @@ export default function MoviesPage() {
   const movies = useMovies();
   const queue = useRadarrQueue(tab === "queue");
   const meta = useRadarrMeta();
+  const [wantedKind, setWantedKind] = useState<WantedKind>("missing");
+  const wanted = useRadarrWanted(wantedKind, tab === "wanted");
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<LibFilter>("all");
   const [sort, setSort] = useState<LibSort>("title");
@@ -63,6 +69,7 @@ export default function MoviesPage() {
             onChange={setTab}
             options={[
               { value: "library", label: t.library.library },
+              { value: "wanted", label: t.wanted.tab },
               { value: "queue", label: t.library.queue },
             ]}
           />
@@ -72,7 +79,41 @@ export default function MoviesPage() {
         </>
       }
     >
-      {tab === "queue" ? (
+      {tab === "wanted" ? (
+        <WantedList
+          service="radarr"
+          kind={wantedKind}
+          onKind={setWantedKind}
+          isLoading={wanted.isLoading}
+          error={wanted.error}
+          onRetry={() => wanted.refetch()}
+          searchAllLabel={t.wanted.searchAll}
+          onSearchAll={() =>
+            radarr.searchWanted(wantedKind).then(
+              () => toast.success(t.wanted.searchAllStarted),
+              (e) => toast.error(errorMessage(e, "radarr")),
+            )
+          }
+          rows={(wanted.data ?? []).map((m) => ({
+            key: m.id,
+            title: `${m.title} (${m.year})`,
+            subtitle:
+              wantedKind === "cutoff"
+                ? t.wanted.current(m.movieFile?.quality?.quality?.name ?? "?")
+                : movieReleaseDate(m)
+                  ? formatDate(movieReleaseDate(m))
+                  : undefined,
+            poster: posterUrl("radarr", m, 250),
+            onOpen: () => setSelectedId(m.id),
+            onAuto: () =>
+              radarr.search([m.id]).then(
+                () => toast.success(t.library.searchStarted, { description: m.title }),
+                (e) => toast.error(errorMessage(e, "radarr")),
+              ),
+            onManual: () => setManualFor(m),
+          }))}
+        />
+      ) : tab === "queue" ? (
         queue.isLoading ? (
           <Loading />
         ) : queue.isError ? (

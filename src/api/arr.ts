@@ -83,8 +83,65 @@ export function backdropUrl(service: ArrService, item: { id?: number; images?: A
   return coverUrl(service, item, "fanart", 360) ?? posterUrl(service, item, 250);
 }
 
+export interface Paged<T> {
+  page: number;
+  pageSize: number;
+  totalRecords: number;
+  records: T[];
+}
+
+/** "missing" = monitorizado sin archivo; "cutoff" = tiene archivo pero no llega a la calidad objetivo del perfil. */
+export type WantedKind = "missing" | "cutoff";
+
+/** Máximo que pide Dasharr de una vez a las listas paginadas (buscadas, historial). */
+export const PAGE_MAX = 2000;
+
+export interface HistoryRecord {
+  id: number;
+  eventType: string;
+  date: string;
+  sourceTitle: string;
+  quality?: { quality?: { name?: string } };
+  data?: Record<string, string | undefined>;
+  movieId?: number;
+  seriesId?: number;
+  episodeId?: number;
+  episode?: { seasonNumber: number; episodeNumber: number; title: string };
+}
+
+export interface HealthItem {
+  source: string;
+  type: "ok" | "notice" | "warning" | "error";
+  message: string;
+  wikiUrl?: string;
+}
+
+/** Carpeta nueva de un elemento al cambiar de carpeta raíz: misma subcarpeta dentro de la raíz nueva. */
+export function movePath(currentPath: string, newRoot: string) {
+  const name =
+    currentPath
+      .replace(/[\\/]+$/, "")
+      .split(/[\\/]/)
+      .pop() ?? "";
+  const sep = newRoot.includes("\\") && !newRoot.includes("/") ? "\\" : "/";
+  return `${newRoot.replace(/[\\/]+$/, "")}${sep}${name}`;
+}
+
 export function arrCommon(service: ArrService) {
   return {
+    getHealth: () => apiRequest<HealthItem[]>(service, { path: "/api/v3/health" }),
+    getWanted: <T>(kind: WantedKind) =>
+      apiRequest<Paged<T>>(service, {
+        path: `/api/v3/wanted/${kind}`,
+        query: {
+          page: 1,
+          pageSize: PAGE_MAX,
+          monitored: true,
+          ...(service === "sonarr"
+            ? { includeSeries: true, includeEpisodeFile: true, sortKey: "episodes.airDateUtc", sortDirection: "descending" }
+            : {}),
+        },
+      }),
     getQualityProfiles: () => apiRequest<QualityProfile[]>(service, { path: "/api/v3/qualityprofile" }),
     getRootFolders: () => apiRequest<RootFolder[]>(service, { path: "/api/v3/rootfolder" }),
     command: (body: Record<string, unknown>) => apiRequest<unknown>(service, { method: "POST", path: "/api/v3/command", json: body }),
@@ -200,7 +257,10 @@ export function sortReleases(list: Release[], sort: ReleaseSort): Release[] {
  * y las que empiezan por «-» excluyen (p. ej. `1080p x265 -hdr`).
  */
 export function filterReleases(list: Release[], text: string): Release[] {
-  const words = text.toLowerCase().split(/\s+/).filter((w) => w && w !== "-");
+  const words = text
+    .toLowerCase()
+    .split(/\s+/)
+    .filter((w) => w && w !== "-");
   if (!words.length) return list;
   return list.filter((r) => {
     const hay = `${r.title} ${r.indexer}`.toLowerCase();

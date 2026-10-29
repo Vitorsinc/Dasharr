@@ -51,6 +51,7 @@ export function ConfirmDialog({
   confirmLabel = t.common.delete,
   checkboxLabel,
   onConfirm,
+  danger = true,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
@@ -59,6 +60,8 @@ export function ConfirmDialog({
   confirmLabel?: string;
   checkboxLabel?: string;
   onConfirm: (checked: boolean) => void;
+  /** false = acción normal (botón principal en vez de rojo). */
+  danger?: boolean;
 }) {
   const [checked, setChecked] = useState(false);
   return (
@@ -81,7 +84,7 @@ export function ConfirmDialog({
             {t.common.cancel}
           </button>
           <button
-            className="btn-danger"
+            className={danger ? "btn-danger" : "btn-primary"}
             onClick={() => {
               onConfirm(checked);
               onOpenChange(false);
