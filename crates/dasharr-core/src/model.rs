@@ -9,16 +9,18 @@ pub enum ServiceKind {
     Prowlarr,
     Bazarr,
     Qbittorrent,
+    Tracearr,
     Plex,
 }
 
 impl ServiceKind {
-    pub const ALL: [ServiceKind; 6] = [
+    pub const ALL: [ServiceKind; 7] = [
         ServiceKind::Radarr,
         ServiceKind::Sonarr,
         ServiceKind::Prowlarr,
         ServiceKind::Bazarr,
         ServiceKind::Qbittorrent,
+        ServiceKind::Tracearr,
         ServiceKind::Plex,
     ];
 
@@ -29,6 +31,7 @@ impl ServiceKind {
             ServiceKind::Prowlarr => "prowlarr",
             ServiceKind::Bazarr => "bazarr",
             ServiceKind::Qbittorrent => "qbittorrent",
+            ServiceKind::Tracearr => "tracearr",
             ServiceKind::Plex => "plex",
         }
     }
@@ -43,6 +46,7 @@ impl ServiceKind {
             ServiceKind::Radarr | ServiceKind::Sonarr | ServiceKind::Prowlarr => "/ping",
             ServiceKind::Bazarr => "/api/system/status",
             ServiceKind::Qbittorrent => "/api/v2/app/version",
+            ServiceKind::Tracearr => "/health",
             // No necesita token.
             ServiceKind::Plex => "/identity",
         }

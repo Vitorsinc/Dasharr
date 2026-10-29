@@ -19,7 +19,7 @@ import { errorMessage } from "@/lib/errors";
 import { formatDate, formatEta, formatSpeed } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import { useItemDetail } from "@/pages/Calendar";
-import { NowPlaying } from "@/components/plex/NowPlaying";
+import { NowWatching } from "@/components/NowWatching";
 import { RecentlyAdded } from "@/components/plex/RecentlyAdded";
 
 const servicePage: Record<ServiceKind, string> = {
@@ -28,6 +28,7 @@ const servicePage: Record<ServiceKind, string> = {
   prowlarr: "/buscar",
   bazarr: "/subtitulos",
   qbittorrent: "/descargas",
+  tracearr: "/historial",
   plex: "/plex",
 };
 
@@ -152,12 +153,12 @@ export default function HomePage() {
   const { data: routes } = useConnectionStates();
   return (
     <Page title={t.nav.home}>
-      <section className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6" aria-label={t.home.services}>
+      <section className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-7" aria-label={t.home.services}>
         {SERVICE_KINDS.map((s) => (
           <ServiceCard key={s} service={s} route={routes?.[s]} />
         ))}
       </section>
-      <NowPlaying title={t.home.nowPlaying} hideWhenEmpty />
+      <NowWatching title={t.home.nowPlaying} hideWhenEmpty />
       <ActiveDownloads />
       <Upcoming />
       <RecentlyAdded />

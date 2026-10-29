@@ -17,6 +17,8 @@ export async function serviceVersion(service: ServiceKind): Promise<string> {
       );
     case "qbittorrent":
       return str(await apiRequest<unknown>(service, { path: "/api/v2/app/version" }));
+    case "tracearr":
+      return str((await apiRequest<{ tracearr_version?: unknown } | null>(service, { path: "/api/v2/public/servers" }))?.tracearr_version);
     case "plex":
       return str((await apiRequest<{ MediaContainer?: { version?: unknown } } | null>(service, { path: "/" }))?.MediaContainer?.version);
   }

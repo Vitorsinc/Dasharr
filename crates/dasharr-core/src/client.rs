@@ -114,7 +114,8 @@ impl ServiceClient {
     /// Usuario y contraseña del proxy inverso, solo hacia la dirección externa: en local no hay proxy, y
     /// qBittorrent 5.2+ interpretaría esa cabecera Basic como sus propias credenciales.
     fn with_proxy_auth(&self, req: reqwest::RequestBuilder, base: &str) -> reqwest::RequestBuilder {
-        if self.config.external() != Some(base) {
+        // Tracearr se autentica con `Authorization: Bearer`, que no puede convivir con el Basic del proxy.
+        if self.config.external() != Some(base) || self.kind == ServiceKind::Tracearr {
             return req;
         }
         match (&self.secrets.proxy_username, &self.secrets.proxy_password) {
@@ -179,6 +180,7 @@ impl ServiceClient {
                 b.header("X-Api-Key", self.secrets.api_key.clone().unwrap_or_default())
             }
             ServiceKind::Bazarr => b.header("X-API-KEY", self.secrets.api_key.clone().unwrap_or_default()),
+            ServiceKind::Tracearr => b.bearer_auth(self.secrets.api_key.as_deref().unwrap_or_default()),
             ServiceKind::Plex => crate::plex::identify(b, self.secrets.client_id.as_deref())
                 .header("X-Plex-Token", self.secrets.api_key.clone().unwrap_or_default()),
             ServiceKind::Qbittorrent => {
@@ -373,6 +375,7 @@ impl ServiceClient {
             ServiceKind::Prowlarr => ("/api/v1/system/status", "/version"),
             ServiceKind::Bazarr => ("/api/system/status", "/data/bazarr_version"),
             ServiceKind::Qbittorrent => ("/api/v2/app/version", ""),
+            ServiceKind::Tracearr => ("/api/v2/public/servers", "/tracearr_version"),
             // `/identity` responde sin token: la raíz sí lo exige.
             ServiceKind::Plex => ("/", "/MediaContainer/version"),
         };
