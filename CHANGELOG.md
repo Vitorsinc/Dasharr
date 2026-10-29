@@ -19,6 +19,7 @@ crea la Release con las notas de esta página.
 - Descargas (qBittorrent): control de torrents, añadir por enlace o archivo y aviso de Windows al terminar.
 - Buscar en los indexadores de Prowlarr y enviar a qBittorrent.
 - Subtítulos que faltan (Bazarr) y búsqueda por idioma.
+- Trackers: ratio, subido, bajado, buffer, seed, bonus y H&R de los trackers UNIT3D que tienes en Prowlarr, sin meter claves nuevas.
 - Calendario semanal y mensual de estrenos y emisiones.
 - Plex: inicio de sesión con tu cuenta (sin copiar tokens), «Reproduciendo ahora» y «Añadido recientemente» en Inicio, página Plex con estado del servidor, escaneo de bibliotecas, papelera y mantenimiento, detener reproducciones (Plex Pass), y en cada ficha si ya está en Plex, si está vista, «Abrir en Plex» y actualizar metadatos. Aviso de Windows cuando alguien empieza a ver algo.
 - Ajustes con dirección local y externa por servicio y cambio automático entre ellas; importación de configuración desde archivo.

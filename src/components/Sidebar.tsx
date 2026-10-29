@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { CalendarDays, Captions, Clapperboard, Download, History, Home, MonitorPlay, ScrollText, Search, Settings, Sparkles, Tv } from "lucide-react";
+import { CalendarDays, Captions, Clapperboard, Download, Gauge, History, Home, MonitorPlay, ScrollText, Search, Settings, Sparkles, Tv } from "lucide-react";
 import { t } from "@/i18n/es";
 import { cn } from "@/lib/cn";
 import { versionLabel } from "@/lib/version";
@@ -15,6 +15,7 @@ const items = [
   { to: "/calendario", label: t.nav.calendar, icon: CalendarDays },
   { to: "/historial", label: t.nav.history, icon: History },
   { to: "/plex", label: t.nav.plex, icon: MonitorPlay },
+  { to: "/trackers", label: t.nav.trackers, icon: Gauge },
 ];
 
 function Item({ to, label, icon: Icon, end }: (typeof items)[number]) {

@@ -11,6 +11,8 @@ Guía para quien programe Dasharr. Sale de leer el código fuente oficial de cad
 | Bazarr | `morpheus65535/bazarr` (rama `master`) | `bfe4593` | 1.5.x |
 | qBittorrent | `qbittorrent/qBittorrent` (rama `master`) | `f6cf56c` | 5.1 / 5.2 (5.3 en desarrollo), WebAPI 2.11–2.17 |
 | Tracearr | `connorgallopo/Tracearr` (rama `main`) | `1a5fde8` | 3.1.x, API pública v2 (desde 2.0.0) |
+| UNIT3D (trackers) | `HDInnovations/UNIT3D` (rama `master`) | `8b88f4c` | Cada tracker usa su versión (o un fork) |
+| Definiciones de Prowlarr | `Prowlarr/Indexers` (`definitions/v11`) | `HEAD` del 2026-10-29 | — |
 
 Para repetir el estudio: `git clone --depth 1 https://github.com/<repo>.git`.
 
@@ -303,3 +305,86 @@ Existe también `/:/eventsource/notifications` (eventos `playing`, `activity`…
 **Reparto con Tracearr.** Tracearr guarda el historial por usuario ("quién lo ha visto"); Plex directo se
 encarga de la biblioteca, el servidor y lo que se reproduce en este momento. Si están los dos, «Viendo ahora»
 sale una sola vez y con datos de Plex (`src/components/NowWatching.tsx`); sin Plex, con los de Tracearr.
+## 11. Trackers UNIT3D: estadísticas del usuario
+
+UNIT3D es el software de muchos trackers privados (Aither, Blutopia, LST, OnlyEncodes, Reelflix,
+HHD...). Cada tracker corre su propia instalación, a veces antigua o modificada, así que lo de abajo
+es lo que trae el código oficial, no una garantía por tracker.
+
+### Qué hay en la API
+
+`routes/api.php`. Todas las rutas van con prefijo `/api`, guard `auth:api` y middleware `banned`:
+
+| Ruta | Qué devuelve |
+|---|---|
+| `GET /api/user` | **Las estadísticas del dueño del token** (la única ruta de usuario) |
+| `GET /api/torrents`, `/api/torrents/filter`, `/api/torrents/{id}` | Torrents (lo que usa Prowlarr para buscar) |
+| `POST /api/torrents/upload` | Subir un torrent |
+| `GET /api/requests/filter`, `/api/requests/{id}` | Peticiones |
+
+No hay rutas para historial, bonus detallado, avisos, invitaciones, H&R uno a uno ni para consultar
+a otros usuarios: eso solo está en la web (sesión con cookie), y Dasharr no debe raspar HTML.
+
+`GET /api/user` (`API/UserController.php` → `Resources/UserResource.php`) responde sin envoltorio:
+
+```json
+{
+  "username": "vitor", "group": "User",
+  "uploaded": "1.25 TiB", "downloaded": "512.3 GiB", "ratio": "2.5", "buffer": "730.1 GiB",
+  "seeding": 312, "leeching": 0, "seedbonus": "15234.50", "hit_and_runs": 0
+}
+```
+
+- `uploaded`, `downloaded` y `buffer` vienen **ya formateados** (texto con unidad binaria, el espacio
+  no separable ya se cambia por espacio normal). Hay que parsearlos para mostrarlos con el formato de
+  Dasharr; si un tracker modificado devuelve números, aceptarlos también.
+- `ratio` es texto: un número redondeado a 2 decimales o `"∞"` si no se ha bajado nada.
+- `buffer` = cuánto se puede bajar sin caer del ratio mínimo del sitio.
+- `seedbonus` es un decimal en texto. `seeding`/`leeching` = torrents activos ahora mismo.
+
+### Autenticación
+
+- Token personal de 100 caracteres que el usuario genera en el tracker (*Ajustes → API Key* / *My
+  Security*). Guard `token` de Laravel sin hash: vale `Authorization: Bearer <token>` (lo que usa
+  Prowlarr) o `?api_token=<token>`. Usar siempre la cabecera para que el token no salga en URLs ni logs.
+- Mandar `Accept: application/json`; sin él, un fallo de auth puede acabar en redirección a la web.
+- Límite: **30 peticiones por minuto por usuario** (`RouteServiceProvider`, `GlobalRateLimit::API`),
+  compartido con las búsquedas de Prowlarr. Refrescar las estadísticas como mucho cada 15–30 min y
+  bajo demanda, nunca en bucle.
+- Las peticiones salen desde el PC de Dasharr (Rust/reqwest, no hay CORS). Un tracker modificado
+  podría limitar la API por IP o por grupo; eso no está en el código oficial, se ve con la prueba de abajo.
+
+### Cómo detectar si un tracker lo permite
+
+Probar `GET {baseUrl}api/user` con el token y clasificar:
+
+| Respuesta | Significado para Dasharr |
+|---|---|
+| 200 + JSON con `uploaded` | Disponible: mostrar estadísticas |
+| 401 | Token incorrecto o revocado |
+| 403 | Usuario baneado o API cerrada por el tracker |
+| 404 | El tracker no tiene esta ruta (versión vieja o fork): "no disponible" |
+| 429 | Límite superado: esperar (`Retry-After`) |
+| 200/3xx con HTML, o 5xx | Cloudflare, mantenimiento o API desactivada: "no disponible ahora" |
+
+Guardar el resultado por tracker y volver a probar solo al pulsar "Actualizar" o cada pocas horas.
+
+### Reutilizar los trackers ya configurados en Prowlarr
+
+- Prowlarr ya no usa una clase propia para UNIT3D (`Unit3dBase` existe pero ningún indexador la
+  hereda): los 79 trackers UNIT3D de `Prowlarr/Indexers` son definiciones Cardigann `*-api.yml`
+  (o sin sufijo, p. ej. `lst`) que llaman a `api/torrents/filter` con
+  `Authorization: Bearer {{ .Config.apikey }}`. Todas guardan el token en el campo **`apikey`**.
+- `GET /api/v1/indexer` (con la API key de Prowlarr) devuelve por indexador `implementation`
+  (`Cardigann`), `definitionName` (p. ej. `aither-api`), `fields` con `baseUrl` y los campos extra
+  de la definición. En `IndexerResource.cs` los campos extra de Cardigann se copian **sin
+  enmascarar**, así que `apikey` llega en claro. (Los campos `Privacy = ApiKey` de los indexadores
+  nativos sí llegan como `********`.) Es comportamiento actual, no un contrato: si un día llega
+  `********` o vacío, pedir el token a mano.
+- Detección: indexador habilitado, `implementation == "Cardigann"`, con campo `apikey` no vacío;
+  después confirmar con `GET api/user`. No hace falta una lista fija de trackers.
+- El token leído de Prowlarr no se guarda en Dasharr: se vuelve a leer cuando hace falta. Nunca en logs.
+
+En Dasharr: comando Tauri `unit3d_stats` (`src-tauri/src/commands.rs`) con la lógica en
+`crates/dasharr-core/src/unit3d.rs`. El token no llega a la interfaz; la página Trackers refresca cada
+30 min o con el botón. Solo trackers de Prowlarr (decisión de Vitor, 2026-10-29), sin alta manual.

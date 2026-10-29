@@ -13,6 +13,7 @@ import SettingsPage from "@/pages/Settings";
 import LogsPage from "@/pages/Logs";
 import HistoryPage from "@/pages/History";
 import PlexPage from "@/pages/Plex";
+import TrackersPage from "@/pages/Trackers";
 
 export const routes: RouteObject[] = [
   {
@@ -31,6 +32,7 @@ export const routes: RouteObject[] = [
           { path: "/calendario", element: <CalendarPage /> },
           { path: "/historial", element: <HistoryPage /> },
           { path: "/plex", element: <PlexPage /> },
+          { path: "/trackers", element: <TrackersPage /> },
           { path: "/registro", element: <LogsPage /> },
           { path: "/ajustes", element: <SettingsPage /> },
         ],
