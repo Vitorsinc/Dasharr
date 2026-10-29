@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use dasharr_core::plex::{self, PlexAccount, PlexServer};
+use dasharr_core::plex::{self, PlexAccount, PlexServer, PlexUser};
 use dasharr_core::unit3d::{self, TrackerStats};
 use dasharr_core::{ApiError, ApiRequest, FetchedTorrent, Route, ServiceClient, ServiceConfig, ServiceKind, ServiceSecrets};
 use serde::Serialize;
@@ -125,6 +125,14 @@ pub async fn plex_login_finish(app: AppHandle, state: State<'_, AppState>, serve
     let server = login.servers.into_iter().find(|s| s.id == server_id).ok_or("servidor de Plex desconocido")?;
     let secrets = ServiceSecrets { api_key: Some(server.token), client_id: Some(login.client_id), ..settings::load_secrets(ServiceKind::Plex) };
     apply_service(&app, &state, ServiceKind::Plex, config, secrets).await
+}
+
+/// Usuarios de la cuenta de Plex con su avatar. Necesita el token del dueño (el que da «Iniciar sesión con Plex»).
+#[tauri::command]
+pub async fn plex_users() -> Result<Vec<PlexUser>, ApiError> {
+    let secrets = settings::load_secrets(ServiceKind::Plex);
+    let token = secrets.api_key.filter(|t| !t.is_empty()).ok_or(ApiError::NotConfigured)?;
+    PlexAccount::new(secrets.client_id.unwrap_or_else(plex::new_client_id)).users(&token).await
 }
 
 pub struct PlexLogin {

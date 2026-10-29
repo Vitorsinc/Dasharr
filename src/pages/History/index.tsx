@@ -74,6 +74,7 @@ function StreamCard({ s }: { s: Stream }) {
         {subtitle && <div className="truncate text-xs text-muted">{subtitle}</div>}
         <div className="flex items-center gap-2 text-xs text-muted">
           {paused ? <Pause className="h-3.5 w-3.5" aria-label={t.history.paused} /> : <PlayIcon className="h-3.5 w-3.5 text-success" />}
+          <UserAvatar user={{ username: s.username }} className="h-5 w-5" />
           <span className="font-medium text-fg">{s.username}</span>
           <span className="truncate">
             {[s.player ?? s.device, s.is_transcode ? t.history.transcode : t.history.direct].filter(Boolean).join(" · ")}

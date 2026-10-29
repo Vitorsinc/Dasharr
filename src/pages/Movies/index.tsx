@@ -8,6 +8,7 @@ import { AddMediaDialog } from "@/components/media/AddMediaDialog";
 import { LibraryToolbar } from "@/components/media/LibraryToolbar";
 import { PosterCard, PosterGrid } from "@/components/media/PosterCard";
 import { QueueList } from "@/components/media/QueueList";
+import { ReleaseSearchDialog } from "@/components/media/ReleaseSearchDialog";
 import { filterSort, libState, type LibFilter, type LibSort } from "@/components/media/library";
 import { posterUrl } from "@/api/arr";
 import { faKey, movieItem } from "@/api/filmaffinity";
@@ -30,6 +31,7 @@ export default function MoviesPage() {
   const [sort, setSort] = useState<LibSort>("title");
   const [adding, setAdding] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [manualFor, setManualFor] = useState<Movie | null>(null);
 
   const items = useMemo(
     () =>
@@ -120,10 +122,18 @@ export default function MoviesPage() {
         })}
         profiles={meta.profiles.data ?? []}
         rootFolders={meta.roots.data ?? []}
+        manualHint={t.library.addManualMovieHint}
         onAdd={async (m, o) => {
-          await radarr.addMovie(m, { ...o, monitored: true });
+          const added = await radarr.addMovie(m, { ...o, monitored: true });
           await qc.invalidateQueries({ queryKey: ["radarr"] });
+          if (o.searchMode === "manual") setManualFor(added);
         }}
+      />
+      <ReleaseSearchDialog
+        service="radarr"
+        query={manualFor ? { movieId: manualFor.id } : null}
+        what={manualFor?.title ?? ""}
+        onClose={() => setManualFor(null)}
       />
     </Page>
   );

@@ -14,7 +14,7 @@ export function useServiceQuery<T>(
   service: ServiceKind,
   key: unknown[],
   fn: () => Promise<T>,
-  opts: { refetchInterval?: number | ((q: Query<T, Error, T, unknown[]>) => number); enabled?: boolean; staleTime?: number } = {},
+  opts: { refetchInterval?: number | ((q: Query<T, Error, T, unknown[]>) => number | false); enabled?: boolean; staleTime?: number } = {},
 ): UseQueryResult<T> & { configured: boolean | undefined } {
   const configured = useIsConfigured(service);
   const q = useQuery({
