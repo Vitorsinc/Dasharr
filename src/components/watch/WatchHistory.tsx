@@ -8,20 +8,18 @@ import { errorMessage } from "@/lib/errors";
 import { formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import { Spinner } from "@/components/ui";
+import { Avatar } from "@/components/Avatar";
+import { usePlexAvatar } from "@/hooks/usePlexAvatars";
 
+/** Avatar de un usuario de Tracearr: primero el de Plex (si lo tiene), después el que guarda Tracearr. */
 export function UserAvatar({ user, className }: { user: { username: string | null; avatar_url?: string | null }; className?: string }) {
-  const [failed, setFailed] = useState(false);
-  const name = user.username ?? "?";
-  const box = cn(
-    "grid h-6 w-6 shrink-0 place-items-center overflow-hidden rounded-full bg-accent/20 text-[11px] font-semibold text-accent",
-    className,
-  );
-  if (user.avatar_url && !failed)
-    return <img src={imageUrl("tracearr", user.avatar_url)} alt="" className={box} onError={() => setFailed(true)} />;
+  const plex = usePlexAvatar(user.username);
   return (
-    <span className={box} aria-hidden>
-      {name.slice(0, 1).toUpperCase()}
-    </span>
+    <Avatar
+      name={user.username}
+      sources={[plex, user.avatar_url ? imageUrl("tracearr", user.avatar_url) : null]}
+      className={className}
+    />
   );
 }
 

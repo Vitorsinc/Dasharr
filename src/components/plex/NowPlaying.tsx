@@ -8,6 +8,8 @@ import { Poster } from "@/components/media/PosterCard";
 import { Empty, Loading, ProgressBar } from "@/components/ui";
 import { isTranscoding, plex, plexPoster, plexTitle, type PlexSession } from "@/api/plex";
 import { usePlexSessions } from "@/hooks/usePlex";
+import { usePlexAvatar } from "@/hooks/usePlexAvatars";
+import { Avatar } from "@/components/Avatar";
 import { t } from "@/i18n/es";
 import { errorMessage } from "@/lib/errors";
 import { formatSpeed } from "@/lib/format";
@@ -57,6 +59,7 @@ function SessionRow({ s, onStop }: { s: PlexSession; onStop: () => void }) {
   const progress = s.duration ? (s.viewOffset ?? 0) / s.duration : 0;
   const media = s.Media?.[0];
   const transcoding = isTranscoding(s);
+  const avatar = usePlexAvatar(s.User?.title);
   return (
     <div className="flex items-center gap-4 px-4 py-3">
       <Poster src={plexPoster(s)} title={title} className="w-12 shrink-0" />
@@ -68,8 +71,9 @@ function SessionRow({ s, onStop }: { s: PlexSession; onStop: () => void }) {
           {subtitle && <span className="truncate text-xs text-muted">{subtitle}</span>}
         </div>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
-          <span className="flex items-center gap-1 font-medium text-fg">
+          <span className="flex items-center gap-1.5 font-medium text-fg">
             {state === "paused" ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
+            <Avatar name={s.User?.title} sources={[s.User?.thumb, avatar]} className="h-5 w-5" />
             {s.User?.title}
           </span>
           <span>{s.Player?.title ?? s.Player?.product}</span>
