@@ -7,11 +7,9 @@ import { FaInfo } from "@/components/media/FilmAffinity";
 import { Poster } from "@/components/media/PosterCard";
 import { ReleaseSearchDialog } from "@/components/media/ReleaseSearchDialog";
 import { SearchChoice } from "@/components/media/SearchChoice";
-import { EpisodeMark, type EpisodeMarkStyle } from "@/components/media/EpisodeMark";
+import { EpisodeMark } from "@/components/media/EpisodeMark";
 import { MonitorIcon, MonitorToggle } from "@/components/media/MonitorToggle";
 
-/** Cómo se marca el estado del episodio junto a su número. */
-const MARK: EpisodeMarkStyle = "dot";
 import { Loading, ProgressBar } from "@/components/ui";
 import { posterUrl, type ReleaseQuery } from "@/api/arr";
 import { PlexBadge } from "@/components/plex/PlexBadge";
@@ -77,7 +75,7 @@ function SeasonBlock({
                     what={e.title}
                     onToggle={() => run(() => sonarr.setEpisodesMonitored([e.id], !e.monitored))}
                   />
-                  <EpisodeMark status={st} number={e.episodeNumber} variant={MARK} />
+                  <EpisodeMark status={st} number={e.episodeNumber} />
                   <span className="min-w-0 flex-1 truncate">{e.title}</span>
                   <span className="w-20 text-xs text-muted">{formatDate(e.airDateUtc)}</span>
                   {watch &&
