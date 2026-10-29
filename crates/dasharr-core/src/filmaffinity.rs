@@ -10,7 +10,9 @@ use tokio::sync::Mutex;
 
 const BASE: &str = "https://www.filmaffinity.com/es/";
 const TIMEOUT: Duration = Duration::from_secs(15);
-const USER_AGENT: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36";
+// Un agente sencillo que se identifica, como el script de Ant Movie Catalog, que FilmAffinity deja pasar en 2026.
+// Uno de Chrome sin el resto de cabeceras del navegador es lo que suelen marcar como robot.
+const USER_AGENT: &str = concat!("Mozilla/5.0 (compatible; Dasharr/", env!("CARGO_PKG_VERSION"), ")");
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -67,6 +69,7 @@ pub struct FaQuery<'a> {
 }
 
 const DUMP_FILE: &str = "filmaffinity-busqueda.html";
+const BLOCK_DUMP_FILE: &str = "filmaffinity-bloqueo.html";
 
 pub fn http_client() -> reqwest::Client {
     reqwest::Client::builder()
@@ -86,7 +89,7 @@ pub async fn lookup(http: &reqwest::Client, throttle: &Throttle, gap: Duration, 
             continue;
         }
         tried.push(norm);
-        let (html, final_url) = get(http, throttle, gap, &search_url(title, q.year)).await?;
+        let (html, final_url) = get(http, throttle, gap, &search_url(title, q.year), q.dump_dir).await?;
         // Con un único resultado la web salta directamente a la ficha.
         let candidates = match film_id(&final_url).or_else(|| detail_id(&html)) {
             Some(id) => parse_detail(&html, id).into_iter().collect(),
@@ -106,7 +109,7 @@ pub async fn lookup(http: &reqwest::Client, throttle: &Throttle, gap: Duration, 
             continue;
         };
         if found.rating.is_none() {
-            let (html, _) = get(http, throttle, gap, &found.url).await?;
+            let (html, _) = get(http, throttle, gap, &found.url, q.dump_dir).await?;
             if let Some(detail) = parse_detail(&html, found.id) {
                 found.rating = detail.rating;
                 found.votes = detail.votes.or(found.votes);
@@ -117,7 +120,7 @@ pub async fn lookup(http: &reqwest::Client, throttle: &Throttle, gap: Duration, 
     Ok(None)
 }
 
-async fn get(http: &reqwest::Client, throttle: &Throttle, gap: Duration, url: &str) -> Result<(String, String), FaError> {
+async fn get(http: &reqwest::Client, throttle: &Throttle, gap: Duration, url: &str, dump_dir: Option<&Path>) -> Result<(String, String), FaError> {
     throttle.wait(gap).await;
     let res = http
         .get(url)
@@ -126,16 +129,20 @@ async fn get(http: &reqwest::Client, throttle: &Throttle, gap: Duration, url: &s
         .send()
         .await
         .map_err(|e| FaError::Network(e.to_string()))?;
-    match res.status() {
-        StatusCode::TOO_MANY_REQUESTS | StatusCode::FORBIDDEN => return Err(FaError::Blocked),
-        s if !s.is_success() => return Err(FaError::Network(format!("HTTP {}", s.as_u16()))),
-        _ => {}
-    }
+    let status = res.status();
     let final_url = res.url().to_string();
     let body = res.text().await.map_err(|e| FaError::Network(e.to_string()))?;
     // Cuando limita, FilmAffinity puede responder 200 con una página de aviso.
-    if is_rate_limited(&body) {
+    let blocked = matches!(status, StatusCode::TOO_MANY_REQUESTS | StatusCode::FORBIDDEN) || is_rate_limited(&body);
+    if blocked {
+        log::warn!("FilmAffinity respondió HTTP {} ({} bytes) a {}", status.as_u16(), body.len(), url_path(url));
+        if let Some(dir) = dump_dir {
+            let _ = std::fs::write(dir.join(BLOCK_DUMP_FILE), &body);
+        }
         return Err(FaError::Blocked);
+    }
+    if !status.is_success() {
+        return Err(FaError::Network(format!("HTTP {}", status.as_u16())));
     }
     Ok((body, final_url))
 }
@@ -161,9 +168,17 @@ fn film_id(url: &str) -> Option<u64> {
     name.strip_prefix("film")?.strip_suffix(".html")?.parse().ok()
 }
 
+/// La página de aviso lleva `<meta name="description" content="Too many request">`.
 fn is_rate_limited(html: &str) -> bool {
-    let head = &html[..html.len().min(4000)];
-    head.to_ascii_lowercase().contains("too many request")
+    let doc = Html::parse_document(html);
+    doc.select(&sel("meta[name='description']"))
+        .filter_map(|m| m.value().attr("content"))
+        .any(|c| c.to_ascii_lowercase().starts_with("too many request"))
+}
+
+/// Ruta y consulta, sin el dominio, para el registro.
+fn url_path(url: &str) -> &str {
+    url.strip_prefix("https://www.filmaffinity.com").unwrap_or(url)
 }
 
 /// Id de la ficha si la página es una ficha (enlace canónico u og:url).
@@ -428,6 +443,8 @@ mod tests {
         assert_eq!(detail_id(SEARCH_2026), None);
         assert!(is_rate_limited(r#"<html><head><meta name="description" content="Too many request"></head></html>"#));
         assert!(!is_rate_limited(SEARCH_2026));
+        // El texto puede aparecer en scripts de la página normal sin ser el aviso.
+        assert!(!is_rate_limited(r#"<html><head><script>var e = "Too many requests";</script></head></html>"#));
     }
 
     #[test]
