@@ -6,6 +6,7 @@ import { ConfirmDialog, Dialog } from "@/components/Dialog";
 import { Poster } from "@/components/media/PosterCard";
 import { ReleaseSearchDialog } from "@/components/media/ReleaseSearchDialog";
 import { posterUrl } from "@/api/arr";
+import { PlexBadge } from "@/components/plex/PlexBadge";
 import { radarr, type Movie } from "@/api/radarr";
 import { t } from "@/i18n/es";
 import { errorMessage } from "@/lib/errors";
@@ -63,6 +64,7 @@ export function MovieDetail({ movie, onClose }: { movie: Movie | null; onClose: 
                 ))}
               </div>
             ) : null}
+            <PlexBadge kind="movie" ids={{ tmdbId: movie.tmdbId, imdbId: movie.imdbId }} />
             <div className="mt-auto flex flex-wrap gap-2">
               <button className="btn-primary" onClick={() => run(() => radarr.search([movie.id]), t.library.searchStarted)}>
                 <Search className="h-4 w-4" /> {t.library.searchNow}

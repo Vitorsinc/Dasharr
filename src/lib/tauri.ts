@@ -1,5 +1,6 @@
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import type { ApiError, FilePart, Route, SecretsPatch, ServiceConfig, ServiceKind, ServiceSettingsView } from "./types";
 
 export interface ApiCall {
@@ -66,6 +67,22 @@ export function imageUrl(service: ServiceKind, path: string): string {
 }
 
 export type { ApiError };
+
+/** Abre un enlace en el navegador predeterminado. */
+export const openExternal = (url: string) => openUrl(url);
+
+export interface PlexServerChoice {
+  id: string;
+  name: string;
+  owned: boolean;
+  localUrl: string | null;
+  externalUrl: string | null;
+}
+
+export const plexLoginStart = () => invoke<{ pinId: number; url: string }>("plex_login_start");
+/** `null` mientras el usuario no haya aceptado en la web de Plex. */
+export const plexLoginCheck = (pinId: number) => invoke<PlexServerChoice[] | null>("plex_login_check", { pinId });
+export const plexLoginFinish = (serverId: string, config: ServiceConfig) => invoke<void>("plex_login_finish", { serverId, config });
 
 export interface LogFile {
   path: string;

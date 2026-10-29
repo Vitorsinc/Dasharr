@@ -4,6 +4,7 @@ use dasharr_core::{Registry, Route, ServiceClient, ServiceKind};
 use tauri::{AppHandle, Emitter, Runtime};
 use tokio::sync::Mutex;
 
+use crate::commands::PlexLogin;
 use crate::settings;
 
 pub const CONNECTION_EVENT: &str = "connection-changed";
@@ -12,6 +13,8 @@ pub const CONNECTION_EVENT: &str = "connection-changed";
 pub struct AppState {
     pub registry: Registry,
     last_routes: Mutex<HashMap<ServiceKind, Option<Route>>>,
+    /// Inicio de sesión con Plex en curso: los tokens no salen nunca hacia la interfaz.
+    pub plex_login: Mutex<Option<PlexLogin>>,
 }
 
 impl AppState {

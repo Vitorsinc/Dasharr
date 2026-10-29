@@ -179,6 +179,8 @@ impl ServiceClient {
                 b.header("X-Api-Key", self.secrets.api_key.clone().unwrap_or_default())
             }
             ServiceKind::Bazarr => b.header("X-API-KEY", self.secrets.api_key.clone().unwrap_or_default()),
+            ServiceKind::Plex => crate::plex::identify(b, self.secrets.client_id.as_deref())
+                .header("X-Plex-Token", self.secrets.api_key.clone().unwrap_or_default()),
             ServiceKind::Qbittorrent => {
                 let b = b.header(header::REFERER, base);
                 match (self.qbit_api_key(), sid) {
@@ -292,7 +294,11 @@ impl ServiceClient {
 
     /// Descarga binaria (pósters). Devuelve bytes y tipo de contenido.
     pub async fn bytes(&self, path: &str) -> Result<(Vec<u8>, String), ApiError> {
-        let res = self.send(&ApiRequest::get(path)).await?;
+        // La consulta va aparte: `join_url` solo fija la ruta (p. ej. el proxy de imágenes de Tracearr, `/api/v1/images/proxy?server=…`).
+        let (path, query) = path.split_once('?').unwrap_or((path, ""));
+        let mut req = ApiRequest::get(path);
+        req.query = url::form_urlencoded::parse(query.as_bytes()).into_owned().collect();
+        let res = self.send(&req).await?;
         let status = res.status();
         let ctype = res
             .headers()
@@ -367,6 +373,8 @@ impl ServiceClient {
             ServiceKind::Prowlarr => ("/api/v1/system/status", "/version"),
             ServiceKind::Bazarr => ("/api/system/status", "/data/bazarr_version"),
             ServiceKind::Qbittorrent => ("/api/v2/app/version", ""),
+            // `/identity` responde sin token: la raíz sí lo exige.
+            ServiceKind::Plex => ("/", "/MediaContainer/version"),
         };
         let body = self.request(ApiRequest::get(path)).await?.body;
         let v = if pointer.is_empty() { Some(&body) } else { body.pointer(pointer) };

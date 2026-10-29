@@ -7,6 +7,7 @@ import { Poster } from "@/components/media/PosterCard";
 import { ReleaseSearchDialog } from "@/components/media/ReleaseSearchDialog";
 import { Loading, ProgressBar } from "@/components/ui";
 import { posterUrl, type ReleaseQuery } from "@/api/arr";
+import { PlexBadge } from "@/components/plex/PlexBadge";
 import { episodeStatus, sonarr, type Episode, type EpisodeStatus, type Series, type SeriesType } from "@/api/sonarr";
 import { useEpisodes } from "@/hooks/useArr";
 import { t } from "@/i18n/es";
@@ -165,6 +166,7 @@ export function SeriesDetail({ series, onClose }: { series: Series | null; onClo
                 </select>
               </label>
               {series.overview && <p className="line-clamp-5 text-sm leading-relaxed text-muted">{series.overview}</p>}
+              <PlexBadge kind="show" ids={{ tvdbId: series.tvdbId, tmdbId: series.tmdbId, imdbId: series.imdbId }} />
               <div className="mt-auto flex flex-wrap gap-2">
                 <button className="btn-primary" onClick={() => run(() => sonarr.searchSeries(series.id), t.library.searchStarted)}>
                   <Search className="h-4 w-4" /> {t.library.searchNow}

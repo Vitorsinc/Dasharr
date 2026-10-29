@@ -20,6 +20,7 @@ crea la Release con las notas de esta página.
 - Buscar en los indexadores de Prowlarr y enviar a qBittorrent.
 - Subtítulos que faltan (Bazarr) y búsqueda por idioma.
 - Calendario semanal y mensual de estrenos y emisiones.
+- Plex: inicio de sesión con tu cuenta (sin copiar tokens), «Reproduciendo ahora» y «Añadido recientemente» en Inicio, página Plex con estado del servidor, escaneo de bibliotecas, papelera y mantenimiento, detener reproducciones (Plex Pass), y en cada ficha si ya está en Plex, si está vista, «Abrir en Plex» y actualizar metadatos. Aviso de Windows cuando alguien empieza a ver algo.
 - Ajustes con dirección local y externa por servicio y cambio automático entre ellas; importación de configuración desde archivo.
 - Registro de errores y eventos con visor en la app (sin API keys ni contraseñas).
 - Versión visible en la barra lateral.

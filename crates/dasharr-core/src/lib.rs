@@ -2,6 +2,7 @@
 mod client;
 mod error;
 mod model;
+pub mod plex;
 mod registry;
 mod url;
 

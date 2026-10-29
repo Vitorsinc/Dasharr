@@ -19,6 +19,7 @@ pub fn run() {
         .plugin(logs::plugin())
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_autostart::init(tauri_plugin_autostart::MacosLauncher::LaunchAgent, None))
         .manage(AppState::default())
         .register_asynchronous_uri_scheme_protocol(images::SCHEME, images::handle)
@@ -30,6 +31,9 @@ pub fn run() {
             commands::fetch_torrent,
             commands::get_connection_states,
             commands::refresh_connections,
+            commands::plex_login_start,
+            commands::plex_login_check,
+            commands::plex_login_finish,
             logs::read_log,
             logs::clear_log,
             logs::write_log,

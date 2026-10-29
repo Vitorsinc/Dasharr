@@ -196,3 +196,55 @@ La rama principal de Sonarr ya es v5 (`Sonarr.Api.V5`), y su `GET /api` devuelve
 `{ "current": "v5", "deprecated": ["v3"] }`. La API v3 sigue existiendo en v5, así que Dasharr
 seguirá funcionando, pero conviene leer `GET /api` al conectar y avisar en el registro si `v3` aparece
 como obsoleta.
+
+## 10. Plex
+
+Documentación oficial desde 2025 en `developer.plex.tv` (Plex Media Server) y el foro de desarrolladores
+(`forums.plex.tv/c/113`). Dasharr habla con el servidor (puerto 32400) y, solo para iniciar sesión, con plex.tv.
+
+**Cabeceras.** `X-Plex-Token` (el token), `X-Plex-Client-Identifier` (fijo por instalación: el token
+queda ligado a él; Dasharr lo genera la primera vez y lo guarda con los secretos, campo `clientId`),
+`X-Plex-Product: Dasharr` y `Accept: application/json` (sin ella Plex responde en XML). Todo va en
+`crates/dasharr-core/src/plex.rs::identify`. `/identity` responde sin token (sirve para el probe);
+`/` lo exige y da `MediaContainer.version` (sirve para "Probar conexión").
+
+**Inicio de sesión con PIN.** `POST https://plex.tv/api/v2/pins?strong=true` → `{id, code}`; abrir
+`https://app.plex.tv/auth#?clientID=…&code=…&context[device][product]=Dasharr`; consultar
+`GET https://plex.tv/api/v2/pins/{id}` hasta que traiga `authToken`. Con ese token,
+`GET https://clients.plex.tv/api/v2/resources?includeHttps=1&includeRelay=0` lista los servidores con su
+`accessToken` (el que se guarda) y sus conexiones (`local`, `relay`, `address`, `port`, `uri`). Para la
+dirección local se usa `http://IP:32400` en vez de `*.plex.direct`, porque algunos routers bloquean esos
+nombres (protección DNS rebinding). El token nunca llega a la interfaz.
+
+**JWT.** Plex está pasando a tokens de 7 días firmados por el propio dispositivo (registrar una clave JWK
+en `POST clients.plex.tv/api/v2/auth/jwk`, renovar con `POST …/auth/token`). El token clásico sigue
+funcionando; cuando un dispositivo registra su JWK, Plex le retira el clásico. Dasharr aún no lo usa.
+
+**Rutas que usa Dasharr** (todas devuelven `{ MediaContainer: { … } }`):
+
+| Qué | Ruta |
+|---|---|
+| Reproduciendo ahora | `GET /status/sessions` → `Metadata[]` con `User`, `Player`, `Session` (`id`, `bandwidth` en kbps, `location` lan/wan), `TranscodeSession` |
+| Detener | `GET /status/sessions/terminate?sessionId=<Session.id>&reason=…` (requiere Plex Pass; sin él, 401/403) |
+| Añadido reciente | `GET /library/recentlyAdded` con `X-Plex-Container-Size` (las series llegan como temporadas) |
+| Bibliotecas | `GET /library/sections` → `Directory[]` (`key`, `type`, `refreshing`) |
+| Escanear | `GET /library/sections/{key}/refresh`, todas: `/library/sections/all/refresh` |
+| Contenido con IDs externos | `GET /library/sections/{key}/all?includeGuids=1` → `Guid[]` (`tmdb://`, `tvdb://`, `imdb://`); agentes antiguos solo traen `guid` (`com.plexapp.agents.imdb://…`) |
+| Metadatos de un título | `PUT /library/metadata/{ratingKey}/refresh` |
+| Visto / no visto | `GET /:/scrobble` o `/:/unscrobble` con `identifier=com.plexapp.plugins.library&key={ratingKey}` (cuenta del token) |
+| Papelera, limpieza, BD | `PUT /library/sections/{key}/emptyTrash`, `PUT /library/clean/bundles`, `PUT /library/optimize?async=1` |
+| Tareas en curso | `GET /activities` → `Activity[]` (`title`, `progress`) |
+| Actualización | `GET /updater/status` → `Release[]` si hay versión nueva |
+| CPU y memoria | `GET /statistics/resources?timespan=6` → `StatisticsResources[]` (la última es la actual) |
+| Carátulas | `GET /photo/:/transcode?url=<thumb>&width=…&height=…` |
+| Abrir en Plex Web | `https://app.plex.tv/desktop/#!/server/{machineIdentifier}/details?key=%2Flibrary%2Fmetadata%2F{ratingKey}` |
+
+Ojo: los IDs de TMDB de películas y series son espacios distintos (la película 603 y la serie 603 no
+tienen nada que ver), así que el índice se busca siempre por tipo.
+
+**Avisos.** Plex manda webhooks solo con Plex Pass y a una URL que una app de escritorio no tiene. Dasharr
+consulta `/status/sessions` cada 10 s y avisa de las sesiones nuevas que no son del dueño (usuario `1`).
+Existe también `/:/eventsource/notifications` (eventos `playing`, `activity`…) si algún día hace falta tiempo real de verdad.
+
+**Reparto con Tracearr.** Tracearr guarda el historial por usuario ("quién lo ha visto"); Plex directo se
+encarga de la biblioteca, el servidor y lo que se reproduce en este momento.

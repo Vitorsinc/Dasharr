@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, ChevronDown, XCircle } from "lucide-react";
+import { CheckCircle2, ChevronDown, LogIn, Server, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { t } from "@/i18n/es";
-import { saveService, testService } from "@/lib/tauri";
+import { openExternal, plexLoginCheck, plexLoginFinish, plexLoginStart, saveService, testService, type PlexServerChoice } from "@/lib/tauri";
 import { errorMessage } from "@/lib/errors";
 import type { Route, SecretsPatch, ServiceConfig, ServiceKind, ServiceSettingsView } from "@/lib/types";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -11,7 +11,14 @@ import { Spinner } from "@/components/ui";
 import { settingsKey } from "@/hooks/useSettings";
 import { connectionKey } from "@/hooks/useConnectionStates";
 
-const defaultPorts: Record<ServiceKind, number> = { radarr: 7878, sonarr: 8989, prowlarr: 9696, bazarr: 6767, qbittorrent: 8080 };
+const defaultPorts: Record<ServiceKind, number> = {
+  radarr: 7878,
+  sonarr: 8989,
+  prowlarr: 9696,
+  bazarr: 6767,
+  qbittorrent: 8080,
+  plex: 32400,
+};
 
 function Field({ label, children, hint }: { label: string; children: React.ReactNode; hint?: string }) {
   return (
@@ -25,9 +32,84 @@ function Field({ label, children, hint }: { label: string; children: React.React
 
 type Result = { ok: true; version: string } | { ok: false; message: string } | null;
 
+const PLEX_POLL_MS = 2_000;
+const PLEX_LOGIN_TIMEOUT_MS = 5 * 60_000;
+
+/** Inicio de sesión con PIN: abre la web de Plex, espera a que el usuario acepte y deja elegir el servidor. */
+function PlexLogin({ onDone }: { onDone: (server: PlexServerChoice) => Promise<void> }) {
+  const [state, setState] = useState<"idle" | "waiting" | "pick">("idle");
+  const [servers, setServers] = useState<PlexServerChoice[]>([]);
+  const timer = useRef<ReturnType<typeof setInterval>>();
+  useEffect(() => () => clearInterval(timer.current), []);
+
+  async function start() {
+    clearInterval(timer.current);
+    try {
+      const { pinId, url } = await plexLoginStart();
+      setState("waiting");
+      await openExternal(url);
+      const deadline = Date.now() + PLEX_LOGIN_TIMEOUT_MS;
+      timer.current = setInterval(async () => {
+        if (Date.now() > deadline) {
+          clearInterval(timer.current);
+          setState("idle");
+          return toast.error(t.settings.plexTimeout);
+        }
+        try {
+          const found = await plexLoginCheck(pinId);
+          if (!found) return;
+          clearInterval(timer.current);
+          setServers(found);
+          setState("pick");
+        } catch (e) {
+          clearInterval(timer.current);
+          setState("idle");
+          toast.error(errorMessage(e));
+        }
+      }, PLEX_POLL_MS);
+    } catch (e) {
+      setState("idle");
+      toast.error(errorMessage(e));
+    }
+  }
+
+  return (
+    <div className="mt-4 flex flex-col gap-3">
+      <div className="flex flex-wrap items-center gap-3">
+        <button className="btn-primary" onClick={start} disabled={state === "waiting"}>
+          {state === "waiting" ? <Spinner className="h-4 w-4 text-white" /> : <LogIn className="h-4 w-4" />}
+          {t.settings.plexLogin}
+        </button>
+        {state === "waiting" && <span className="text-sm text-muted">{t.settings.plexWaiting}</span>}
+      </div>
+      {state === "pick" && (
+        <div className="flex flex-col gap-2">
+          <span className="label">{servers.length ? t.settings.plexPickServer : t.settings.plexNoServers}</span>
+          {servers.map((s) => (
+            <div key={s.id} className="flex items-center gap-3 rounded-lg border border-border px-3 py-2">
+              <Server className="h-4 w-4 text-muted" />
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-medium">
+                  {s.name}
+                  {!s.owned && <span className="ml-2 text-xs text-muted">({t.settings.plexShared})</span>}
+                </div>
+                <div className="truncate text-xs text-muted">{[s.localUrl, s.externalUrl].filter(Boolean).join(" · ")}</div>
+              </div>
+              <button className="btn-outline" onClick={() => onDone(s).then(() => setState("idle"))}>
+                {t.settings.plexUse}
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function ServiceForm({ service, view, route }: { service: ServiceKind; view?: ServiceSettingsView; route?: Route | null }) {
   const qc = useQueryClient();
   const isQbit = service === "qbittorrent";
+  const isPlex = service === "plex";
   const [localUrl, setLocalUrl] = useState(view?.config.localUrl ?? "");
   const [externalUrl, setExternalUrl] = useState(view?.config.externalUrl ?? "");
   const [apiKey, setApiKey] = useState("");
@@ -63,6 +145,27 @@ export function ServiceForm({ service, view, route }: { service: ServiceKind; vi
     }
   }
 
+  async function invalidate() {
+    await qc.invalidateQueries({ queryKey: settingsKey });
+    await qc.invalidateQueries({ queryKey: connectionKey });
+    await qc.invalidateQueries({ queryKey: [service] });
+  }
+
+  /** Usa las direcciones que conoce Plex, salvo las que el usuario ya haya escrito. */
+  async function onPlexServer(server: PlexServerChoice) {
+    const next = { localUrl: config.localUrl ?? server.localUrl, externalUrl: config.externalUrl ?? server.externalUrl, enabled: true };
+    try {
+      await plexLoginFinish(server.id, next);
+      setLocalUrl(next.localUrl ?? "");
+      setExternalUrl(next.externalUrl ?? "");
+      setApiKey("");
+      await invalidate();
+      toast.success(t.settings.plexLoggedIn(server.name));
+    } catch (e) {
+      toast.error(errorMessage(e));
+    }
+  }
+
   async function onSave() {
     if (!hasUrl) return setResult({ ok: false, message: t.settings.needUrl });
     setBusy("save");
@@ -71,9 +174,7 @@ export function ServiceForm({ service, view, route }: { service: ServiceKind; vi
       setApiKey("");
       setPassword("");
       setProxyPassword("");
-      await qc.invalidateQueries({ queryKey: settingsKey });
-      await qc.invalidateQueries({ queryKey: connectionKey });
-      await qc.invalidateQueries({ queryKey: [service] });
+      await invalidate();
       toast.success(t.settings.saved(t.services[service]));
     } catch (e) {
       toast.error(errorMessage(e));
@@ -132,7 +233,7 @@ export function ServiceForm({ service, view, route }: { service: ServiceKind; vi
             </Field>
           </>
         ) : (
-          <Field label={t.settings.apiKey} hint={t.settings.apiKeyHint}>
+          <Field label={isPlex ? t.settings.plexToken : t.settings.apiKey} hint={isPlex ? t.settings.plexTokenHint : t.settings.apiKeyHint}>
             <input
               className="input font-mono"
               value={apiKey}
@@ -144,6 +245,7 @@ export function ServiceForm({ service, view, route }: { service: ServiceKind; vi
           </Field>
         )}
       </div>
+      {isPlex && <PlexLogin onDone={onPlexServer} />}
 
       <button
         type="button"

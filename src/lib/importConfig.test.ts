@@ -7,7 +7,7 @@ test("lee servicios conocidos con direcciones y secretos", () => {
         radarr: { localUrl: " http://h:7878 ", externalUrl: "https://movies.x.org", apiKey: "k1" },
         bazarr: { localUrl: "http://h:6767", apiKey: "PEGA_AQUI_BAZARR_KEY" },
         qbittorrent: { localUrl: "http://h:8080", username: "u", password: "p" },
-        plex: { localUrl: "http://h:32400" },
+        jellyfin: { localUrl: "http://h:8096" },
         sonarr: { apiKey: "sin-url" },
       },
     }),
