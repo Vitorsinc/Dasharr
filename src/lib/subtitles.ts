@@ -69,9 +69,13 @@ function bracketCodes(title: string): string[] {
   return out;
 }
 
+// Releases francesas (Kaerizaki-Fansub, Tsundere-Raws): «VOSTFR», «SUBFRENCH».
+const FRENCH = /\b(?:vostfr|subfrench)\b/i;
+
 export function titleSubtitles(title: string): TitleSubs {
   const languages = bracketCodes(title);
   if (SPANISH.test(title) && !languages.some((l) => l.startsWith("es"))) languages.unshift("es");
+  if (FRENCH.test(title) && !languages.includes("fr")) languages.push("fr");
   return { languages: [...new Set(languages)], multi: MULTI.test(title) };
 }
 

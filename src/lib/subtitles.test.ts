@@ -29,6 +29,14 @@ test("titleSubtitles reconoce el español escrito de muchas formas", () => {
   expect(titleSubtitles("Frieren 01 [ES-LA]").languages).toEqual(["es-419"]);
 });
 
+test("titleSubtitles reconoce las releases francesas", () => {
+  expect(titleSubtitles("[Kaerizaki-Fansub]_One_Piece_1180_[VOSTFR][FHD_1920x1080].mp4").languages).toEqual(["fr"]);
+  expect(titleSubtitles("Dragon Ball Super Beerus S01E01 SUBFRENCH 1080p ADN WEB-DL (VOSTFR, Multi Subs)")).toEqual({
+    languages: ["fr"],
+    multi: true,
+  });
+});
+
 test("titleSubtitles no se confunde con doblajes ni palabras parecidas", () => {
   for (const t of ["Spa Day 01 1080p", "[Group] Espada 01", "Frieren S01E01 Dual Audio Spanish Dub", "Frieren 01 [Spanish Dub]", "Movie [DE Edition]"]) {
     expect(titleSubtitles(t).languages).toEqual([]);
