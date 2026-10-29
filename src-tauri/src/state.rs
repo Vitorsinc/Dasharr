@@ -4,6 +4,7 @@ use dasharr_core::{Registry, Route, ServiceClient, ServiceKind};
 use tauri::{AppHandle, Emitter, Runtime};
 use tokio::sync::Mutex;
 
+use crate::filmaffinity::FilmAffinity;
 use crate::settings;
 
 pub const CONNECTION_EVENT: &str = "connection-changed";
@@ -11,6 +12,7 @@ pub const CONNECTION_EVENT: &str = "connection-changed";
 #[derive(Default)]
 pub struct AppState {
     pub registry: Registry,
+    pub filmaffinity: FilmAffinity,
     last_routes: Mutex<HashMap<ServiceKind, Option<Route>>>,
 }
 

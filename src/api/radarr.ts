@@ -4,6 +4,7 @@ import { arrCommon, type ArrImage } from "./arr";
 export interface Movie {
   id: number;
   title: string;
+  originalTitle?: string;
   year: number;
   overview?: string;
   hasFile: boolean;

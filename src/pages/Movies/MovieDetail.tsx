@@ -3,11 +3,13 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Eye, EyeOff, ListFilter, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmDialog, Dialog } from "@/components/Dialog";
+import { FaInfo } from "@/components/media/FilmAffinity";
 import { Poster } from "@/components/media/PosterCard";
 import { ReleaseSearchDialog } from "@/components/media/ReleaseSearchDialog";
 import { posterUrl } from "@/api/arr";
 import { movieRefs } from "@/api/tracearr";
 import { MovieWatchHistory } from "@/components/watch/WatchHistory";
+import { movieItem } from "@/api/filmaffinity";
 import { radarr, type Movie } from "@/api/radarr";
 import { t } from "@/i18n/es";
 import { errorMessage } from "@/lib/errors";
@@ -46,6 +48,7 @@ export function MovieDetail({ movie, onClose }: { movie: Movie | null; onClose: 
           <div className="flex min-w-0 flex-1 flex-col gap-5">
             {movie.overview && <p className="text-sm leading-relaxed text-muted">{movie.overview}</p>}
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+              <FaInfo item={movieItem(movie)} />
               <Info label={t.library.status} value={status} />
               <Info label={t.library.quality} value={movie.movieFile?.quality?.quality?.name} />
               <Info label={t.library.size} value={movie.sizeOnDisk ? formatBytes(movie.sizeOnDisk) : undefined} />
