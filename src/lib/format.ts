@@ -1,4 +1,6 @@
 const nf1 = new Intl.NumberFormat("es-ES", { maximumFractionDigits: 1 });
+const nfRating = new Intl.NumberFormat("es-ES", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const nfInt = new Intl.NumberFormat("es-ES");
 const UNITS = ["B", "KB", "MB", "GB", "TB", "PB"];
 
 export function formatBytes(bytes: number | null | undefined): string {
@@ -58,4 +60,13 @@ export function formatAge(d: string | Date | null | undefined, now = new Date())
   if (secs < 86400) return `${Math.round(secs / 3600)} h`;
   if (secs < 86400 * 365) return `${Math.round(secs / 86400)} d`;
   return `${nf1.format(secs / (86400 * 365))} años`;
+}
+
+/** Nota sobre 10 con una cifra decimal: 7,8. */
+export function formatRating(n: number): string {
+  return nfRating.format(n);
+}
+
+export function formatCount(n: number): string {
+  return nfInt.format(n);
 }

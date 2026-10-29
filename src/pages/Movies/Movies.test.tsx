@@ -155,3 +155,27 @@ test("búsqueda manual: lista releases y descarga la elegida", async () => {
   await userEvent.click(screen.getByRole("button", { name: "Descargar: Dune.2021.CAM" }));
   expect(await screen.findByText(/Calidad no deseada/)).toBeInTheDocument();
 });
+
+test("muestra la nota de FilmAffinity en la lista y en la ficha", async () => {
+  const asked: any[] = [];
+  mockBackend({
+    api: { radarr: (req) => (req.path === "/api/v3/movie" && req.method === "GET" ? movies : []) },
+    commands: {
+      filmaffinity_ratings: ({ items }) => {
+        asked.push(...items);
+        return { "movie:10": { id: 1, url: "https://www.filmaffinity.com/es/film1.html", title: "Dune", rating: 7.3 } };
+      },
+      filmaffinity_rating: ({ item }) =>
+        item.id === 10 ? { id: 1, url: "https://www.filmaffinity.com/es/film1.html", title: "Dune", rating: 7.3, votes: 52310 } : null,
+    },
+  });
+  renderApp("/peliculas");
+  expect(await screen.findByTitle("Nota de FilmAffinity: 7,3")).toBeInTheDocument();
+  expect(asked.map((i) => i.id).sort()).toEqual([10, 11, 12]);
+  expect(asked.find((i) => i.id === 10)).toMatchObject({ kind: "movie", title: "Dune", year: 2021 });
+
+  await userEvent.click(screen.getByRole("button", { name: "Dune" }));
+  const link = await screen.findByRole("link", { name: /7,3/ });
+  expect(link).toHaveAttribute("href", "https://www.filmaffinity.com/es/film1.html");
+  expect(link).toHaveTextContent("52.310 votos");
+});
