@@ -8,7 +8,15 @@ test("titleSubtitles lee las etiquetas típicas de Nyaa", () => {
   expect(titleSubtitles("[Judas] Frieren - S01E01 [1080p][HEVC x265 10bit][Multi-Subs]")).toEqual({ languages: [], multi: true });
   expect(titleSubtitles("[Erai-raws] X - 01 [1080p CR WEB-DL AVC AAC][MultiSub][ABCD]").multi).toBe(true);
   expect(titleSubtitles("Frieren.S01E01.1080p.CR.WEB-DL.MULTi.SUBS").multi).toBe(true);
-  expect(titleSubtitles("[SubsPlease] Frieren - 01 (1080p) [ABCD].mkv")).toEqual({ languages: [], multi: false });
+});
+
+test("titleSubtitles conoce los grupos populares que no dicen sus subtítulos", () => {
+  expect(titleSubtitles("[SubsPlease] Frieren - 01 (1080p) [ABCD].mkv")).toEqual({ languages: ["en"], multi: false });
+  expect(titleSubtitles("[ASW] Dragon Ball Super - Beerus - 01 [1080p HEVC x265 10Bit][AAC]").languages).toEqual(["en"]);
+  expect(titleSubtitles("[Sick-Fansubs] Dragon Ball Super - Beerus - 01 [1080p][0E526537].mp4").languages).toEqual(["el"]);
+  // Lo que diga el título manda sobre lo que suele sacar el grupo.
+  expect(titleSubtitles("[SubsPlease] Frieren - 01 [ESP]").languages).toEqual(["es"]);
+  expect(titleSubtitles("[Erai-raws] Frieren - 01 [1080p]").languages).toEqual([]);
 });
 
 test("titleSubtitles reconoce el español escrito de muchas formas", () => {
