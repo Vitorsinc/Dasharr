@@ -1,5 +1,5 @@
 import { apiRequest } from "@/lib/tauri";
-import { arrCommon, type ArrImage } from "./arr";
+import { arrCommon, type ArrImage, type HistoryRecord, type WantedKind } from "./arr";
 
 export interface SeasonStats {
   episodeFileCount: number;
@@ -26,6 +26,8 @@ export interface Series {
   tmdbId?: number;
   imdbId?: string;
   qualityProfileId?: number;
+  path?: string;
+  rootFolderPath?: string;
   images?: ArrImage[];
   seasons?: Season[];
   genres?: string[];
@@ -42,7 +44,37 @@ export interface Episode {
   airDateUtc?: string;
   hasFile: boolean;
   monitored: boolean;
+  episodeFileId?: number;
+  episodeFile?: EpisodeFile;
   series?: Series;
+}
+export interface EpisodeFile {
+  id: number;
+  seriesId: number;
+  seasonNumber: number;
+  relativePath?: string;
+  size: number;
+  quality?: { quality?: { name?: string } };
+  languages?: { name: string }[];
+}
+/** Vista previa de `GET /rename`: archivos cuyo nombre no sigue el formato configurado en Sonarr. */
+export interface RenamePreview {
+  episodeFileId: number;
+  seasonNumber: number;
+  episodeNumbers: number[];
+  existingPath: string;
+  newPath: string;
+}
+
+/** Opciones del menú "Monitorizar" de Sonarr (seasonpass). "none" deja la serie sin monitorizar. */
+export type MonitorChange = "all" | "future" | "missing" | "existing" | "firstSeason" | "lastSeason" | "pilot" | "none";
+
+export interface SeriesEdit {
+  qualityProfileId: number;
+  path: string;
+  moveFiles: boolean;
+  /** undefined = no cambiar qué episodios están monitorizados. */
+  monitor?: MonitorChange;
 }
 
 export type MonitorOption = "all" | "future" | "latestSeason";
@@ -106,6 +138,40 @@ export const sonarr = {
       path: `/api/v3/series/${id}`,
       query: { deleteFiles, addImportListExclusion: false },
     }),
+  updateSeries: async (series: Series, e: SeriesEdit) => {
+    await apiRequest<Series>("sonarr", {
+      method: "PUT",
+      path: `/api/v3/series/${series.id}`,
+      query: { moveFiles: e.moveFiles && e.path !== series.path },
+      json: { ...series, qualityProfileId: e.qualityProfileId, path: e.path },
+    });
+    if (e.monitor)
+      await apiRequest<unknown>("sonarr", {
+        method: "POST",
+        path: "/api/v3/seasonpass",
+        json: { series: [{ id: series.id, monitored: e.monitor !== "none" }], monitoringOptions: { monitor: e.monitor } },
+      });
+  },
+  /** Al cambiar la temporada, Sonarr marca o desmarca también todos sus episodios. */
+  setSeasonMonitored: (series: Series, seasonNumber: number, monitored: boolean) =>
+    apiRequest<Series>("sonarr", {
+      method: "PUT",
+      path: `/api/v3/series/${series.id}`,
+      json: { ...series, seasons: (series.seasons ?? []).map((s) => (s.seasonNumber === seasonNumber ? { ...s, monitored } : s)) },
+    }),
+  getEpisodeFiles: (seriesId: number) => apiRequest<EpisodeFile[]>("sonarr", { path: "/api/v3/episodefile", query: { seriesId } }),
+  deleteEpisodeFile: (id: number) => apiRequest<unknown>("sonarr", { method: "DELETE", path: `/api/v3/episodefile/${id}` }),
+  getRenamePreview: (seriesId: number) => apiRequest<RenamePreview[]>("sonarr", { path: "/api/v3/rename", query: { seriesId } }),
+  renameFiles: (seriesId: number, files: number[]) => common.command({ name: "RenameFiles", seriesId, files }),
+  /** Actualiza los datos de la serie (episodios nuevos, fechas, imágenes) desde TheTVDB y reescanea el disco. */
+  refreshSeries: (seriesId: number) => common.command({ name: "RefreshSeries", seriesId }),
+  /** Vuelve a leer la carpeta de la serie para detectar archivos añadidos o borrados a mano. */
+  rescanSeries: (seriesId: number) => common.command({ name: "RescanSeries", seriesId }),
+  getHistory: (seriesId: number) =>
+    apiRequest<HistoryRecord[]>("sonarr", { path: "/api/v3/history/series", query: { seriesId, includeEpisode: true } }).then((l) =>
+      [...l].sort((a, b) => b.date.localeCompare(a.date)),
+    ),
+  getWanted: async (kind: WantedKind) => (await common.getWanted<Episode>(kind)).records ?? [],
   searchSeries: (seriesId: number) => common.command({ name: "SeriesSearch", seriesId }),
   searchSeason: (seriesId: number, seasonNumber: number) => common.command({ name: "SeasonSearch", seriesId, seasonNumber }),
   searchEpisodes: (episodeIds: number[]) => common.command({ name: "EpisodeSearch", episodeIds }),

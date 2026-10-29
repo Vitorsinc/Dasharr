@@ -1,18 +1,21 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Search, Trash2, User } from "lucide-react";
+import { Pencil, Search, Trash2, User } from "lucide-react";
 import { MonitorIcon } from "@/components/media/MonitorToggle";
 import { toast } from "sonner";
 import { ConfirmDialog, Dialog } from "@/components/Dialog";
 import { FaInfo } from "@/components/media/FilmAffinity";
 import { Poster } from "@/components/media/PosterCard";
 import { ReleaseSearchDialog } from "@/components/media/ReleaseSearchDialog";
+import { ArrHistory } from "@/components/media/ArrHistory";
+import { EditMediaDialog } from "@/components/media/EditMediaDialog";
+import { useRadarrMeta } from "@/hooks/useArr";
 import { posterUrl } from "@/api/arr";
 import { movieRefs } from "@/api/tracearr";
 import { MovieWatchHistory } from "@/components/watch/WatchHistory";
 import { PlexBadge } from "@/components/plex/PlexBadge";
 import { movieItem } from "@/api/filmaffinity";
-import { radarr, type Movie } from "@/api/radarr";
+import { radarr, type MinimumAvailability, type Movie } from "@/api/radarr";
 import { t } from "@/i18n/es";
 import { errorMessage } from "@/lib/errors";
 import { formatBytes, formatDate } from "@/lib/format";
@@ -31,6 +34,9 @@ export function MovieDetail({ movie, onClose }: { movie: Movie | null; onClose: 
   const qc = useQueryClient();
   const [confirm, setConfirm] = useState(false);
   const [manual, setManual] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [availability, setAvailability] = useState<MinimumAvailability>("released");
+  const meta = useRadarrMeta();
   if (!movie) return null;
   const run = async (fn: () => Promise<unknown>, ok?: string) => {
     try {
@@ -72,6 +78,7 @@ export function MovieDetail({ movie, onClose }: { movie: Movie | null; onClose: 
             ) : null}
             <MovieWatchHistory refs={movieRefs(movie)} />
             <PlexBadge kind="movie" ids={{ tmdbId: movie.tmdbId, imdbId: movie.imdbId }} />
+            <ArrHistory service="radarr" id={movie.id} load={() => radarr.getHistory(movie.id)} />
             <div className="mt-auto flex flex-wrap gap-2">
               <button className="btn-primary" onClick={() => run(() => radarr.search([movie.id]), t.library.searchStarted)}>
                 <Search className="h-4 w-4" /> {t.library.searchNow}
@@ -82,6 +89,15 @@ export function MovieDetail({ movie, onClose }: { movie: Movie | null; onClose: 
               <button className="btn-outline" onClick={() => run(() => radarr.setMonitored(movie, !movie.monitored).then(onClose))}>
                 <MonitorIcon monitored={movie.monitored} />
                 {movie.monitored ? t.library.monitorOff : t.library.monitorOn}
+              </button>
+              <button
+                className="btn-outline"
+                onClick={() => {
+                  setAvailability(movie.minimumAvailability ?? "released");
+                  setEditing(true);
+                }}
+              >
+                <Pencil className="h-4 w-4" /> {t.editMedia.edit}
               </button>
               <button className="btn-ghost ml-auto text-danger" onClick={() => setConfirm(true)}>
                 <Trash2 className="h-4 w-4" /> {t.common.delete}
@@ -96,6 +112,32 @@ export function MovieDetail({ movie, onClose }: { movie: Movie | null; onClose: 
         what={movie.title}
         onClose={() => setManual(false)}
       />
+      {editing && (
+        <EditMediaDialog
+          title={t.editMedia.titleMovie(movie.title)}
+          profiles={meta.profiles.data ?? []}
+          rootFolders={meta.roots.data ?? []}
+          initial={movie}
+          extra={
+            <label>
+              <span className="label">{t.editMedia.minimumAvailability}</span>
+              <select className="input" value={availability} onChange={(e) => setAvailability(e.target.value as MinimumAvailability)}>
+                {(["announced", "inCinemas", "released"] as const).map((v) => (
+                  <option key={v} value={v}>
+                    {t.editMedia.availability[v]}
+                  </option>
+                ))}
+              </select>
+              <span className="mt-1 block text-xs text-muted">{t.editMedia.availabilityHint}</span>
+            </label>
+          }
+          onSave={async (v) => {
+            await radarr.updateMovie(movie, { ...v, minimumAvailability: availability });
+            await qc.invalidateQueries({ queryKey: ["radarr"] });
+          }}
+          onClose={() => setEditing(false)}
+        />
+      )}
       <ConfirmDialog
         open={confirm}
         onOpenChange={setConfirm}
