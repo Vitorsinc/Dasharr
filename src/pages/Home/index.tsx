@@ -34,25 +34,40 @@ const servicePage: Record<ServiceKind, string> = {
 
 function ServiceCard({ service, route }: { service: ServiceKind; route: Parameters<typeof StatusBadge>[0]["route"] }) {
   const v = useServiceQuery(service, ["version"], () => serviceVersion(service), { refetchInterval: REFRESH.status });
+  const name = t.services[service];
+  const notConfigured = v.configured === false;
+  const detail = notConfigured
+    ? t.home.setUpInSettings
+    : v.isError
+      ? errorMessage(v.error)
+      : v.data
+        ? t.home.version(v.data)
+        : t.common.loading;
+  // Nombre, estado y detalle van en líneas separadas para que nada se pise aunque la tarjeta sea estrecha;
+  // el detalle (versión o error) ocupa como mucho dos líneas y se ve entero al pasar el ratón.
   return (
     <Link
-      to={v.configured === false ? "/ajustes" : servicePage[service]}
-      className="card flex flex-col gap-2 p-4 transition-colors hover:bg-surface-2"
-      aria-label={t.services[service]}
+      to={notConfigured ? "/ajustes" : servicePage[service]}
+      className={cn(
+        "card flex min-w-0 flex-col items-start gap-2 p-4 transition-colors hover:bg-surface-2",
+        notConfigured && "border-dashed bg-transparent",
+      )}
+      aria-label={name}
     >
-      <div className="flex items-center justify-between gap-2">
-        <span className="font-semibold">{t.services[service]}</span>
-        {v.configured !== false && <StatusBadge route={v.isError ? "offline" : route} />}
-      </div>
-      <div className={cn("truncate text-xs", v.isError ? "text-danger" : "text-muted")}>
-        {v.configured === false
-          ? t.common.notConfigured(t.services[service])
-          : v.isError
-            ? errorMessage(v.error)
-            : v.data
-              ? t.home.version(v.data)
-              : t.common.loading}
-      </div>
+      <span className={cn("w-full truncate font-semibold", notConfigured && "text-muted")} title={name}>
+        {name}
+      </span>
+      {notConfigured ? (
+        <span className="chip whitespace-nowrap bg-surface-2 text-muted">{t.home.notConfigured}</span>
+      ) : (
+        <StatusBadge route={v.isError ? "offline" : route} />
+      )}
+      <span
+        className={cn("line-clamp-2 w-full break-words text-xs tabular-nums", v.isError ? "text-danger" : "text-muted")}
+        title={detail}
+      >
+        {detail}
+      </span>
     </Link>
   );
 }
@@ -153,7 +168,7 @@ export default function HomePage() {
   const { data: routes } = useConnectionStates();
   return (
     <Page title={t.nav.home}>
-      <section className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-7" aria-label={t.home.services}>
+      <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 min-[1400px]:grid-cols-7" aria-label={t.home.services}>
         {SERVICE_KINDS.map((s) => (
           <ServiceCard key={s} service={s} route={routes?.[s]} />
         ))}

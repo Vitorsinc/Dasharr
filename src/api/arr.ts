@@ -61,12 +61,26 @@ export function commandSucceeded(c: CommandStatus) {
   return c.status === "completed" && c.result !== "unsuccessful";
 }
 
-/** Póster: la URL pública (TMDB/TVDB) si existe; si no, la imagen local a través del protocolo autenticado. */
-export function posterUrl(service: ArrService, item: { id?: number; images?: ArrImage[] }, size = 500): string | undefined {
-  const img = item.images?.find((i) => i.coverType === "poster");
+/** Imagen de un tipo (póster, fanart…): la URL pública (TMDB/TVDB) si existe; si no, la local a través del protocolo autenticado. */
+export function coverUrl(
+  service: ArrService,
+  item: { id?: number; images?: ArrImage[] },
+  coverType: "poster" | "fanart",
+  size: number,
+): string | undefined {
+  const img = item.images?.find((i) => i.coverType === coverType);
   if (img?.remoteUrl) return img.remoteUrl;
-  if (item.id != null && img) return imageUrl(service, `/api/v3/mediacover/${item.id}/poster-${size}.jpg`);
+  if (item.id != null && img) return imageUrl(service, `/api/v3/mediacover/${item.id}/${coverType}-${size}.jpg`);
   return undefined;
+}
+
+export function posterUrl(service: ArrService, item: { id?: number; images?: ArrImage[] }, size = 500): string | undefined {
+  return coverUrl(service, item, "poster", size);
+}
+
+/** Fondo horizontal: el fanart si lo hay; si no, el póster. */
+export function backdropUrl(service: ArrService, item: { id?: number; images?: ArrImage[] }): string | undefined {
+  return coverUrl(service, item, "fanart", 360) ?? posterUrl(service, item, 250);
 }
 
 export function arrCommon(service: ArrService) {

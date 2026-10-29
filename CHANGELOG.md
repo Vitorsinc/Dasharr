@@ -35,6 +35,7 @@ crea la Release con las notas de esta página.
 - Espacio en disco del servidor siempre visible arriba a la derecha (según Radarr, Sonarr y qBittorrent); al pulsarlo se ven todos los discos, en amarillo o rojo cuando se llenan.
 - Tracearr como servicio nuevo: en la ficha de una película se ve quién la ha visto, cuándo y hasta dónde; en la de una serie, quién la sigue y, en cada episodio, quién lo ha visto y cuándo.
 - Menú Historial: lo que se está viendo ahora y el historial de reproducciones de Tracearr, con filtro por usuario, por películas o episodios y por vistas completas.
+- Calendario con la imagen de cada película o serie de fondo en su barra (el fanart, o el póster si no hay), para reconocerlas de un vistazo.
 
 ### Corregido
 - qBittorrent 5.x: se acepta la cookie de sesión `QBT_SID_<puerto>` y el acceso sin sesión.
