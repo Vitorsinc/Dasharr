@@ -8,7 +8,12 @@ test("Inicio: tarjetas de servicio, descargas activas y próximos estrenos; un s
       radarr: (r) =>
         r.path === "/api/v3/system/status"
           ? { version: "5.2.0" }
-          : [{ id: 1, title: "Estreno", year: 2026, hasFile: false, digitalRelease: soon }],
+          : r.path === "/api/v3/diskspace"
+            ? [
+                { path: "/", freeSpace: 40e9, totalSpace: 100e9 },
+                { path: "/data", freeSpace: 1024 ** 4, totalSpace: 4 * 1024 ** 4 },
+              ]
+            : [{ id: 1, title: "Estreno", year: 2026, hasFile: false, digitalRelease: soon }],
       sonarr: () => Promise.reject({ kind: "Network", message: "timeout" }),
       prowlarr: () => ({ version: "1.20.0" }),
       bazarr: () => ({ data: { bazarr_version: "1.4.5" } }),
@@ -40,4 +45,7 @@ test("Inicio: tarjetas de servicio, descargas activas y próximos estrenos; un s
   expect(screen.queryByText("Activo 5")).not.toBeInTheDocument();
   expect(screen.queryByText("Sembrando")).not.toBeInTheDocument();
   expect(await screen.findByRole("button", { name: "Estreno" })).toBeInTheDocument();
+  expect(screen.getByText("1 TB libres de 4 TB")).toBeInTheDocument();
+  expect(screen.getByText("75 % usado")).toBeInTheDocument();
+  expect(screen.getByText("Sistema (/)")).toBeInTheDocument();
 });
