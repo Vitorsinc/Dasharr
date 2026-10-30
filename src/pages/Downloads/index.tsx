@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { ArrowDown, ArrowUp, Gauge, HardDrive, Pause, Play, Plus, RotateCw, Tag, Trash2, Turtle, Zap } from "lucide-react";
+import { ArrowDown, ArrowUp, Gauge, Pause, Play, Plus, RotateCw, Tag, Trash2, Turtle, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { Page } from "@/components/Page";
 import { ErrorPanel, NotConfigured } from "@/components/ErrorPanel";
@@ -113,10 +113,9 @@ export default function DownloadsPage() {
         </button>
       }
     >
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-3 gap-3">
         <Stat icon={ArrowDown} label={t.downloads.dlSpeed} value={formatSpeed(totalDl)} />
         <Stat icon={ArrowUp} label={t.downloads.upSpeed} value={formatSpeed(totalUp)} />
-        <Stat icon={HardDrive} label={t.downloads.freeSpace} value={formatBytes(server.data?.free_space_on_disk)} />
         <button
           className={cn(
             "card flex items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-2",

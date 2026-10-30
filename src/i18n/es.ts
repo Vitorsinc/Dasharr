@@ -138,7 +138,6 @@ export const es = {
     deleteTitle: (n: number) => (n === 1 ? "Borrar torrent" : `Borrar ${n} torrents`),
     deleteMessage: "Se quitará de qBittorrent.",
     selected: (n: number) => `${n} seleccionados`,
-    freeSpace: "Espacio libre",
     dlSpeed: "Bajada",
     upSpeed: "Subida",
     state: { downloading: "Descargando", seeding: "Sembrando", paused: "Pausado", completed: "Completado", error: "Error" },
