@@ -13,7 +13,6 @@ import {
   ScrollText,
   Search,
   Settings,
-  Sparkles,
   Tv,
   type LucideIcon,
 } from "lucide-react";
@@ -22,6 +21,7 @@ import { cn } from "@/lib/cn";
 import { versionLabel } from "@/lib/version";
 import { usePrefs } from "@/hooks/usePrefs";
 import { DiskIndicator } from "./DiskIndicator";
+import { Torii } from "./icons/Torii";
 import type { ServiceKind } from "@/lib/types";
 import radarrLogo from "@/assets/services/radarr.svg";
 import sonarrLogo from "@/assets/services/sonarr.svg";
@@ -51,7 +51,7 @@ const groups: { service: ServiceKind; logo: string; items: NavItem[] }[] = [
     logo: sonarrLogo,
     items: [
       { to: "/series", label: t.nav.series, icon: Tv },
-      { to: "/anime", label: t.nav.anime, icon: Sparkles },
+      { to: "/anime", label: t.nav.anime, icon: Torii },
     ],
   },
   { service: "qbittorrent", logo: qbittorrentLogo, items: [{ to: "/descargas", label: t.nav.downloads, icon: Download }] },
