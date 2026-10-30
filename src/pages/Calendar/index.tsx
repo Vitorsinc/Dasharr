@@ -25,7 +25,7 @@ export function CalendarChip({ item, onClick, compact }: { item: CalItem; onClic
       title={`${item.title} · ${item.subtitle}`}
       className={cn(
         "group relative w-full overflow-hidden rounded-md border-l-2 text-left text-xs transition-[filter] hover:brightness-110",
-        item.source === "radarr" ? "border-warning bg-warning/10" : "border-accent bg-accent/10",
+        item.source === "radarr" ? "border-radarr bg-radarr/10" : "border-sonarr bg-sonarr/10",
         withImage && "bg-black text-white",
         withImage && !compact && "flex min-h-16 flex-col justify-end",
         item.hasFile && "opacity-60",
@@ -155,7 +155,7 @@ export default function CalendarPage() {
                   <div
                     className={cn(
                       "mb-1 self-end rounded-full px-1.5 text-xs tabular-nums",
-                      sameDay(d, today) ? "bg-accent text-white" : outside ? "text-muted/60" : "text-muted",
+                      sameDay(d, today) ? "bg-accent text-accent-fg" : outside ? "text-muted/60" : "text-muted",
                     )}
                   >
                     {d.getDate()}

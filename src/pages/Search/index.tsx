@@ -101,7 +101,7 @@ export default function SearchPage() {
             ))}
         </select>
         <button className="btn-primary" type="submit" disabled={searching || !query.trim()}>
-          {searching && <Spinner className="h-4 w-4 text-white" />}
+          {searching && <Spinner className="h-4 w-4 text-current" />}
           {t.common.search}
         </button>
       </form>
