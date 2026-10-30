@@ -404,6 +404,14 @@ export const es = {
     more: "Más información",
     count: (n: number) => (n === 1 ? "1 aviso" : `${n} avisos`),
   },
+  arrRatings: {
+    imdb: "IMDb",
+    tmdb: "TMDb",
+    metacritic: "Metacritic",
+    rottenTomatoes: "Rotten Tomatoes",
+    trakt: "Trakt",
+    tvdb: "TVDB",
+  },
   filmaffinity: {
     label: "FilmAffinity",
     votes: (n: string) => `${n} votos`,

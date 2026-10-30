@@ -1,5 +1,5 @@
 import { apiRequest } from "@/lib/tauri";
-import { arrCommon, type ArrImage, type HistoryRecord, type WantedKind } from "./arr";
+import { arrCommon, type ArrImage, type ArrRating, type HistoryRecord, type WantedKind } from "./arr";
 
 export interface Movie {
   id: number;
@@ -26,7 +26,7 @@ export interface Movie {
   physicalRelease?: string;
   images?: ArrImage[];
   movieFile?: { relativePath?: string; size?: number; quality?: { quality?: { name?: string } } };
-  ratings?: { imdb?: { value?: number }; tmdb?: { value?: number } };
+  ratings?: Partial<Record<"imdb" | "tmdb" | "metacritic" | "rottenTomatoes" | "trakt", ArrRating>>;
 }
 
 export type MinimumAvailability = "announced" | "inCinemas" | "released";

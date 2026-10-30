@@ -5,7 +5,7 @@ import { cn } from "@/lib/cn";
 import { formatCount, formatRating } from "@/lib/format";
 import { t } from "@/i18n/es";
 
-function tone(rating: number) {
+export function tone(rating: number) {
   if (rating >= 7) return "text-success";
   if (rating >= 5) return "text-warning";
   return "text-danger";
