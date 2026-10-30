@@ -86,9 +86,23 @@ test("importa la configuración desde un archivo JSON", async () => {
   expect(await within(sonarr).findByDisplayValue("http://h:8989")).toBeInTheDocument();
 });
 
+test("separa los ajustes en pestañas", async () => {
+  mockBackend({ settings });
+  renderApp("/ajustes");
+  await screen.findByRole("region", { name: "Radarr" });
+  const tabs = screen.getByRole("navigation", { name: "Secciones de ajustes" });
+  await userEvent.click(within(tabs).getByRole("link", { name: "Aspecto" }));
+  expect(await screen.findByText("Tema")).toBeInTheDocument();
+  expect(screen.queryByRole("region", { name: "Radarr" })).not.toBeInTheDocument();
+  await userEvent.click(within(tabs).getByRole("link", { name: "Notificaciones" }));
+  expect(screen.getByRole("switch", { name: "Avisar cuando termine una descarga" })).toBeInTheDocument();
+  await userEvent.click(within(tabs).getByRole("link", { name: "Servicios" }));
+  expect(await screen.findByRole("region", { name: "Radarr" })).toBeInTheDocument();
+});
+
 test("buscar actualizaciones avisa si ya está al día", async () => {
   mockBackend({ commands: { check_update: () => null } });
-  renderApp("/ajustes");
+  renderApp("/ajustes/sistema");
   await userEvent.click(await screen.findByRole("button", { name: "Buscar actualizaciones" }));
   expect(await screen.findByText("Tienes la última versión")).toBeInTheDocument();
 });
