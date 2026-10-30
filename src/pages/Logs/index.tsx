@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Copy, RefreshCw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { Page } from "@/components/Page";
 import { ConfirmDialog } from "@/components/Dialog";
 import { Empty, Loading, Segmented } from "@/components/ui";
 import { t } from "@/i18n/es";
@@ -21,7 +20,8 @@ const levelStyle: Record<LogLevel, string> = {
   TRACE: "bg-surface-2 text-muted",
 };
 
-export default function LogsPage() {
+/** Visor del registro de Dasharr. Vive en la pestaña Registro de Ajustes. */
+export function LogsPanel() {
   const log = useQuery({ queryKey: ["logs"], queryFn: readLog, refetchInterval: 5000 });
   const [filter, setFilter] = useState<Filter>("all");
   const [text, setText] = useState("");
@@ -54,22 +54,7 @@ export default function LogsPage() {
   }
 
   return (
-    <Page
-      title={t.logs.title}
-      actions={
-        <>
-          <button className="btn-ghost" onClick={() => log.refetch()}>
-            <RefreshCw className="h-4 w-4" /> {t.logs.refresh}
-          </button>
-          <button className="btn-ghost" onClick={copy}>
-            <Copy className="h-4 w-4" /> {t.logs.copy}
-          </button>
-          <button className="btn-ghost text-danger" onClick={() => setConfirm(true)}>
-            <Trash2 className="h-4 w-4" /> {t.logs.clear}
-          </button>
-        </>
-      }
-    >
+    <div>
       <p className="mb-4 text-sm text-muted">{t.logs.hint}</p>
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <Segmented
@@ -88,6 +73,17 @@ export default function LogsPage() {
           onChange={(e) => setText(e.target.value)}
           aria-label={t.logs.filter}
         />
+        <div className="ml-auto flex flex-wrap items-center gap-2">
+          <button className="btn-ghost" onClick={() => log.refetch()}>
+            <RefreshCw className="h-4 w-4" /> {t.logs.refresh}
+          </button>
+          <button className="btn-ghost" onClick={copy}>
+            <Copy className="h-4 w-4" /> {t.logs.copy}
+          </button>
+          <button className="btn-ghost text-danger" onClick={() => setConfirm(true)}>
+            <Trash2 className="h-4 w-4" /> {t.logs.clear}
+          </button>
+        </div>
       </div>
       {log.isLoading ? (
         <Loading />
@@ -116,6 +112,6 @@ export default function LogsPage() {
         confirmLabel={t.logs.clear}
         onConfirm={clear}
       />
-    </Page>
+    </div>
   );
 }

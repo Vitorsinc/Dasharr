@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Upload } from "lucide-react";
+import { Bell, Cpu, Library, Palette, ScrollText, Server, Upload, type LucideIcon } from "lucide-react";
+import { Link, Navigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { disable, enable, isEnabled } from "@tauri-apps/plugin-autostart";
 import { Page } from "@/components/Page";
@@ -20,6 +21,8 @@ import { errorMessage } from "@/lib/errors";
 import { settingsKey } from "@/hooks/useSettings";
 import { useSonarrMeta } from "@/hooks/useArr";
 import { defaultsFor, type SeriesKind } from "@/lib/anime";
+import { LogsPanel } from "@/pages/Logs";
+import { cn } from "@/lib/cn";
 
 function readText(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -64,8 +67,54 @@ function ImportButton({ onImported }: { onImported: () => void }) {
   );
 }
 
-function Preferences() {
+function Row({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-4 p-4">
+      <span className="text-sm">{label}</span>
+      {children}
+    </div>
+  );
+}
+
+function Appearance() {
   const [prefs, setPrefs] = usePrefs();
+  return (
+    <section className="card divide-y divide-border">
+      <Row label={t.settings.theme}>
+        <Segmented<Theme>
+          label={t.settings.theme}
+          value={prefs.theme}
+          onChange={(theme) => setPrefs({ theme })}
+          options={[
+            { value: "dark", label: t.settings.themeDark },
+            { value: "light", label: t.settings.themeLight },
+            { value: "system", label: t.settings.themeSystem },
+          ]}
+        />
+      </Row>
+    </section>
+  );
+}
+
+function Notifications() {
+  const [prefs, setPrefs] = usePrefs();
+  return (
+    <section className="card divide-y divide-border">
+      <Row label={t.settings.notifications}>
+        <Toggle label={t.settings.notifications} checked={prefs.notifications} onChange={(notifications) => setPrefs({ notifications })} />
+      </Row>
+      <Row label={t.settings.plexNotifications}>
+        <Toggle
+          label={t.settings.plexNotifications}
+          checked={prefs.plexNotifications}
+          onChange={(plexNotifications) => setPrefs({ plexNotifications })}
+        />
+      </Row>
+    </section>
+  );
+}
+
+function Autostart() {
   const [autostart, setAutostart] = useState<boolean | null>(null);
   useEffect(() => {
     isEnabled().then(setAutostart, () => setAutostart(null));
@@ -78,39 +127,12 @@ function Preferences() {
       /* no disponible fuera de la app de escritorio */
     }
   };
+  if (autostart === null) return null;
   return (
-    <section className="card divide-y divide-border">
-      <div className="flex items-center justify-between gap-4 p-4">
-        <span className="text-sm">{t.settings.theme}</span>
-        <Segmented<Theme>
-          label={t.settings.theme}
-          value={prefs.theme}
-          onChange={(theme) => setPrefs({ theme })}
-          options={[
-            { value: "dark", label: t.settings.themeDark },
-            { value: "light", label: t.settings.themeLight },
-            { value: "system", label: t.settings.themeSystem },
-          ]}
-        />
-      </div>
-      <div className="flex items-center justify-between gap-4 p-4">
-        <span className="text-sm">{t.settings.notifications}</span>
-        <Toggle label={t.settings.notifications} checked={prefs.notifications} onChange={(notifications) => setPrefs({ notifications })} />
-      </div>
-      <div className="flex items-center justify-between gap-4 p-4">
-        <span className="text-sm">{t.settings.plexNotifications}</span>
-        <Toggle
-          label={t.settings.plexNotifications}
-          checked={prefs.plexNotifications}
-          onChange={(plexNotifications) => setPrefs({ plexNotifications })}
-        />
-      </div>
-      {autostart !== null && (
-        <div className="flex items-center justify-between gap-4 p-4">
-          <span className="text-sm">{t.settings.autostart}</span>
-          <Toggle label={t.settings.autostart} checked={autostart} onChange={toggleAutostart} />
-        </div>
-      )}
+    <section className="card">
+      <Row label={t.settings.autostart}>
+        <Toggle label={t.settings.autostart} checked={autostart} onChange={toggleAutostart} />
+      </Row>
     </section>
   );
 }
@@ -223,37 +245,110 @@ function Updates() {
   );
 }
 
-export default function SettingsPage() {
+function Section({ title, hint, children }: { title: string; hint?: string; children: ReactNode }) {
+  return (
+    <div className="flex flex-col gap-4">
+      <div>
+        <h2 className="text-lg font-semibold">{title}</h2>
+        {hint && <p className="text-sm text-muted">{hint}</p>}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function Services() {
   const { data, isLoading } = useSettings();
   const { data: routes } = useConnectionStates();
   const [generation, setGeneration] = useState(0);
   return (
-    <Page title={t.nav.settings} actions={<ImportButton onImported={() => setGeneration((g) => g + 1)} />}>
-      <div className="flex max-w-4xl flex-col gap-4">
-        <div>
-          <h2 className="text-lg font-semibold">{t.settings.servicesTitle}</h2>
-          <p className="text-sm text-muted">{t.settings.autoSwitch}</p>
-        </div>
-        {isLoading ? (
-          <Loading />
-        ) : (
-          SERVICE_KINDS.map((s) => <ServiceForm key={`${s}-${generation}`} service={s} view={data?.[s]} route={routes?.[s]} />)
-        )}
-        <div className="mt-4">
-          <h2 className="text-lg font-semibold">{t.settings.seriesDefaults}</h2>
-          <p className="text-sm text-muted">{t.settings.seriesDefaultsHint}</p>
-        </div>
-        <SeriesDefaults />
-        <div className="mt-4">
-          <h2 className="text-lg font-semibold">{t.settings.ratings}</h2>
-          <p className="text-sm text-muted">{t.settings.ratingsHint}</p>
-        </div>
-        <RatingsSettings />
-        <h2 className="mt-4 text-lg font-semibold">{t.settings.preferences}</h2>
-        <Preferences />
-        <h2 className="mt-4 text-lg font-semibold">{t.updates.title}</h2>
-        <Updates />
+    <Section title={t.settings.servicesTitle} hint={t.settings.autoSwitch}>
+      <div>
+        <ImportButton onImported={() => setGeneration((g) => g + 1)} />
       </div>
+      {isLoading ? (
+        <Loading />
+      ) : (
+        SERVICE_KINDS.map((s) => <ServiceForm key={`${s}-${generation}`} service={s} view={data?.[s]} route={routes?.[s]} />)
+      )}
+    </Section>
+  );
+}
+
+const tabs: { id: string; label: string; icon: LucideIcon; wide?: boolean; render: () => ReactNode }[] = [
+  { id: "servicios", label: t.settings.tabs.services, icon: Server, render: () => <Services /> },
+  {
+    id: "contenido",
+    label: t.settings.tabs.content,
+    icon: Library,
+    render: () => (
+      <div className="flex flex-col gap-8">
+        <Section title={t.settings.seriesDefaults} hint={t.settings.seriesDefaultsHint}>
+          <SeriesDefaults />
+        </Section>
+        <Section title={t.settings.ratings} hint={t.settings.ratingsHint}>
+          <RatingsSettings />
+        </Section>
+      </div>
+    ),
+  },
+  {
+    id: "aspecto",
+    label: t.settings.tabs.appearance,
+    icon: Palette,
+    render: () => (
+      <Section title={t.settings.tabs.appearance}>
+        <Appearance />
+      </Section>
+    ),
+  },
+  {
+    id: "notificaciones",
+    label: t.settings.tabs.notifications,
+    icon: Bell,
+    render: () => (
+      <Section title={t.settings.tabs.notifications}>
+        <Notifications />
+      </Section>
+    ),
+  },
+  {
+    id: "sistema",
+    label: t.settings.tabs.system,
+    icon: Cpu,
+    render: () => (
+      <Section title={t.settings.tabs.system}>
+        <Autostart />
+        <Updates />
+      </Section>
+    ),
+  },
+  { id: "registro", label: t.nav.logs, icon: ScrollText, wide: true, render: () => <LogsPanel /> },
+];
+
+export default function SettingsPage() {
+  const { tab = tabs[0].id } = useParams();
+  const current = tabs.find((x) => x.id === tab);
+  if (!current) return <Navigate to="/ajustes" replace />;
+  return (
+    <Page title={t.nav.settings}>
+      <nav className="-mt-2 flex flex-wrap gap-1 border-b border-border" aria-label={t.settings.tabs.label}>
+        {tabs.map(({ id, label, icon: Icon }) => (
+          <Link
+            key={id}
+            to={id === tabs[0].id ? "/ajustes" : `/ajustes/${id}`}
+            aria-current={id === current.id ? "page" : undefined}
+            className={cn(
+              "-mb-px flex items-center gap-2 border-b-2 px-3 py-2 text-sm font-medium transition-colors",
+              id === current.id ? "border-accent text-fg" : "border-transparent text-muted hover:text-fg",
+            )}
+          >
+            <Icon className="h-4 w-4" aria-hidden />
+            {label}
+          </Link>
+        ))}
+      </nav>
+      <div className={cn("flex flex-col gap-4", !current.wide && "max-w-4xl")}>{current.render()}</div>
     </Page>
   );
 }

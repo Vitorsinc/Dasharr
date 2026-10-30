@@ -89,7 +89,6 @@ export const es = {
     saved: (s: string) => `${s} guardado`,
     needUrl: "Indica al menos una dirección.",
     enabled: "Activado",
-    preferences: "Preferencias",
     theme: "Tema",
     themeDark: "Oscuro",
     themeLight: "Claro",
@@ -115,6 +114,14 @@ export const es = {
     ratingsHint: "Qué notas se muestran en las fichas. FilmAffinity también sale sobre los pósters; si la quitas, Dasharr deja de consultarla.",
     seriesDefaultsHint: "Carpeta y perfil de calidad de Sonarr con los que se añade cada tipo. Puedes cambiarlos al añadir.",
     seriesDefaultsNeedSonarr: "Configura Sonarr para elegirlos.",
+    tabs: {
+      label: "Secciones de ajustes",
+      services: "Servicios",
+      content: "Contenido",
+      appearance: "Aspecto",
+      notifications: "Notificaciones",
+      system: "Sistema",
+    },
     autoSwitch: "Dasharr usa la dirección local cuando responde y la externa cuando no.",
   },
   downloads: {
