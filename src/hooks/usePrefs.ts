@@ -6,6 +6,10 @@ export interface LibraryDefaults {
   rootFolderPath?: string;
   qualityProfileId?: number;
 }
+/** Fuentes de notas que se pueden mostrar u ocultar en Ajustes. */
+export const RATING_SOURCES = ["filmaffinity", "imdb", "tmdb", "rottenTomatoes", "metacritic", "trakt", "tvdb"] as const;
+export type RatingSource = (typeof RATING_SOURCES)[number];
+
 export interface Prefs {
   theme: Theme;
   notifications: boolean;
@@ -14,10 +18,12 @@ export interface Prefs {
   seriesDefaults: Partial<Record<SeriesKind, LibraryDefaults>>;
   /** Grupos del menú lateral que el usuario ha plegado. */
   sidebarCollapsed: string[];
+  /** Notas que el usuario ha decidido no ver. */
+  hiddenRatings: RatingSource[];
 }
 
 const KEY = "dasharr.prefs";
-const DEFAULTS: Prefs = { theme: "dark", notifications: true, plexNotifications: true, seriesDefaults: {}, sidebarCollapsed: [] };
+const DEFAULTS: Prefs = { theme: "dark", notifications: true, plexNotifications: true, seriesDefaults: {}, sidebarCollapsed: [], hiddenRatings: [] };
 const listeners = new Set<() => void>();
 let cache: Prefs | null = null;
 

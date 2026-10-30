@@ -226,6 +226,13 @@ pub async fn filmaffinity_ratings(state: State<'_, AppState>, items: Vec<FaItem>
     Ok(out)
 }
 
+/// Vacía la cola en segundo plano (al ocultar FilmAffinity en Ajustes).
+#[tauri::command]
+pub async fn filmaffinity_clear_queue(state: State<'_, AppState>) -> Result<(), ()> {
+    state.filmaffinity.queue.lock().await.clear();
+    Ok(())
+}
+
 /// Nota de una ficha: de la caché si está al día, si no se consulta ya.
 #[tauri::command]
 pub async fn filmaffinity_rating<R: Runtime>(app: AppHandle<R>, state: State<'_, AppState>, item: FaItem) -> Result<Option<FaMatch>, String> {

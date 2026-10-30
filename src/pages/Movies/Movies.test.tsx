@@ -1,6 +1,7 @@
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { mockBackend, renderApp } from "@/test/utils";
+import { setPrefs } from "@/hooks/usePrefs";
 
 const movies = [
   {
@@ -229,4 +230,24 @@ test("la ficha muestra también las notas que trae Radarr", async () => {
   expect(screen.getByText("7,8")).toBeInTheDocument();
   expect(screen.getByText("92 %")).toBeInTheDocument();
   expect(screen.queryByText("Metacritic")).not.toBeInTheDocument();
+});
+
+test("las notas ocultas en Ajustes no se muestran ni se consultan", async () => {
+  setPrefs({ hiddenRatings: ["imdb", "filmaffinity"] });
+  const asked: string[] = [];
+  const rated = [{ ...movies[0], ratings: { imdb: { value: 8.1 }, tmdb: { value: 7.8 } } }];
+  mockBackend({
+    api: { radarr: (req) => (req.path === "/api/v3/movie" && req.method === "GET" ? rated : []) },
+    commands: {
+      filmaffinity_ratings: () => (asked.push("lista"), {}),
+      filmaffinity_rating: () => (asked.push("ficha"), null),
+    },
+  });
+  renderApp("/peliculas");
+  await userEvent.click(await screen.findByRole("button", { name: "Dune" }));
+  expect(await screen.findByText("TMDb")).toBeInTheDocument();
+  expect(screen.queryByText("IMDb")).not.toBeInTheDocument();
+  expect(screen.queryByText("FilmAffinity")).not.toBeInTheDocument();
+  expect(asked).toEqual([]);
+  setPrefs({ hiddenRatings: [] });
 });

@@ -110,6 +110,8 @@ export const es = {
     imported: (n: number) => (n === 1 ? "1 servicio importado" : `${n} servicios importados`),
     importHint: "Puedes borrar el archivo después de importarlo: las claves quedan guardadas en el Administrador de credenciales.",
     seriesDefaults: "Series y anime",
+    ratings: "Notas",
+    ratingsHint: "Qué notas se muestran en las fichas. FilmAffinity también sale sobre los pósters; si la quitas, Dasharr deja de consultarla.",
     seriesDefaultsHint: "Carpeta y perfil de calidad de Sonarr con los que se añade cada tipo. Puedes cambiarlos al añadir.",
     seriesDefaultsNeedSonarr: "Configura Sonarr para elegirlos.",
     tabs: {

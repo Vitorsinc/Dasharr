@@ -10,7 +10,8 @@ import { t } from "@/i18n/es";
 import { SERVICE_KINDS } from "@/lib/types";
 import { useSettings } from "@/hooks/useSettings";
 import { useConnectionStates } from "@/hooks/useConnectionStates";
-import { usePrefs, type Theme } from "@/hooks/usePrefs";
+import { faClearQueue } from "@/api/filmaffinity";
+import { RATING_SOURCES, usePrefs, type RatingSource, type Theme } from "@/hooks/usePrefs";
 import { ServiceForm } from "./ServiceForm";
 import { parseConfigFile } from "@/lib/importConfig";
 import { checkUpdate, saveService } from "@/lib/tauri";
@@ -132,6 +133,25 @@ function Autostart() {
       <Row label={t.settings.autostart}>
         <Toggle label={t.settings.autostart} checked={autostart} onChange={toggleAutostart} />
       </Row>
+    </section>
+  );
+}
+
+function RatingsSettings() {
+  const [prefs, setPrefs] = usePrefs();
+  const label = (s: RatingSource) => (s === "filmaffinity" ? t.filmaffinity.label : t.arrRatings[s]);
+  const toggle = (s: RatingSource, show: boolean) => {
+    setPrefs({ hiddenRatings: show ? prefs.hiddenRatings.filter((h) => h !== s) : [...prefs.hiddenRatings, s] });
+    if (s === "filmaffinity" && !show) faClearQueue().catch(() => {});
+  };
+  return (
+    <section className="card grid divide-border sm:grid-cols-2" aria-label={t.settings.ratings}>
+      {RATING_SOURCES.map((s) => (
+        <div key={s} className="flex items-center justify-between gap-4 p-4">
+          <span className="text-sm">{label(s)}</span>
+          <Toggle label={label(s)} checked={!prefs.hiddenRatings.includes(s)} onChange={(v) => toggle(s, v)} />
+        </div>
+      ))}
     </section>
   );
 }
@@ -262,9 +282,14 @@ const tabs: { id: string; label: string; icon: LucideIcon; wide?: boolean; rende
     label: t.settings.tabs.content,
     icon: Library,
     render: () => (
-      <Section title={t.settings.seriesDefaults} hint={t.settings.seriesDefaultsHint}>
-        <SeriesDefaults />
-      </Section>
+      <div className="flex flex-col gap-8">
+        <Section title={t.settings.seriesDefaults} hint={t.settings.seriesDefaultsHint}>
+          <SeriesDefaults />
+        </Section>
+        <Section title={t.settings.ratings} hint={t.settings.ratingsHint}>
+          <RatingsSettings />
+        </Section>
+      </div>
     ),
   },
   {

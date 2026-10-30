@@ -50,7 +50,7 @@ export default function SeriesPage({ kind = "series" }: { kind?: SeriesKind }) {
   const [adding, setAdding] = useState(false);
   const [monitor, setMonitor] = useState<MonitorOption>("all");
   const [seriesType, setSeriesType] = useState<SeriesType>(typeForKind(kind));
-  const [{ seriesDefaults }] = usePrefs();
+  const [{ seriesDefaults, hiddenRatings }] = usePrefs();
   const title = kind === "anime" ? t.nav.anime : t.nav.series;
   const addLabel = kind === "anime" ? t.library.addAnime : t.library.addSeries;
 
@@ -79,7 +79,8 @@ export default function SeriesPage({ kind = "series" }: { kind?: SeriesKind }) {
       ),
     [mine, query, filter, sort],
   );
-  const faItems = useMemo(() => (tab === "library" ? items.map(seriesItem) : []), [items, tab]);
+  const showFa = !hiddenRatings.includes("filmaffinity");
+  const faItems = useMemo(() => (tab === "library" && showFa ? items.map(seriesItem) : []), [items, tab, showFa]);
   const ratings = useFaRatings(faItems);
   const existing = useMemo(() => new Set((series.data ?? []).map((s) => s.tvdbId)), [series.data]);
   const selected = series.data?.find((s) => s.id === selectedId) ?? null;
@@ -181,7 +182,7 @@ export default function SeriesPage({ kind = "series" }: { kind?: SeriesKind }) {
                   subtitle={s.statistics ? t.library.episodes(s.statistics.episodeFileCount, s.statistics.episodeCount) : String(s.year)}
                   poster={posterUrl("sonarr", s)}
                   state={libState(s)}
-                  rating={ratings[faKey(seriesItem(s))]?.rating}
+                  rating={showFa ? ratings[faKey(seriesItem(s))]?.rating : undefined}
                   onClick={() => setSelectedId(s.id)}
                 />
               ))}
