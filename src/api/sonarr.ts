@@ -1,5 +1,5 @@
 import { apiRequest } from "@/lib/tauri";
-import { arrCommon, type ArrImage, type HistoryRecord, type WantedKind } from "./arr";
+import { arrCommon, type ArrImage, type ArrRating, type HistoryRecord, type WantedKind } from "./arr";
 
 export interface SeasonStats {
   episodeFileCount: number;
@@ -31,6 +31,7 @@ export interface Series {
   images?: ArrImage[];
   seasons?: Season[];
   genres?: string[];
+  ratings?: ArrRating;
   seriesType?: SeriesType;
   originalLanguage?: { id: number; name: string };
   statistics?: SeasonStats & { seasonCount?: number; percentOfEpisodes?: number };

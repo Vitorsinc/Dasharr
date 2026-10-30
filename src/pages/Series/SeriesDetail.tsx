@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { ChevronDown, FileX, FolderSearch, Pencil, RefreshCw, Search, TextCursorInput, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmDialog, Dialog } from "@/components/Dialog";
+import { ArrRatings } from "@/components/media/ArrRatings";
 import { FaInfo } from "@/components/media/FilmAffinity";
 import { Poster } from "@/components/media/PosterCard";
 import { ReleaseSearchDialog } from "@/components/media/ReleaseSearchDialog";
@@ -204,7 +205,10 @@ export function SeriesDetail({ series, onClose }: { series: Series | null; onClo
               </label>
               {series.overview && <p className="line-clamp-5 text-sm leading-relaxed text-muted">{series.overview}</p>}
               <PlexBadge kind="show" ids={{ tvdbId: series.tvdbId, tmdbId: series.tmdbId, imdbId: series.imdbId }} />
-              <FaInfo item={seriesItem(series)} />
+              <div className="flex flex-wrap gap-x-8 gap-y-3">
+                <FaInfo item={seriesItem(series)} />
+                <ArrRatings ratings={{ tvdb: series.ratings }} />
+              </div>
               <div className="mt-auto flex flex-wrap gap-2">
                 <button className="btn-primary" onClick={() => run(() => sonarr.searchSeries(series.id), t.library.searchStarted)}>
                   <Search className="h-4 w-4" /> {t.library.searchNow}

@@ -4,6 +4,7 @@ import { Pencil, Search, Trash2, User } from "lucide-react";
 import { MonitorIcon } from "@/components/media/MonitorToggle";
 import { toast } from "sonner";
 import { ConfirmDialog, Dialog } from "@/components/Dialog";
+import { ArrRatings } from "@/components/media/ArrRatings";
 import { FaInfo } from "@/components/media/FilmAffinity";
 import { Poster } from "@/components/media/PosterCard";
 import { ReleaseSearchDialog } from "@/components/media/ReleaseSearchDialog";
@@ -57,6 +58,7 @@ export function MovieDetail({ movie, onClose }: { movie: Movie | null; onClose: 
             {movie.overview && <p className="text-sm leading-relaxed text-muted">{movie.overview}</p>}
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
               <FaInfo item={movieItem(movie)} />
+              <ArrRatings ratings={movie.ratings} />
               <Info label={t.library.status} value={status} />
               <Info label={t.library.quality} value={movie.movieFile?.quality?.quality?.name} />
               <Info label={t.library.size} value={movie.sizeOnDisk ? formatBytes(movie.sizeOnDisk) : undefined} />

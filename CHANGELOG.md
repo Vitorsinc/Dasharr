@@ -11,6 +11,7 @@ crea la Release con las notas de esta página.
 ## [Sin publicar]
 
 ### Añadido
+- Las fichas muestran también las notas que traen Radarr (IMDb, TMDb, Rotten Tomatoes, Metacritic, Trakt) y Sonarr (TVDB), junto a la de FilmAffinity.
 - Inicio con el estado de cada servicio, descargas activas y próximos estrenos.
 - Películas (Radarr) y Series (Sonarr): biblioteca, fichas, añadir, buscar, monitorizar, borrar y cola.
 - Anime separado de Series: sección propia en el menú según el tipo de serie de Sonarr. Al buscar, lo que parece anime se marca y se añade ya como anime con su carpeta y perfil (elegibles en Ajustes). El tipo se puede cambiar desde la ficha.

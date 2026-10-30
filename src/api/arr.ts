@@ -326,3 +326,9 @@ export function runManualImport(
     },
   });
 }
+
+/** Nota que trae Radarr/Sonarr de su proveedor: sobre 10 (IMDb, TMDb, Trakt, TVDB) o sobre 100 (Metacritic, Rotten Tomatoes). */
+export interface ArrRating {
+  value?: number;
+  votes?: number;
+}

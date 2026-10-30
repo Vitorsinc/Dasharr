@@ -207,3 +207,26 @@ test("muestra la nota de FilmAffinity en la lista y en la ficha", async () => {
   expect(link).toHaveAttribute("href", "https://www.filmaffinity.com/es/film1.html");
   expect(link).toHaveTextContent("52.310 votos");
 });
+
+test("la ficha muestra también las notas que trae Radarr", async () => {
+  const rated = [
+    {
+      ...movies[0],
+      ratings: {
+        imdb: { value: 8.1, votes: 920000 },
+        tmdb: { value: 7.8, votes: 0 },
+        rottenTomatoes: { value: 92 },
+        metacritic: { value: 0 },
+      },
+    },
+  ];
+  mockBackend({ api: { radarr: (req) => (req.path === "/api/v3/movie" && req.method === "GET" ? rated : []) } });
+  renderApp("/peliculas");
+  await userEvent.click(await screen.findByRole("button", { name: "Dune" }));
+  expect(await screen.findByText("IMDb")).toBeInTheDocument();
+  expect(screen.getByText("8,1")).toBeInTheDocument();
+  expect(screen.getByText("920.000 votos")).toBeInTheDocument();
+  expect(screen.getByText("7,8")).toBeInTheDocument();
+  expect(screen.getByText("92 %")).toBeInTheDocument();
+  expect(screen.queryByText("Metacritic")).not.toBeInTheDocument();
+});
