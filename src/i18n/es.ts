@@ -673,6 +673,7 @@ export const es = {
     hitAndRuns: "H&R",
     infinite: "∞",
     unavailableTitle: "Sin estadísticas",
+    openSite: "Abrir la web del tracker",
     status: {
       ok: "Disponible",
       unauthorized: "Token rechazado",

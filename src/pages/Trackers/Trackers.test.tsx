@@ -1,4 +1,6 @@
 import { screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { mockBackend, renderApp } from "@/test/utils";
 import type { TrackerStats } from "@/api/trackers";
 
@@ -37,6 +39,14 @@ test("muestra las estadísticas y los trackers sin API", async () => {
   expect(card).toHaveTextContent("312");
   expect(screen.getByText("Otro")).toBeInTheDocument();
   expect(screen.getByText("No disponible")).toBeInTheDocument();
+});
+
+test("el icono de la esquina abre la web del tracker", async () => {
+  mockBackend({ commands: { unit3d_stats: () => stats } });
+  renderApp("/trackers");
+  await userEvent.click(await screen.findByRole("button", { name: "Abrir la web del tracker: Aither (API)" }));
+  expect(openUrl).toHaveBeenCalledWith("https://aither.cc/");
+  expect(screen.getByRole("button", { name: "Abrir la web del tracker: Otro" })).toBeInTheDocument();
 });
 
 test("avisa si Prowlarr no tiene trackers UNIT3D", async () => {

@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowUp, RefreshCw } from "lucide-react";
+import { ArrowDown, ArrowUp, ExternalLink, RefreshCw } from "lucide-react";
 import { Page } from "@/components/Page";
 import { ErrorPanel } from "@/components/ErrorPanel";
 import { Empty, Loading, Spinner } from "@/components/ui";
@@ -7,6 +7,7 @@ import { getTrackerStats, type TrackerStats, type TrackerStatus, type TrackerUse
 import { useServiceQuery } from "@/hooks/useServiceQuery";
 import { formatBytes } from "@/lib/format";
 import { cn } from "@/lib/cn";
+import { openExternal } from "@/lib/tauri";
 
 // El límite de UNIT3D es de 30 peticiones por minuto, compartido con las búsquedas de Prowlarr.
 const REFRESH_MS = 30 * 60_000;
@@ -44,6 +45,22 @@ function Stat({ label, value, className }: { label: string; value: string; class
   );
 }
 
+/** Botón que abre la web del tracker en el navegador. Solo enlaces http(s). */
+function SiteLink({ tr }: { tr: TrackerStats }) {
+  if (!/^https?:\/\//i.test(tr.siteUrl)) return null;
+  return (
+    <button
+      type="button"
+      className="grid h-6 w-6 shrink-0 place-items-center rounded-md text-muted transition-colors hover:bg-surface-2 hover:text-accent focus-visible:text-accent"
+      onClick={() => void openExternal(tr.siteUrl)}
+      title={t.trackers.openSite}
+      aria-label={`${t.trackers.openSite}: ${tr.name}`}
+    >
+      <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+    </button>
+  );
+}
+
 function TrackerCard({ tr }: { tr: TrackerStats & { user: TrackerUser } }) {
   const u = tr.user;
   return (
@@ -53,8 +70,11 @@ function TrackerCard({ tr }: { tr: TrackerStats & { user: TrackerUser } }) {
           <div className="truncate text-sm font-semibold">{tr.name}</div>
           <div className="truncate text-xs text-muted" title={u.username}>{u.group || u.username}</div>
         </div>
-        <div className={cn("text-xl font-bold tabular-nums", ratioTone(u.ratio))} title={t.trackers.ratio}>
-          {u.ratio == null ? t.trackers.infinite : nf.format(u.ratio)}
+        <div className="-mr-1.5 flex items-center gap-0.5">
+          <div className={cn("text-xl font-bold tabular-nums", ratioTone(u.ratio))} title={t.trackers.ratio}>
+            {u.ratio == null ? t.trackers.infinite : nf.format(u.ratio)}
+          </div>
+          <SiteLink tr={tr} />
         </div>
       </header>
       <div className="flex items-center gap-3 text-xs tabular-nums">
@@ -90,6 +110,7 @@ function Unavailable({ list }: { list: TrackerStats[] }) {
               {tr.message && <div className="truncate text-xs text-muted">{tr.message}</div>}
             </div>
             <span className={cn("chip", statusStyle[tr.status])}>{t.trackers.status[tr.status]}</span>
+            <SiteLink tr={tr} />
           </div>
         ))}
       </div>
