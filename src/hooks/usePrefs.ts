@@ -14,10 +14,19 @@ export interface Prefs {
   seriesDefaults: Partial<Record<SeriesKind, LibraryDefaults>>;
   /** Grupos del menú lateral que el usuario ha plegado. */
   sidebarCollapsed: string[];
+  /** País (ISO 3166-1) cuyas fechas de estreno de películas se muestran. */
+  releaseCountry: string;
 }
 
 const KEY = "dasharr.prefs";
-const DEFAULTS: Prefs = { theme: "dark", notifications: true, plexNotifications: true, seriesDefaults: {}, sidebarCollapsed: [] };
+const DEFAULTS: Prefs = {
+  theme: "dark",
+  notifications: true,
+  plexNotifications: true,
+  seriesDefaults: {},
+  sidebarCollapsed: [],
+  releaseCountry: "ES",
+};
 const listeners = new Set<() => void>();
 let cache: Prefs | null = null;
 

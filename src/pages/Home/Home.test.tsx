@@ -14,7 +14,7 @@ test("Inicio: tarjetas de servicio, descargas activas y próximos estrenos; un s
                 { path: "/", freeSpace: 40e9, totalSpace: 100e9 },
                 { path: "/data", freeSpace: 1024 ** 4, totalSpace: 4 * 1024 ** 4 },
               ]
-            : [{ id: 1, title: "Estreno", year: 2026, hasFile: false, digitalRelease: soon }],
+            : [{ id: 1, title: "Estreno", year: 2026, hasFile: false, monitored: true, digitalRelease: soon }],
       sonarr: () => Promise.reject({ kind: "Network", message: "timeout" }),
       prowlarr: () => ({ version: "1.20.0" }),
       bazarr: () => ({ data: { bazarr_version: "1.4.5" } }),
