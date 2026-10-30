@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { createMemoryRouter, createBrowserRouter, RouterProvider, type RouteObject } from "react-router-dom";
+import { createMemoryRouter, createBrowserRouter, Navigate, RouterProvider, type RouteObject } from "react-router-dom";
 import { Layout } from "@/components/Layout";
 import { RouteError } from "@/components/RouteError";
 import HomePage from "@/pages/Home";
@@ -10,7 +10,6 @@ import SearchPage from "@/pages/Search";
 import SubtitlesPage from "@/pages/Subtitles";
 import CalendarPage from "@/pages/Calendar";
 import SettingsPage from "@/pages/Settings";
-import LogsPage from "@/pages/Logs";
 import HistoryPage from "@/pages/History";
 import PlexPage from "@/pages/Plex";
 import TrackersPage from "@/pages/Trackers";
@@ -35,8 +34,8 @@ export const routes: RouteObject[] = [
           { path: "/plex", element: <PlexPage /> },
           { path: "/trackers", element: <TrackersPage /> },
           { path: "/indexadores", element: <IndexersPage /> },
-          { path: "/registro", element: <LogsPage /> },
-          { path: "/ajustes", element: <SettingsPage /> },
+          { path: "/registro", element: <Navigate to="/ajustes/registro" replace /> },
+          { path: "/ajustes/:tab?", element: <SettingsPage /> },
         ],
       },
     ],

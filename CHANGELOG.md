@@ -49,6 +49,7 @@ crea la Release con las notas de esta página.
 - Calendario con la imagen de cada película o serie de fondo en su barra (el fanart, o el póster si no hay), para reconocerlas de un vistazo.
 
 ### Cambiado
+- Ajustes se divide en pestañas: Servicios, Contenido, Aspecto, Notificaciones, Sistema y Registro. El Registro deja de tener entrada propia en el menú lateral y pasa a ser una pestaña de Ajustes.
 - El menú lateral se agrupa por servicio (Radarr, Sonarr, qBittorrent, Prowlarr, Bazarr, Plex), con su logo.
   Cada grupo se puede plegar y Dasharr recuerda cuáles has plegado.
 
