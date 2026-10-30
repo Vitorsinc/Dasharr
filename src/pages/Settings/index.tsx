@@ -14,7 +14,10 @@ import { faClearQueue } from "@/api/filmaffinity";
 import { RATING_SOURCES, usePrefs, type RatingSource, type Theme } from "@/hooks/usePrefs";
 import { ServiceForm } from "./ServiceForm";
 import { parseConfigFile } from "@/lib/importConfig";
-import { checkUpdate, saveService } from "@/lib/tauri";
+import { checkUpdate, openExternal, saveService } from "@/lib/tauri";
+import { tmdbSaveKey } from "@/api/tmdb";
+import { useTmdbHasKey } from "@/hooks/useMovieReleases";
+import { COUNTRIES } from "@/lib/countries";
 import { notifyUpdate } from "@/hooks/useUpdates";
 import { versionLabel } from "@/lib/version";
 import { errorMessage } from "@/lib/errors";
@@ -217,6 +220,81 @@ function SeriesDefaults() {
   );
 }
 
+function MovieReleasesSettings() {
+  const qc = useQueryClient();
+  const [prefs, setPrefs] = usePrefs();
+  const hasKey = useTmdbHasKey().data === true;
+  const [key, setKey] = useState("");
+  const [busy, setBusy] = useState(false);
+  async function save(value: string) {
+    setBusy(true);
+    try {
+      await tmdbSaveKey(value);
+      setKey("");
+      await qc.invalidateQueries({ queryKey: ["tmdb"] });
+      toast.success(value ? t.premieres.tmdbSaved : t.premieres.tmdbRemoved);
+    } catch (e) {
+      toast.error(errorMessage(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <section className="card divide-y divide-border" aria-label={t.premieres.title}>
+      <label className="flex flex-wrap items-center justify-between gap-4 p-4">
+        <span>
+          <span className="block text-sm">{t.premieres.country}</span>
+          <span className="block text-xs text-muted">{t.premieres.countryHint}</span>
+        </span>
+        <select className="input w-56" value={prefs.releaseCountry} onChange={(e) => setPrefs({ releaseCountry: e.target.value })}>
+          {COUNTRIES.map((c) => (
+            <option key={c.code} value={c.code}>
+              {c.name}
+            </option>
+          ))}
+        </select>
+      </label>
+      <form
+        className="flex flex-col gap-2 p-4"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (key.trim()) save(key.trim());
+        }}
+      >
+        <span className="label">{t.premieres.tmdbKey}</span>
+        <div className="flex gap-2">
+          <input
+            className="input flex-1"
+            type="password"
+            aria-label={t.premieres.tmdbKey}
+            placeholder={hasKey ? t.settings.savedSecret : ""}
+            value={key}
+            onChange={(e) => setKey(e.target.value)}
+          />
+          <button className="btn-primary" type="submit" disabled={busy || !key.trim()}>
+            {t.premieres.save}
+          </button>
+          {hasKey && (
+            <button className="btn-outline" type="button" disabled={busy} onClick={() => save("")}>
+              {t.premieres.tmdbRemove}
+            </button>
+          )}
+        </div>
+        <span className="text-xs text-muted">
+          {t.premieres.tmdbKeyHint}{" "}
+          <button
+            type="button"
+            className="text-accent hover:underline"
+            onClick={() => openExternal("https://www.themoviedb.org/settings/api")}
+          >
+            {t.premieres.tmdbGetKey}
+          </button>
+        </span>
+      </form>
+    </section>
+  );
+}
+
 function Updates() {
   const [state, setState] = useState<"idle" | "checking" | "latest">("idle");
   async function check() {
@@ -288,6 +366,9 @@ const tabs: { id: string; label: string; icon: LucideIcon; wide?: boolean; rende
         </Section>
         <Section title={t.settings.ratings} hint={t.settings.ratingsHint}>
           <RatingsSettings />
+        </Section>
+        <Section title={t.premieres.title}>
+          <MovieReleasesSettings />
         </Section>
       </div>
     ),

@@ -22,8 +22,9 @@ import { useFaRatings } from "@/hooks/useFilmAffinity";
 import { usePrefs } from "@/hooks/usePrefs";
 import { t } from "@/i18n/es";
 import { MovieDetail } from "./MovieDetail";
+import { UpcomingMovies } from "./Upcoming";
 
-type Tab = "library" | "wanted" | "queue";
+type Tab = "library" | "upcoming" | "wanted" | "queue";
 
 export default function MoviesPage() {
   const qc = useQueryClient();
@@ -72,6 +73,7 @@ export default function MoviesPage() {
             onChange={setTab}
             options={[
               { value: "library", label: t.library.library },
+              { value: "upcoming", label: t.premieres.tab },
               { value: "wanted", label: t.wanted.tab },
               { value: "queue", label: t.library.queue },
             ]}
@@ -82,7 +84,15 @@ export default function MoviesPage() {
         </>
       }
     >
-      {tab === "wanted" ? (
+      {tab === "upcoming" ? (
+        movies.isLoading || movies.configured === undefined ? (
+          <Loading />
+        ) : movies.isError ? (
+          <ErrorPanel service="radarr" error={movies.error} onRetry={() => movies.refetch()} />
+        ) : (
+          <UpcomingMovies movies={movies.data ?? []} onOpen={setSelectedId} />
+        )
+      ) : tab === "wanted" ? (
         <WantedList
           service="radarr"
           kind={wantedKind}

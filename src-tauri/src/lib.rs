@@ -5,6 +5,7 @@ mod logs;
 mod nyaa;
 mod settings;
 mod state;
+mod tmdb;
 mod updater;
 
 use std::time::Duration;
@@ -47,6 +48,9 @@ pub fn run() {
             filmaffinity::filmaffinity_rating,
             filmaffinity::filmaffinity_clear_queue,
             nyaa::nyaa_subtitles,
+            tmdb::tmdb_has_key,
+            tmdb::tmdb_save_key,
+            tmdb::tmdb_release_dates,
         ])
         .setup(|app| {
             log::info!("Dasharr {} iniciado", app.package_info().version);

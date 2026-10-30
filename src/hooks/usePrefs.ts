@@ -20,10 +20,20 @@ export interface Prefs {
   sidebarCollapsed: string[];
   /** Notas que el usuario ha decidido no ver. */
   hiddenRatings: RatingSource[];
+  /** País (ISO 3166-1) cuyas fechas de estreno de películas se muestran. */
+  releaseCountry: string;
 }
 
 const KEY = "dasharr.prefs";
-const DEFAULTS: Prefs = { theme: "dark", notifications: true, plexNotifications: true, seriesDefaults: {}, sidebarCollapsed: [], hiddenRatings: [] };
+const DEFAULTS: Prefs = {
+  theme: "dark",
+  notifications: true,
+  plexNotifications: true,
+  seriesDefaults: {},
+  sidebarCollapsed: [],
+  hiddenRatings: [],
+  releaseCountry: "ES",
+};
 const listeners = new Set<() => void>();
 let cache: Prefs | null = null;
 

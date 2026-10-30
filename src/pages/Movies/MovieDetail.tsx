@@ -11,6 +11,8 @@ import { ReleaseSearchDialog } from "@/components/media/ReleaseSearchDialog";
 import { ArrHistory } from "@/components/media/ArrHistory";
 import { EditMediaDialog } from "@/components/media/EditMediaDialog";
 import { useRadarrMeta } from "@/hooks/useArr";
+import { useMovieReleases } from "@/hooks/useMovieReleases";
+import { RELEASE_KINDS } from "@/lib/releases";
 import { posterUrl } from "@/api/arr";
 import { movieRefs } from "@/api/tracearr";
 import { MovieWatchHistory } from "@/components/watch/WatchHistory";
@@ -19,7 +21,7 @@ import { movieItem } from "@/api/filmaffinity";
 import { radarr, type MinimumAvailability, type Movie } from "@/api/radarr";
 import { t } from "@/i18n/es";
 import { errorMessage } from "@/lib/errors";
-import { formatBytes, formatDate } from "@/lib/format";
+import { formatBytes } from "@/lib/format";
 
 function Info({ label, value }: { label: string; value?: React.ReactNode }) {
   if (value == null || value === "") return null;
@@ -28,6 +30,20 @@ function Info({ label, value }: { label: string; value?: React.ReactNode }) {
       <div className="text-xs text-muted">{label}</div>
       <div className="text-sm">{value}</div>
     </div>
+  );
+}
+
+const fullDate = new Intl.DateTimeFormat("es-ES", { day: "numeric", month: "short", year: "numeric" });
+
+/** Estrenos en cines, digital y física, con las fechas del país elegido en Ajustes si hay clave de TMDB. */
+function ReleaseInfo({ movie }: { movie: Movie }) {
+  const releases = useMovieReleases([movie])(movie);
+  return (
+    <>
+      {RELEASE_KINDS.map((k) => (
+        <Info key={k} label={t.premieres.kind[k]} value={releases[k] ? fullDate.format(releases[k]) : undefined} />
+      ))}
+    </>
   );
 }
 
@@ -63,8 +79,7 @@ export function MovieDetail({ movie, onClose }: { movie: Movie | null; onClose: 
               <Info label={t.library.quality} value={movie.movieFile?.quality?.quality?.name} />
               <Info label={t.library.size} value={movie.sizeOnDisk ? formatBytes(movie.sizeOnDisk) : undefined} />
               <Info label="Duración" value={movie.runtime ? t.library.runtime(movie.runtime) : undefined} />
-              <Info label="En cines" value={movie.inCinemas ? formatDate(movie.inCinemas) : undefined} />
-              <Info label="Digital" value={movie.digitalRelease ? formatDate(movie.digitalRelease) : undefined} />
+              <ReleaseInfo movie={movie} />
             </div>
             {movie.movieFile?.relativePath && (
               <Info label={t.library.file} value={<span className="break-all font-mono text-xs">{movie.movieFile.relativePath}</span>} />
