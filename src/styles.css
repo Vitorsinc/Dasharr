@@ -2,38 +2,96 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Cada servicio pinta la app con su color: en Películas manda el amarillo de Radarr, en Descargas el azul de
+ * qBittorrent… Las páginas que mezclan servicios usan el violeta de Dasharr, que no es de ninguno de ellos.
+ * Layout pone `data-service` en <html> según la página abierta (ver `serviceForPath`).
+ */
 :root {
-  --bg: 246 247 249;
+  color-scheme: light;
+  --bg: 244 245 247;
   --surface: 255 255 255;
-  --surface-2: 240 242 245;
-  --border: 226 229 234;
-  --fg: 17 20 26;
-  --muted: 100 108 122;
-  --accent: 99 91 255;
-  --success: 22 163 74;
-  --warning: 217 119 6;
-  --danger: 220 38 38;
+  --surface-2: 236 238 242;
+  --border: 221 225 231;
+  --fg: 20 24 32;
+  --muted: 95 104 120;
+  --brand: 91 75 219;
+  --accent: var(--brand);
+  --accent-fg: 255 255 255;
+  --radarr: 140 98 0;
+  --sonarr: 8 120 164;
+  --qbittorrent: 40 96 178;
+  --prowlarr: 184 74 6;
+  --plex: 133 93 0;
+  --success: 21 128 61;
+  --warning: 180 83 9;
+  --danger: 200 30 30;
 }
 .dark {
-  --bg: 13 15 20;
-  --surface: 21 24 31;
-  --surface-2: 30 34 43;
-  --border: 41 46 57;
-  --fg: 232 235 241;
-  --muted: 140 148 163;
-  --accent: 129 120 255;
+  color-scheme: dark;
+  --bg: 14 18 24;
+  --surface: 21 26 34;
+  --surface-2: 28 34 44;
+  --border: 38 45 57;
+  --fg: 230 234 240;
+  --muted: 138 148 166;
+  --brand: 151 136 255;
+  --accent-fg: 14 18 24;
+  --radarr: 255 194 48;
+  --sonarr: 60 200 245;
+  --qbittorrent: 106 165 240;
+  --prowlarr: 255 138 61;
+  --plex: 235 175 44;
   --success: 74 222 128;
   --warning: 251 191 36;
   --danger: 248 113 113;
 }
+[data-service="radarr"] { --accent: var(--radarr); }
+[data-service="sonarr"] { --accent: var(--sonarr); }
+[data-service="qbittorrent"] { --accent: var(--qbittorrent); }
+[data-service="prowlarr"] { --accent: var(--prowlarr); }
+[data-service="plex"] { --accent: var(--plex); }
+
 html,
 body,
 #root {
   height: 100%;
 }
 body {
-  @apply bg-bg text-fg antialiased;
+  @apply bg-bg font-sans text-fg antialiased;
   font-feature-settings: "tnum";
+}
+/* Títulos en Archivo estrecho y con peso, como los créditos de un cartel; el texto corrido, a su ancho normal. */
+h1,
+h2 {
+  @apply font-display;
+  font-stretch: 78%;
+  letter-spacing: -0.005em;
+}
+h1 {
+  font-weight: 800;
+}
+h2 {
+  font-weight: 700;
+}
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: rgb(var(--accent));
+}
+:focus-visible {
+  outline: 2px solid rgb(var(--accent));
+  outline-offset: 2px;
+}
+.input:focus-visible {
+  outline: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 ::-webkit-scrollbar {
   width: 10px;
@@ -49,7 +107,7 @@ body {
     @apply inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none;
   }
   .btn-primary {
-    @apply btn bg-accent text-white hover:bg-accent/90;
+    @apply btn bg-accent font-semibold text-accent-fg hover:bg-accent/90;
   }
   .btn-ghost {
     @apply btn text-fg hover:bg-surface-2;

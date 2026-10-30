@@ -26,10 +26,10 @@ export function ProgressBar({
 }: {
   value: number;
   className?: string;
-  tone?: "accent" | "success" | "warning" | "danger";
+  tone?: "accent" | "neutral" | "success" | "warning" | "danger";
 }) {
   const pct = Math.max(0, Math.min(1, value)) * 100;
-  const color = { accent: "bg-accent", success: "bg-success", warning: "bg-warning", danger: "bg-danger" }[tone];
+  const color = { accent: "bg-accent", neutral: "bg-muted", success: "bg-success", warning: "bg-warning", danger: "bg-danger" }[tone];
   return (
     <div
       className={cn("h-1.5 w-full overflow-hidden rounded-full bg-surface-2", className)}
@@ -65,7 +65,7 @@ export function Segmented<T extends string>({
           onClick={() => onChange(o.value)}
           className={cn(
             "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
-            value === o.value ? "bg-accent text-white" : "text-muted hover:text-fg",
+            value === o.value ? "bg-accent text-accent-fg" : "text-muted hover:text-fg",
           )}
         >
           {o.label}

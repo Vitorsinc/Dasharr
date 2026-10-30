@@ -8,7 +8,8 @@ import { formatBytes } from "@/lib/format";
 import { cn } from "@/lib/cn";
 
 const used = (d: Disk) => (d.total ? 1 - d.free / d.total : undefined);
-const tone = (u: number | undefined) => (u == null ? "accent" : u >= 0.95 ? "danger" : u >= 0.85 ? "warning" : "accent");
+// Gris mientras sobra espacio: el disco no es de ningún servicio y no debe tomar su color.
+const tone = (u: number | undefined) => (u == null ? "neutral" : u >= 0.95 ? "danger" : u >= 0.85 ? "warning" : "neutral");
 
 function diskName(d: Disk) {
   const main = d.paths[0];
@@ -30,7 +31,7 @@ function DiskRow({ disk }: { disk: Disk }) {
   );
 }
 
-/** Espacio en disco, pequeño en la esquina superior derecha; al pulsarlo muestra todos los discos. */
+/** Espacio en disco, al pie del menú lateral; al pulsarlo muestra todos los discos. */
 export function DiskIndicator() {
   const { disks, noneConfigured } = useDiskSpace();
   const [open, setOpen] = useState(false);
@@ -58,17 +59,21 @@ export function DiskIndicator() {
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-2 rounded-md px-2 py-1 text-xs text-muted transition-colors hover:bg-surface-2 hover:text-fg"
+        className="flex w-full flex-col gap-1.5 rounded-lg px-3 py-2 text-left text-xs text-muted transition-colors hover:bg-surface-2/60 hover:text-fg"
         aria-label={t.disk.title}
         aria-expanded={open}
         title={t.disk.title}
       >
-        <HardDrive className={cn("h-4 w-4", tone(u) === "danger" ? "text-danger" : tone(u) === "warning" && "text-warning")} />
-        {u != null && <ProgressBar value={u} tone={tone(u)} className="w-14" />}
-        <span className="tabular-nums">{t.disk.freeOnly(formatBytes(main.free))}</span>
+        <span className="flex items-center gap-3">
+          <HardDrive
+            className={cn("h-[18px] w-[18px]", tone(u) === "danger" ? "text-danger" : tone(u) === "warning" && "text-warning")}
+          />
+          <span className="tabular-nums">{t.disk.freeOnly(formatBytes(main.free))}</span>
+        </span>
+        {u != null && <ProgressBar value={u} tone={tone(u)} className="h-1" />}
       </button>
       {open && (
-        <div className="card absolute inset-x-0 top-full z-50 mt-1 py-1 shadow-lg" role="dialog" aria-label={t.disk.title}>
+        <div className="card absolute bottom-full left-0 z-50 mb-1 w-72 py-1 shadow-lg" role="dialog" aria-label={t.disk.title}>
           {disks.map((d) => (
             <DiskRow key={d.paths[0] ?? d.sources.join()} disk={d} />
           ))}

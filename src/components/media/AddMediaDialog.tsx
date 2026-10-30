@@ -135,7 +135,7 @@ export function AddMediaDialog<T>({
               />
             </div>
             <button className="btn-primary" type="submit" disabled={searching}>
-              {searching && <Spinner className="h-4 w-4 text-white" />}
+              {searching && <Spinner className="h-4 w-4 text-current" />}
               {t.common.search}
             </button>
           </form>
@@ -218,7 +218,7 @@ export function AddMediaDialog<T>({
                 {t.common.cancel}
               </button>
               <button className="btn-primary" onClick={add} disabled={busy || profileId === "" || !root}>
-                {busy && <Spinner className="h-4 w-4 text-white" />}
+                {busy && <Spinner className="h-4 w-4 text-current" />}
                 {t.common.add}
               </button>
             </div>

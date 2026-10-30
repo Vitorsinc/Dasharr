@@ -21,6 +21,7 @@ import { t } from "@/i18n/es";
 import { cn } from "@/lib/cn";
 import { versionLabel } from "@/lib/version";
 import { usePrefs } from "@/hooks/usePrefs";
+import { DiskIndicator } from "./DiskIndicator";
 import type { ServiceKind } from "@/lib/types";
 import radarrLogo from "@/assets/services/radarr.svg";
 import sonarrLogo from "@/assets/services/sonarr.svg";
@@ -83,14 +84,23 @@ function Item({ to, label, icon: Icon, end }: NavItem) {
       className={({ isActive }) =>
         cn(
           "flex items-center gap-3 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
-          isActive ? "bg-accent/15 text-accent" : "text-muted hover:bg-surface-2 hover:text-fg",
+          isActive ? "bg-surface-2 text-fg" : "text-muted hover:bg-surface-2/60 hover:text-fg",
         )
       }
     >
-      <Icon className="h-[18px] w-[18px]" aria-hidden />
-      <span>{label}</span>
+      {({ isActive }) => (
+        <>
+          <Icon className={cn("h-[18px] w-[18px]", isActive && "text-accent")} aria-hidden />
+          <span>{label}</span>
+        </>
+      )}
     </NavLink>
   );
+}
+
+/** Servicio del que salen los datos de la página abierta; las páginas generales no tienen. */
+export function serviceForPath(pathname: string): ServiceKind | undefined {
+  return groups.find((g) => g.items.some((i) => pathname === i.to || pathname.startsWith(`${i.to}/`)))?.service;
 }
 
 function Group({ service, logo, items }: (typeof groups)[number]) {
@@ -113,13 +123,16 @@ function Group({ service, logo, items }: (typeof groups)[number]) {
         aria-expanded={!collapsed}
         title={collapsed ? t.nav.expand(name) : t.nav.collapse(name)}
         className={cn(
-          "flex w-full items-center gap-2 rounded-md px-3 py-1 text-[11px] font-semibold uppercase tracking-wider transition-colors hover:text-fg",
-          collapsed && holdsActive ? "text-accent" : "text-muted/80",
+          "group flex w-full items-center gap-2 rounded-md px-3 py-1 text-xs font-medium transition-colors hover:text-fg",
+          collapsed && holdsActive ? "text-accent" : "text-muted",
         )}
       >
-        <img src={logo} alt="" className="h-3.5 w-3.5" />
+        <img src={logo} alt="" className="h-4 w-4" />
         <span className="flex-1 text-left">{name}</span>
-        <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", collapsed && "-rotate-90")} aria-hidden />
+        <ChevronDown
+          className={cn("h-3.5 w-3.5 opacity-50 transition group-hover:opacity-100", collapsed && "-rotate-90")}
+          aria-hidden
+        />
       </button>
       {!collapsed && (
         <div className="mt-0.5 flex flex-col gap-0.5">
@@ -132,14 +145,31 @@ function Group({ service, logo, items }: (typeof groups)[number]) {
   );
 }
 
+/** Marca: un guion y una flecha, «dash» y «arr». */
+function Logo() {
+  return (
+    <svg viewBox="0 0 28 28" className="h-7 w-7 shrink-0" aria-hidden>
+      <rect width="28" height="28" rx="7" className="fill-brand" />
+      <path
+        d="M7 14h6M15.5 8.5 21 14l-5.5 5.5"
+        fill="none"
+        strokeWidth="2.75"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="stroke-bg"
+      />
+    </svg>
+  );
+}
+
 export function Sidebar() {
   return (
     <nav className="flex w-56 shrink-0 flex-col border-r border-border bg-surface px-3 py-4">
-      <div className="mb-6 flex items-center gap-2 px-3">
-        <div className="grid h-8 w-8 place-items-center rounded-lg bg-accent text-sm font-bold text-white">D</div>
-        <span className="text-lg font-semibold tracking-tight">{t.app.name}</span>
+      <div className="mb-5 flex items-center gap-2.5 px-2">
+        <Logo />
+        <span className="font-display text-xl font-extrabold [font-stretch:78%]">{t.app.name}</span>
       </div>
-      <div className="-mx-1 flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-1 pb-2">
+      <div className="-mx-1 flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-1 pb-2">
         <div className="flex flex-col gap-0.5">
           {general.map((i) => (
             <Item key={i.to} {...i} />
@@ -150,10 +180,11 @@ export function Sidebar() {
         ))}
       </div>
       <div className="flex flex-col gap-0.5 border-t border-border pt-2">
+        <DiskIndicator />
         <Item to="/registro" label={t.nav.logs} icon={ScrollText} />
         <Item to="/ajustes" label={t.nav.settings} icon={Settings} />
       </div>
-      <div className="mt-3 px-3 text-xs text-muted" title={t.app.version}>
+      <div className="mt-2 px-3 text-xs text-muted" title={t.app.version}>
         {versionLabel()}
       </div>
     </nav>
