@@ -47,6 +47,10 @@ crea la Release con las notas de esta página.
 - Menú Historial: lo que se está viendo ahora y el historial de reproducciones de Tracearr, con filtro por usuario, por películas o episodios y por vistas completas.
 - Calendario con la imagen de cada película o serie de fondo en su barra (el fanart, o el póster si no hay), para reconocerlas de un vistazo.
 
+### Cambiado
+- El menú lateral se agrupa por servicio (Radarr, Sonarr, qBittorrent, Prowlarr, Bazarr, Plex), con su logo.
+  Cada grupo se puede plegar y Dasharr recuerda cuáles has plegado.
+
 ### Corregido
 - Notas de FilmAffinity: se adapta la lectura a la nueva página de búsqueda de FilmAffinity, se detecta su aviso de "demasiadas consultas" y se descarta la caché anterior, que había guardado todo como "sin nota".
 - qBittorrent 5.x: se acepta la cookie de sesión `QBT_SID_<puerto>` y el acceso sin sesión.

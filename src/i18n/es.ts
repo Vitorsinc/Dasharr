@@ -11,10 +11,13 @@ export const es = {
     calendar: "Calendario",
     history: "Historial",
     plex: "Plex",
+    plexServer: "Servidor",
     trackers: "Trackers",
     indexers: "Indexadores",
     logs: "Registro",
     settings: "Ajustes",
+    expand: (name: string) => `Mostrar ${name}`,
+    collapse: (name: string) => `Ocultar ${name}`,
   },
   logs: {
     title: "Registro",

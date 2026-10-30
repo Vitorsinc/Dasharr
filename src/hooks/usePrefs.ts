@@ -12,10 +12,12 @@ export interface Prefs {
   plexNotifications: boolean;
   /** Carpeta y perfil de Sonarr con los que se añaden series y anime. */
   seriesDefaults: Partial<Record<SeriesKind, LibraryDefaults>>;
+  /** Grupos del menú lateral que el usuario ha plegado. */
+  sidebarCollapsed: string[];
 }
 
 const KEY = "dasharr.prefs";
-const DEFAULTS: Prefs = { theme: "dark", notifications: true, plexNotifications: true, seriesDefaults: {} };
+const DEFAULTS: Prefs = { theme: "dark", notifications: true, plexNotifications: true, seriesDefaults: {}, sidebarCollapsed: [] };
 const listeners = new Set<() => void>();
 let cache: Prefs | null = null;
 
