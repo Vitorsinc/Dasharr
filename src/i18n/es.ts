@@ -506,6 +506,7 @@ export const es = {
     version: (v: string) => `v${v.replace(/^v/, "")}`,
     notConfigured: "Sin configurar",
     setUpInSettings: "Añádelo en Ajustes",
+    openWeb: (name: string) => `Abrir ${name} en el navegador`,
     nowPlaying: "Reproduciendo ahora",
     recentlyAdded: "Añadido recientemente a Plex",
   },
