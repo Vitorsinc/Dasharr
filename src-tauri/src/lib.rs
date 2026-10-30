@@ -46,6 +46,7 @@ pub fn run() {
             updater::install_update,
             filmaffinity::filmaffinity_ratings,
             filmaffinity::filmaffinity_rating,
+            filmaffinity::filmaffinity_clear_queue,
             nyaa::nyaa_subtitles,
             tmdb::tmdb_has_key,
             tmdb::tmdb_save_key,

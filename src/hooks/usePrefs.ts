@@ -6,6 +6,10 @@ export interface LibraryDefaults {
   rootFolderPath?: string;
   qualityProfileId?: number;
 }
+/** Fuentes de notas que se pueden mostrar u ocultar en Ajustes. */
+export const RATING_SOURCES = ["filmaffinity", "imdb", "tmdb", "rottenTomatoes", "metacritic", "trakt", "tvdb"] as const;
+export type RatingSource = (typeof RATING_SOURCES)[number];
+
 export interface Prefs {
   theme: Theme;
   notifications: boolean;
@@ -14,6 +18,8 @@ export interface Prefs {
   seriesDefaults: Partial<Record<SeriesKind, LibraryDefaults>>;
   /** Grupos del menú lateral que el usuario ha plegado. */
   sidebarCollapsed: string[];
+  /** Notas que el usuario ha decidido no ver. */
+  hiddenRatings: RatingSource[];
   /** País (ISO 3166-1) cuyas fechas de estreno de películas se muestran. */
   releaseCountry: string;
 }
@@ -25,6 +31,7 @@ const DEFAULTS: Prefs = {
   plexNotifications: true,
   seriesDefaults: {},
   sidebarCollapsed: [],
+  hiddenRatings: [],
   releaseCountry: "ES",
 };
 const listeners = new Set<() => void>();

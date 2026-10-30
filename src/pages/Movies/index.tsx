@@ -19,6 +19,7 @@ import { faKey, movieItem } from "@/api/filmaffinity";
 import { movieReleaseDate, radarr, type Movie } from "@/api/radarr";
 import { useMovies, useRadarrMeta, useRadarrQueue, useRadarrWanted } from "@/hooks/useArr";
 import { useFaRatings } from "@/hooks/useFilmAffinity";
+import { usePrefs } from "@/hooks/usePrefs";
 import { t } from "@/i18n/es";
 import { MovieDetail } from "./MovieDetail";
 import { UpcomingMovies } from "./Upcoming";
@@ -48,7 +49,9 @@ export default function MoviesPage() {
       ),
     [movies.data, query, filter, sort],
   );
-  const faItems = useMemo(() => (tab === "library" ? items.map(movieItem) : []), [items, tab]);
+  const [{ hiddenRatings }] = usePrefs();
+  const showFa = !hiddenRatings.includes("filmaffinity");
+  const faItems = useMemo(() => (tab === "library" && showFa ? items.map(movieItem) : []), [items, tab, showFa]);
   const ratings = useFaRatings(faItems);
   const existing = useMemo(() => new Set((movies.data ?? []).map((m) => m.tmdbId)), [movies.data]);
   const selected = movies.data?.find((m) => m.id === selectedId) ?? null;
@@ -149,7 +152,7 @@ export default function MoviesPage() {
                   subtitle={String(m.year)}
                   poster={posterUrl("radarr", m)}
                   state={libState(m)}
-                  rating={ratings[faKey(movieItem(m))]?.rating}
+                  rating={showFa ? ratings[faKey(movieItem(m))]?.rating : undefined}
                   onClick={() => setSelectedId(m.id)}
                 />
               ))}

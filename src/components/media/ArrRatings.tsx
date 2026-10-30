@@ -1,4 +1,5 @@
 import type { ArrRating } from "@/api/arr";
+import { usePrefs } from "@/hooks/usePrefs";
 import { t } from "@/i18n/es";
 import { cn } from "@/lib/cn";
 import { formatCount, formatRating } from "@/lib/format";
@@ -10,8 +11,9 @@ const ORDER: Source[] = ["imdb", "tmdb", "rottenTomatoes", "metacritic", "trakt"
 
 /** Notas que trae Radarr/Sonarr (IMDb, TMDb, Rotten Tomatoes…), una casilla por fuente; sin las que vienen vacías. */
 export function ArrRatings({ ratings }: { ratings?: Partial<Record<Source, ArrRating>> }) {
+  const [{ hiddenRatings }] = usePrefs();
   const items = ORDER.flatMap((source) => {
-    const r = ratings?.[source];
+    const r = hiddenRatings.includes(source) ? undefined : ratings?.[source];
     return r?.value ? [{ source, value: r.value, votes: r.votes }] : [];
   });
   return (
