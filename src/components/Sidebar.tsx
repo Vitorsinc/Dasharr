@@ -10,7 +10,6 @@ import {
   Home,
   MonitorPlay,
   Radar,
-  ScrollText,
   Search,
   Settings,
   Tv,
@@ -181,7 +180,6 @@ export function Sidebar() {
       </div>
       <div className="flex flex-col gap-0.5 border-t border-border pt-2">
         <DiskIndicator />
-        <Item to="/registro" label={t.nav.logs} icon={ScrollText} />
         <Item to="/ajustes" label={t.nav.settings} icon={Settings} />
       </div>
       <div className="mt-2 px-3 text-xs text-muted" title={t.app.version}>

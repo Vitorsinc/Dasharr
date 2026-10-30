@@ -90,7 +90,7 @@ test("Ajustes: elige el país y guarda la clave de TMDB", async () => {
       },
     },
   });
-  renderApp("/ajustes");
+  renderApp("/ajustes/contenido");
   const section = await screen.findByRole("region", { name: "Estrenos de películas" });
   await userEvent.selectOptions(within(section).getByRole("combobox"), "US");
   await userEvent.type(within(section).getByLabelText("Clave de TMDB"), "  abc123 ");

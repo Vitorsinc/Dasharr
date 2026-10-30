@@ -41,7 +41,7 @@ export function UpcomingMovies({ movies, onOpen }: { movies: Movie[]; onOpen: (i
         {hasKey ? (
           t.premieres.countryDates(countryName(releaseCountry))
         ) : (
-          <Link to="/ajustes" className="hover:underline">
+          <Link to="/ajustes/contenido" className="hover:underline">
             {t.premieres.radarrDates}
           </Link>
         )}

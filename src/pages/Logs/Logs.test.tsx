@@ -15,6 +15,7 @@ test("muestra el registro y filtra por errores", async () => {
     },
   });
   renderApp("/registro");
+  expect(await screen.findByRole("link", { name: "Registro" })).toHaveAttribute("aria-current", "page");
   expect(await screen.findByText(/bazarr GET \/api\/system\/status/)).toBeInTheDocument();
   expect(screen.getByText("Dasharr 0.2.0 iniciado")).toBeInTheDocument();
   await userEvent.click(screen.getByRole("tab", { name: "Errores" }));
