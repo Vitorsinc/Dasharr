@@ -1,6 +1,7 @@
 import { ExternalLink } from "lucide-react";
 import type { FaItem } from "@/api/filmaffinity";
 import { useFaRating } from "@/hooks/useFilmAffinity";
+import { usePrefs } from "@/hooks/usePrefs";
 import { cn } from "@/lib/cn";
 import { formatCount, formatRating } from "@/lib/format";
 import { t } from "@/i18n/es";
@@ -28,7 +29,10 @@ export function FaBadge({ rating }: { rating?: number | null }) {
 
 /** Nota y enlace en la ficha de una película o serie. */
 export function FaInfo({ item }: { item: FaItem }) {
-  const q = useFaRating(item);
+  const [{ hiddenRatings }] = usePrefs();
+  const hidden = hiddenRatings.includes("filmaffinity");
+  const q = useFaRating(hidden ? null : item);
+  if (hidden) return null;
   const m = q.data;
   let value: React.ReactNode;
   if (q.isLoading) value = <span className="text-muted">{t.filmaffinity.loading}</span>;

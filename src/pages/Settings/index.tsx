@@ -9,7 +9,8 @@ import { t } from "@/i18n/es";
 import { SERVICE_KINDS } from "@/lib/types";
 import { useSettings } from "@/hooks/useSettings";
 import { useConnectionStates } from "@/hooks/useConnectionStates";
-import { usePrefs, type Theme } from "@/hooks/usePrefs";
+import { faClearQueue } from "@/api/filmaffinity";
+import { RATING_SOURCES, usePrefs, type RatingSource, type Theme } from "@/hooks/usePrefs";
 import { ServiceForm } from "./ServiceForm";
 import { parseConfigFile } from "@/lib/importConfig";
 import { checkUpdate, saveService } from "@/lib/tauri";
@@ -110,6 +111,25 @@ function Preferences() {
           <Toggle label={t.settings.autostart} checked={autostart} onChange={toggleAutostart} />
         </div>
       )}
+    </section>
+  );
+}
+
+function RatingsSettings() {
+  const [prefs, setPrefs] = usePrefs();
+  const label = (s: RatingSource) => (s === "filmaffinity" ? t.filmaffinity.label : t.arrRatings[s]);
+  const toggle = (s: RatingSource, show: boolean) => {
+    setPrefs({ hiddenRatings: show ? prefs.hiddenRatings.filter((h) => h !== s) : [...prefs.hiddenRatings, s] });
+    if (s === "filmaffinity" && !show) faClearQueue().catch(() => {});
+  };
+  return (
+    <section className="card grid divide-border sm:grid-cols-2" aria-label={t.settings.ratings}>
+      {RATING_SOURCES.map((s) => (
+        <div key={s} className="flex items-center justify-between gap-4 p-4">
+          <span className="text-sm">{label(s)}</span>
+          <Toggle label={label(s)} checked={!prefs.hiddenRatings.includes(s)} onChange={(v) => toggle(s, v)} />
+        </div>
+      ))}
     </section>
   );
 }
@@ -224,6 +244,11 @@ export default function SettingsPage() {
           <p className="text-sm text-muted">{t.settings.seriesDefaultsHint}</p>
         </div>
         <SeriesDefaults />
+        <div className="mt-4">
+          <h2 className="text-lg font-semibold">{t.settings.ratings}</h2>
+          <p className="text-sm text-muted">{t.settings.ratingsHint}</p>
+        </div>
+        <RatingsSettings />
         <h2 className="mt-4 text-lg font-semibold">{t.settings.preferences}</h2>
         <Preferences />
         <h2 className="mt-4 text-lg font-semibold">{t.updates.title}</h2>

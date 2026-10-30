@@ -11,6 +11,7 @@ crea la Release con las notas de esta página.
 ## [Sin publicar]
 
 ### Añadido
+- Ajustes → Notas: elige qué notas se muestran (FilmAffinity, IMDb, TMDb, Rotten Tomatoes, Metacritic, Trakt, TVDB). Si se quita FilmAffinity, deja de consultarse.
 - Las fichas muestran también las notas que traen Radarr (IMDb, TMDb, Rotten Tomatoes, Metacritic, Trakt) y Sonarr (TVDB), junto a la de FilmAffinity.
 - Inicio con el estado de cada servicio, descargas activas y próximos estrenos.
 - Películas (Radarr) y Series (Sonarr): biblioteca, fichas, añadir, buscar, monitorizar, borrar y cola.

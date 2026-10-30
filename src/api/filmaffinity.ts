@@ -36,6 +36,9 @@ export const seriesItem = (s: Series): FaItem => ({ kind: "series", id: s.tvdbId
 /** Notas ya guardadas; las que falten se piden en segundo plano y llegan con `onFaRating`. */
 export const faRatings = (items: FaItem[]) => invoke<Record<string, FaRating>>("filmaffinity_ratings", { items });
 
+/** Deja de consultar en segundo plano lo que quedaba pendiente. */
+export const faClearQueue = () => invoke<void>("filmaffinity_clear_queue");
+
 /** Nota de una ficha, consultada al momento si no está guardada. */
 export const faRating = (item: FaItem) => invoke<FaRating | null>("filmaffinity_rating", { item });
 

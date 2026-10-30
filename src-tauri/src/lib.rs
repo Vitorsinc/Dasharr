@@ -45,6 +45,7 @@ pub fn run() {
             updater::install_update,
             filmaffinity::filmaffinity_ratings,
             filmaffinity::filmaffinity_rating,
+            filmaffinity::filmaffinity_clear_queue,
             nyaa::nyaa_subtitles,
         ])
         .setup(|app| {
