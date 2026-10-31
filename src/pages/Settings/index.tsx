@@ -14,11 +14,11 @@ import { faClearQueue } from "@/api/filmaffinity";
 import { RATING_SOURCES, usePrefs, type RatingSource, type Theme } from "@/hooks/usePrefs";
 import { ServiceForm } from "./ServiceForm";
 import { parseConfigFile } from "@/lib/importConfig";
-import { checkUpdate, openExternal, saveService } from "@/lib/tauri";
+import { openExternal, saveService } from "@/lib/tauri";
 import { tmdbSaveKey } from "@/api/tmdb";
 import { useTmdbHasKey } from "@/hooks/useMovieReleases";
 import { COUNTRIES } from "@/lib/countries";
-import { notifyUpdate } from "@/hooks/useUpdates";
+import { runUpdateCheck, startUpdate, useUpdateState } from "@/hooks/useUpdates";
 import { versionLabel } from "@/lib/version";
 import { errorMessage } from "@/lib/errors";
 import { settingsKey } from "@/hooks/useSettings";
@@ -296,29 +296,42 @@ function MovieReleasesSettings() {
 }
 
 function Updates() {
-  const [state, setState] = useState<"idle" | "checking" | "latest">("idle");
-  async function check() {
-    setState("checking");
-    try {
-      const u = await checkUpdate();
-      if (u) {
-        setState("idle");
-        notifyUpdate(u);
-      } else setState("latest");
-    } catch (e) {
-      setState("idle");
-      toast.error(errorMessage(e));
-    }
-  }
+  const [prefs, setPrefs] = usePrefs();
+  const { available, checking, installing, upToDate } = useUpdateState();
   return (
-    <section className="card flex items-center justify-between gap-4 p-4">
-      <div className="text-sm">
-        Dasharr {versionLabel()}
-        {state === "latest" && <span className="ml-3 text-muted">{t.updates.upToDate}</span>}
+    <section className="card divide-y divide-border" aria-label={t.updates.title}>
+      <div className="flex items-center justify-between gap-4 p-4">
+        <div className="text-sm">
+          Dasharr {versionLabel()}
+          {upToDate && <span className="ml-3 text-muted">{t.updates.upToDate}</span>}
+        </div>
+        <button className="btn-outline" onClick={() => void runUpdateCheck({ manual: true })} disabled={checking || installing}>
+          {checking ? t.updates.checking : t.updates.check}
+        </button>
       </div>
-      <button className="btn-outline" onClick={check} disabled={state === "checking"}>
-        {state === "checking" ? t.updates.checking : t.updates.check}
-      </button>
+      {available && (
+        <div className="flex flex-col gap-3 p-4">
+          <div className="flex items-center justify-between gap-4">
+            <span className="text-sm font-medium text-accent">{t.updates.newVersion(available.version)}</span>
+            <button className="btn-primary" onClick={() => void startUpdate(available)} disabled={installing}>
+              {installing ? t.updates.installing(available.version) : t.updates.installNow}
+            </button>
+          </div>
+          {available.notes.trim() && (
+            <details className="text-sm">
+              <summary className="cursor-pointer text-muted hover:text-fg">{t.updates.notes}</summary>
+              <pre className="mt-2 max-h-64 overflow-y-auto whitespace-pre-wrap font-sans text-muted">{available.notes.trim()}</pre>
+            </details>
+          )}
+        </div>
+      )}
+      <div className="flex items-center justify-between gap-4 p-4">
+        <div className="flex flex-col gap-1">
+          <span className="text-sm">{t.updates.auto}</span>
+          <span className="text-xs text-muted">{t.updates.autoHint}</span>
+        </div>
+        <Toggle label={t.updates.auto} checked={prefs.autoUpdate} onChange={(v) => setPrefs({ autoUpdate: v })} />
+      </div>
     </section>
   );
 }

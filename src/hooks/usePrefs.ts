@@ -24,6 +24,8 @@ export interface Prefs {
   releaseCountry: string;
   /** Cómo se ve la semana en el calendario. */
   weekStyle: "agenda" | "posters" | "strip";
+  /** Instalar sola la versión nueva al encontrarla (avisando antes unos segundos). */
+  autoUpdate: boolean;
 }
 
 const KEY = "dasharr.prefs";
@@ -36,6 +38,7 @@ const DEFAULTS: Prefs = {
   hiddenRatings: [],
   releaseCountry: "ES",
   weekStyle: "agenda",
+  autoUpdate: true,
 };
 const listeners = new Set<() => void>();
 let cache: Prefs | null = null;

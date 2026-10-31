@@ -5,8 +5,10 @@ import path from "node:path";
 import { readFileSync } from "node:fs";
 
 const pkg = JSON.parse(readFileSync(path.resolve(__dirname, "package.json"), "utf8"));
-// En GitHub Actions: las builds de una etiqueta v* son versiones publicadas; el resto, builds de desarrollo con su commit.
-const build = process.env.GITHUB_REF_TYPE === "tag" ? "" : (process.env.GITHUB_SHA ?? "local").slice(0, 7);
+// En GitHub Actions: las builds de una etiqueta v* o del flujo Release (DASHARR_RELEASE) son versiones publicadas;
+// el resto, builds de desarrollo con su commit.
+const isRelease = process.env.GITHUB_REF_TYPE === "tag" || process.env.DASHARR_RELEASE === "1";
+const build = isRelease ? "" : (process.env.GITHUB_SHA ?? "local").slice(0, 7);
 
 const host = process.env.TAURI_DEV_HOST;
 
