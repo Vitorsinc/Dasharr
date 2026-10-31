@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Search } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog } from "@/components/Dialog";
@@ -7,6 +7,7 @@ import { t } from "@/i18n/es";
 import { errorMessage } from "@/lib/errors";
 import type { QualityProfile, RootFolder } from "@/api/arr";
 import { formatBytes } from "@/lib/format";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { Poster } from "./PosterCard";
 
 export interface LookupItem {
@@ -86,21 +87,46 @@ export function AddMediaDialog<T>({
       setPicked(null);
       setResults(null);
       setTerm("");
+      requestId.current++;
+      lastQuery.current = "";
     }
   }, [open]);
 
-  async function doLookup(e?: React.FormEvent) {
-    e?.preventDefault();
-    if (!term.trim()) return;
-    setSearching(true);
-    setPicked(null);
-    try {
-      setResults(await lookup(term.trim()));
-    } catch (err) {
-      toast.error(errorMessage(err));
-    } finally {
+  // Como en Radarr/Sonarr: busca solo mientras se escribe (con una pequeña pausa),
+  // y descarta respuestas de búsquedas anteriores que lleguen tarde.
+  const debouncedTerm = useDebouncedValue(term.trim(), 400);
+  const lookupRef = useRef(lookup);
+  lookupRef.current = lookup;
+  const requestId = useRef(0);
+  const lastQuery = useRef("");
+
+  async function runLookup(q: string) {
+    const id = ++requestId.current;
+    lastQuery.current = q;
+    if (q.length < 2) {
+      setResults(null);
       setSearching(false);
+      return;
     }
+    setSearching(true);
+    try {
+      const r = await lookupRef.current(q);
+      if (id === requestId.current) setResults(r);
+    } catch (err) {
+      if (id === requestId.current) toast.error(errorMessage(err));
+    } finally {
+      if (id === requestId.current) setSearching(false);
+    }
+  }
+
+  useEffect(() => {
+    if (open && debouncedTerm !== lastQuery.current) void runLookup(debouncedTerm);
+  }, [debouncedTerm, open]);
+
+  function doLookup(e?: React.FormEvent) {
+    e?.preventDefault();
+    setPicked(null);
+    void runLookup(term.trim());
   }
 
   async function add() {
