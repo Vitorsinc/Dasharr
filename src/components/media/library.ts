@@ -1,5 +1,9 @@
+import type { RatingSource } from "@/hooks/usePrefs";
+
 export type LibFilter = "all" | "downloaded" | "missing" | "monitored";
-export type LibSort = "title" | "added" | "year";
+export type LibSort = "title" | "added" | "year" | `rating:${RatingSource}`;
+/** Notas de un elemento por fuente (Rotten Tomatoes y Metacritic en %, el resto sobre 10). */
+export type Scores = Partial<Record<RatingSource, number>>;
 export type LibState = "downloaded" | "missing" | "unmonitored" | "partial";
 
 export interface LibItem {
@@ -9,6 +13,7 @@ export interface LibItem {
   monitored: boolean;
   downloaded: boolean;
   missing: boolean;
+  scores?: Scores;
 }
 
 const collator = new Intl.Collator("es", { sensitivity: "base", numeric: true });
@@ -29,12 +34,23 @@ export function filterSort<T extends LibItem>(items: T[], o: { query: string; fi
         return true;
     }
   });
-  const cmp: Record<LibSort, (a: T, b: T) => number> = {
-    title: (a, b) => collator.compare(a.title, b.title),
+  const byTitle = (a: T, b: T) => collator.compare(a.title, b.title);
+  if (o.sort.startsWith("rating:")) {
+    const source = o.sort.slice("rating:".length) as RatingSource;
+    // De mayor a menor nota; las que aún no tienen nota, al final por título.
+    return out.sort((a, b) => {
+      const x = a.scores?.[source];
+      const y = b.scores?.[source];
+      if (x == null || y == null) return x == null && y == null ? byTitle(a, b) : x == null ? 1 : -1;
+      return y - x || byTitle(a, b);
+    });
+  }
+  const cmp: Record<"title" | "added" | "year", (a: T, b: T) => number> = {
+    title: byTitle,
     added: (a, b) => (b.added ?? "").localeCompare(a.added ?? ""),
     year: (a, b) => (b.year ?? 0) - (a.year ?? 0),
   };
-  return out.sort(cmp[o.sort]);
+  return out.sort(cmp[o.sort as "title" | "added" | "year"]);
 }
 
 export function libState(i: LibItem): LibState {
@@ -42,4 +58,18 @@ export function libState(i: LibItem): LibState {
   if (!i.monitored) return "unmonitored";
   if (i.missing) return "missing";
   return "partial";
+}
+
+/** Notas por las que se puede ordenar cada biblioteca. */
+export const MOVIE_SOURCES: RatingSource[] = ["filmaffinity", "imdb", "tmdb", "rottenTomatoes", "metacritic", "trakt"];
+export const SERIES_SOURCES: RatingSource[] = ["filmaffinity", "tvdb"];
+
+/** Si la nota del orden elegido se ha ocultado en Ajustes, se vuelve a ordenar por título. */
+export function isAvailable(sort: LibSort, sources: RatingSource[]) {
+  return !sort.startsWith("rating:") || sources.includes(sort.slice("rating:".length) as RatingSource);
+}
+
+/** Orden en que se piden las notas de FilmAffinity: el de la lista, salvo al ordenar por nota (por título). */
+export function fetchOrder(sort: LibSort): LibSort {
+  return sort.startsWith("rating:") ? "title" : sort;
 }

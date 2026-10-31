@@ -10,6 +10,10 @@ crea la Release con las notas de esta página.
 
 ## [Sin publicar]
 
+### Añadido
+- Las portadas de Películas, Series y Anime muestran las notas activadas en Ajustes → Notas (FilmAffinity, IMDb, TMDb, Rotten Tomatoes, Metacritic, Trakt, TVDB).
+- Ordenar la biblioteca por cualquiera de esas notas, de mayor a menor; lo que aún no tiene nota va al final.
+
 ## [0.1.0] - 2026-10-31
 
 ### Añadido

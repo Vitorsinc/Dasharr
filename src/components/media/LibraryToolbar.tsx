@@ -1,7 +1,9 @@
 import { Search } from "lucide-react";
 import { Segmented } from "@/components/ui";
 import { t } from "@/i18n/es";
+import type { RatingSource } from "@/hooks/usePrefs";
 import type { LibFilter, LibSort } from "./library";
+import { ratingName } from "./RatingBadges";
 
 export function LibraryToolbar({
   query,
@@ -11,6 +13,7 @@ export function LibraryToolbar({
   sort,
   onSort,
   series,
+  ratingSources = [],
 }: {
   query: string;
   onQuery: (v: string) => void;
@@ -19,6 +22,8 @@ export function LibraryToolbar({
   sort: LibSort;
   onSort: (v: LibSort) => void;
   series?: boolean;
+  /** Notas visibles por las que se puede ordenar. */
+  ratingSources?: RatingSource[];
 }) {
   return (
     <div className="flex flex-wrap items-center gap-3">
@@ -49,6 +54,11 @@ export function LibraryToolbar({
           <option value="title">{t.library.sortTitle}</option>
           <option value="added">{t.library.sortAdded}</option>
           <option value="year">{t.library.sortYear}</option>
+          {ratingSources.map((s) => (
+            <option key={s} value={`rating:${s}`}>
+              {t.library.sortRating(ratingName(s))}
+            </option>
+          ))}
         </select>
       </label>
     </div>
