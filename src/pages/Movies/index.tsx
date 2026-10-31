@@ -8,16 +8,23 @@ import { AddMediaDialog } from "@/components/media/AddMediaDialog";
 import { LibraryToolbar } from "@/components/media/LibraryToolbar";
 import { PosterCard, PosterGrid } from "@/components/media/PosterCard";
 import { QueueList } from "@/components/media/QueueList";
+import { ReleaseSearchDialog } from "@/components/media/ReleaseSearchDialog";
 import { filterSort, libState, type LibFilter, type LibSort } from "@/components/media/library";
-import { posterUrl } from "@/api/arr";
+import { posterUrl, type WantedKind } from "@/api/arr";
+import { WantedList } from "@/components/media/WantedList";
+import { toast } from "sonner";
+import { errorMessage } from "@/lib/errors";
+import { formatDate } from "@/lib/format";
 import { faKey, movieItem } from "@/api/filmaffinity";
-import { radarr, type Movie } from "@/api/radarr";
-import { useMovies, useRadarrMeta, useRadarrQueue } from "@/hooks/useArr";
+import { movieReleaseDate, radarr, type Movie } from "@/api/radarr";
+import { useMovies, useRadarrMeta, useRadarrQueue, useRadarrWanted } from "@/hooks/useArr";
 import { useFaRatings } from "@/hooks/useFilmAffinity";
+import { usePrefs } from "@/hooks/usePrefs";
 import { t } from "@/i18n/es";
 import { MovieDetail } from "./MovieDetail";
+import { UpcomingMovies } from "./Upcoming";
 
-type Tab = "library" | "queue";
+type Tab = "library" | "upcoming" | "wanted" | "queue";
 
 export default function MoviesPage() {
   const qc = useQueryClient();
@@ -25,11 +32,14 @@ export default function MoviesPage() {
   const movies = useMovies();
   const queue = useRadarrQueue(tab === "queue");
   const meta = useRadarrMeta();
+  const [wantedKind, setWantedKind] = useState<WantedKind>("missing");
+  const wanted = useRadarrWanted(wantedKind, tab === "wanted");
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<LibFilter>("all");
   const [sort, setSort] = useState<LibSort>("title");
   const [adding, setAdding] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [manualFor, setManualFor] = useState<Movie | null>(null);
 
   const items = useMemo(
     () =>
@@ -39,7 +49,9 @@ export default function MoviesPage() {
       ),
     [movies.data, query, filter, sort],
   );
-  const faItems = useMemo(() => (tab === "library" ? items.map(movieItem) : []), [items, tab]);
+  const [{ hiddenRatings }] = usePrefs();
+  const showFa = !hiddenRatings.includes("filmaffinity");
+  const faItems = useMemo(() => (tab === "library" && showFa ? items.map(movieItem) : []), [items, tab, showFa]);
   const ratings = useFaRatings(faItems);
   const existing = useMemo(() => new Set((movies.data ?? []).map((m) => m.tmdbId)), [movies.data]);
   const selected = movies.data?.find((m) => m.id === selectedId) ?? null;
@@ -61,6 +73,8 @@ export default function MoviesPage() {
             onChange={setTab}
             options={[
               { value: "library", label: t.library.library },
+              { value: "upcoming", label: t.premieres.tab },
+              { value: "wanted", label: t.wanted.tab },
               { value: "queue", label: t.library.queue },
             ]}
           />
@@ -70,7 +84,49 @@ export default function MoviesPage() {
         </>
       }
     >
-      {tab === "queue" ? (
+      {tab === "upcoming" ? (
+        movies.isLoading || movies.configured === undefined ? (
+          <Loading />
+        ) : movies.isError ? (
+          <ErrorPanel service="radarr" error={movies.error} onRetry={() => movies.refetch()} />
+        ) : (
+          <UpcomingMovies movies={movies.data ?? []} onOpen={setSelectedId} />
+        )
+      ) : tab === "wanted" ? (
+        <WantedList
+          service="radarr"
+          kind={wantedKind}
+          onKind={setWantedKind}
+          isLoading={wanted.isLoading}
+          error={wanted.error}
+          onRetry={() => wanted.refetch()}
+          searchAllLabel={t.wanted.searchAll}
+          onSearchAll={() =>
+            radarr.searchWanted(wantedKind).then(
+              () => toast.success(t.wanted.searchAllStarted),
+              (e) => toast.error(errorMessage(e, "radarr")),
+            )
+          }
+          rows={(wanted.data ?? []).map((m) => ({
+            key: m.id,
+            title: `${m.title} (${m.year})`,
+            subtitle:
+              wantedKind === "cutoff"
+                ? t.wanted.current(m.movieFile?.quality?.quality?.name ?? "?")
+                : movieReleaseDate(m)
+                  ? formatDate(movieReleaseDate(m))
+                  : undefined,
+            poster: posterUrl("radarr", m, 250),
+            onOpen: () => setSelectedId(m.id),
+            onAuto: () =>
+              radarr.search([m.id]).then(
+                () => toast.success(t.library.searchStarted, { description: m.title }),
+                (e) => toast.error(errorMessage(e, "radarr")),
+              ),
+            onManual: () => setManualFor(m),
+          }))}
+        />
+      ) : tab === "queue" ? (
         queue.isLoading ? (
           <Loading />
         ) : queue.isError ? (
@@ -96,7 +152,7 @@ export default function MoviesPage() {
                   subtitle={String(m.year)}
                   poster={posterUrl("radarr", m)}
                   state={libState(m)}
-                  rating={ratings[faKey(movieItem(m))]?.rating}
+                  rating={showFa ? ratings[faKey(movieItem(m))]?.rating : undefined}
                   onClick={() => setSelectedId(m.id)}
                 />
               ))}
@@ -120,10 +176,18 @@ export default function MoviesPage() {
         })}
         profiles={meta.profiles.data ?? []}
         rootFolders={meta.roots.data ?? []}
+        manualHint={t.library.addManualMovieHint}
         onAdd={async (m, o) => {
-          await radarr.addMovie(m, { ...o, monitored: true });
+          const added = await radarr.addMovie(m, { ...o, monitored: true });
           await qc.invalidateQueries({ queryKey: ["radarr"] });
+          if (o.searchMode === "manual") setManualFor(added);
         }}
+      />
+      <ReleaseSearchDialog
+        service="radarr"
+        query={manualFor ? { movieId: manualFor.id } : null}
+        what={manualFor?.title ?? ""}
+        onClose={() => setManualFor(null)}
       />
     </Page>
   );

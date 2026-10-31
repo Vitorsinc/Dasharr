@@ -87,7 +87,7 @@ export function AddTorrentDialog({
             {t.common.cancel}
           </button>
           <button className="btn-primary" disabled={busy || (!urls.trim() && !file)} onClick={submit}>
-            {busy && <Spinner className="h-4 w-4 text-white" />}
+            {busy && <Spinner className="h-4 w-4 text-current" />}
             {t.common.add}
           </button>
         </div>

@@ -61,16 +61,87 @@ export function commandSucceeded(c: CommandStatus) {
   return c.status === "completed" && c.result !== "unsuccessful";
 }
 
-/** Póster: la URL pública (TMDB/TVDB) si existe; si no, la imagen local a través del protocolo autenticado. */
-export function posterUrl(service: ArrService, item: { id?: number; images?: ArrImage[] }, size = 500): string | undefined {
-  const img = item.images?.find((i) => i.coverType === "poster");
+/** Imagen de un tipo (póster, fanart…): la URL pública (TMDB/TVDB) si existe; si no, la local a través del protocolo autenticado. */
+export function coverUrl(
+  service: ArrService,
+  item: { id?: number; images?: ArrImage[] },
+  coverType: "poster" | "fanart",
+  size: number,
+): string | undefined {
+  const img = item.images?.find((i) => i.coverType === coverType);
   if (img?.remoteUrl) return img.remoteUrl;
-  if (item.id != null && img) return imageUrl(service, `/api/v3/mediacover/${item.id}/poster-${size}.jpg`);
+  if (item.id != null && img) return imageUrl(service, `/api/v3/mediacover/${item.id}/${coverType}-${size}.jpg`);
   return undefined;
+}
+
+export function posterUrl(service: ArrService, item: { id?: number; images?: ArrImage[] }, size = 500): string | undefined {
+  return coverUrl(service, item, "poster", size);
+}
+
+/** Fondo horizontal: el fanart si lo hay; si no, el póster. */
+export function backdropUrl(service: ArrService, item: { id?: number; images?: ArrImage[] }): string | undefined {
+  return coverUrl(service, item, "fanart", 360) ?? posterUrl(service, item, 250);
+}
+
+export interface Paged<T> {
+  page: number;
+  pageSize: number;
+  totalRecords: number;
+  records: T[];
+}
+
+/** "missing" = monitorizado sin archivo; "cutoff" = tiene archivo pero no llega a la calidad objetivo del perfil. */
+export type WantedKind = "missing" | "cutoff";
+
+/** Máximo que pide Dasharr de una vez a las listas paginadas (buscadas, historial). */
+export const PAGE_MAX = 2000;
+
+export interface HistoryRecord {
+  id: number;
+  eventType: string;
+  date: string;
+  sourceTitle: string;
+  quality?: { quality?: { name?: string } };
+  data?: Record<string, string | undefined>;
+  movieId?: number;
+  seriesId?: number;
+  episodeId?: number;
+  episode?: { seasonNumber: number; episodeNumber: number; title: string };
+}
+
+export interface HealthItem {
+  source: string;
+  type: "ok" | "notice" | "warning" | "error";
+  message: string;
+  wikiUrl?: string;
+}
+
+/** Carpeta nueva de un elemento al cambiar de carpeta raíz: misma subcarpeta dentro de la raíz nueva. */
+export function movePath(currentPath: string, newRoot: string) {
+  const name =
+    currentPath
+      .replace(/[\\/]+$/, "")
+      .split(/[\\/]/)
+      .pop() ?? "";
+  const sep = newRoot.includes("\\") && !newRoot.includes("/") ? "\\" : "/";
+  return `${newRoot.replace(/[\\/]+$/, "")}${sep}${name}`;
 }
 
 export function arrCommon(service: ArrService) {
   return {
+    getHealth: () => apiRequest<HealthItem[]>(service, { path: "/api/v3/health" }),
+    getWanted: <T>(kind: WantedKind) =>
+      apiRequest<Paged<T>>(service, {
+        path: `/api/v3/wanted/${kind}`,
+        query: {
+          page: 1,
+          pageSize: PAGE_MAX,
+          monitored: true,
+          ...(service === "sonarr"
+            ? { includeSeries: true, includeEpisodeFile: true, sortKey: "episodes.airDateUtc", sortDirection: "descending" }
+            : {}),
+        },
+      }),
     getQualityProfiles: () => apiRequest<QualityProfile[]>(service, { path: "/api/v3/qualityprofile" }),
     getRootFolders: () => apiRequest<RootFolder[]>(service, { path: "/api/v3/rootfolder" }),
     command: (body: Record<string, unknown>) => apiRequest<unknown>(service, { method: "POST", path: "/api/v3/command", json: body }),
@@ -115,6 +186,8 @@ export interface Release {
   publishDate?: string;
   protocol: "torrent" | "usenet";
   quality?: { quality?: { name?: string } };
+  /** Peso de la calidad según el perfil; lo usan los *arr para ordenar por calidad. */
+  qualityWeight?: number;
   customFormatScore?: number;
   rejected?: boolean;
   rejections?: string[];
@@ -134,23 +207,65 @@ export function grabRelease(service: ArrService, r: Pick<Release, "guid" | "inde
   return apiRequest<unknown>(service, { method: "POST", path: "/api/v3/release", json: { guid: r.guid, indexerId: r.indexerId } });
 }
 
-export type ReleaseSort = "default" | "seeders" | "size" | "age" | "score";
+export type ReleaseSortKey = "default" | "title" | "indexer" | "quality" | "size" | "seeders" | "age" | "score";
+export type SortDir = "asc" | "desc";
+export interface ReleaseSort {
+  key: ReleaseSortKey;
+  dir: SortDir;
+}
 
-export function sortReleases(list: Release[], by: ReleaseSort): Release[] {
+/** Sentido con el que empieza cada columna al pulsarla, como en Radarr/Sonarr. */
+export const releaseSortDefaultDir: Record<ReleaseSortKey, SortDir> = {
+  default: "asc",
+  title: "asc",
+  indexer: "asc",
+  quality: "desc",
+  size: "desc",
+  seeders: "desc",
+  age: "asc",
+  score: "desc",
+};
+
+const ageOf = (r: Release) => r.ageHours ?? (r.age != null ? r.age * 24 : Number.MAX_SAFE_INTEGER);
+const releaseValue: Record<Exclude<ReleaseSortKey, "default">, (r: Release) => number | string> = {
+  title: (r) => r.title.toLowerCase(),
+  indexer: (r) => r.indexer.toLowerCase(),
+  quality: (r) => r.qualityWeight ?? 0,
+  size: (r) => r.size,
+  seeders: (r) => r.seeders ?? -1,
+  age: ageOf,
+  score: (r) => r.customFormatScore ?? 0,
+};
+
+export function sortReleases(list: Release[], sort: ReleaseSort): Release[] {
   const out = [...list];
-  switch (by) {
-    case "seeders":
-      return out.sort((a, b) => (b.seeders ?? -1) - (a.seeders ?? -1));
-    case "size":
-      return out.sort((a, b) => b.size - a.size);
-    case "age":
-      return out.sort((a, b) => (a.ageHours ?? a.age ?? 0) - (b.ageHours ?? b.age ?? 0));
-    case "score":
-      return out.sort((a, b) => (b.customFormatScore ?? 0) - (a.customFormatScore ?? 0));
-    default:
-      // Orden del *arr (ya prioriza calidad y puntuación), con las rechazadas al final.
-      return out.sort((a, b) => Number(!!a.rejected) - Number(!!b.rejected));
+  if (sort.key === "default") {
+    // Orden del *arr (ya prioriza calidad y puntuación), con las rechazadas al final.
+    return out.sort((a, b) => Number(!!a.rejected) - Number(!!b.rejected));
   }
+  const value = releaseValue[sort.key];
+  const sign = sort.dir === "asc" ? 1 : -1;
+  return out.sort((a, b) => {
+    const x = value(a);
+    const y = value(b);
+    return sign * (typeof x === "string" ? x.localeCompare(y as string) : x - (y as number));
+  });
+}
+
+/**
+ * Filtro por palabras sobre el título y el indexador: todas las palabras deben aparecer
+ * y las que empiezan por «-» excluyen (p. ej. `1080p x265 -hdr`).
+ */
+export function filterReleases(list: Release[], text: string): Release[] {
+  const words = text
+    .toLowerCase()
+    .split(/\s+/)
+    .filter((w) => w && w !== "-");
+  if (!words.length) return list;
+  return list.filter((r) => {
+    const hay = `${r.title} ${r.indexer}`.toLowerCase();
+    return words.every((w) => (w.startsWith("-") ? !hay.includes(w.slice(1)) : hay.includes(w)));
+  });
 }
 
 export interface ManualImportItem {
@@ -210,4 +325,10 @@ export function runManualImport(
       })),
     },
   });
+}
+
+/** Nota que trae Radarr/Sonarr de su proveedor: sobre 10 (IMDb, TMDb, Trakt, TVDB) o sobre 100 (Metacritic, Rotten Tomatoes). */
+export interface ArrRating {
+  value?: number;
+  votes?: number;
 }

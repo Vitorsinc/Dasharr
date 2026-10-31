@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Search } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog } from "@/components/Dialog";
-import { Empty, Spinner } from "@/components/ui";
+import { Empty, Segmented, Spinner } from "@/components/ui";
 import { t } from "@/i18n/es";
 import { errorMessage } from "@/lib/errors";
 import type { QualityProfile, RootFolder } from "@/api/arr";
@@ -20,10 +20,14 @@ export interface LookupItem {
   tag?: string;
 }
 
+export type AddSearchMode = "none" | "auto" | "manual";
+
 export interface AddOptions {
   qualityProfileId: number;
   rootFolderPath: string;
+  /** Búsqueda automática al añadir (la manual la abre la página después de añadir). */
   search: boolean;
+  searchMode: AddSearchMode;
 }
 
 /** Diálogo genérico para buscar y añadir películas o series. */
@@ -38,6 +42,7 @@ export function AddMediaDialog<T>({
   extra,
   preset,
   onPick,
+  manualHint,
   onAdd,
 }: {
   open: boolean;
@@ -51,6 +56,8 @@ export function AddMediaDialog<T>({
   /** Perfil y carpeta a preseleccionar; se aplican al elegir un resultado y cada vez que cambian. */
   preset?: Partial<Pick<AddOptions, "qualityProfileId" | "rootFolderPath">>;
   onPick?: (r: T) => void;
+  /** Texto bajo el selector cuando se elige búsqueda manual. */
+  manualHint: string;
   onAdd: (r: T, o: AddOptions) => Promise<void>;
 }) {
   const [term, setTerm] = useState("");
@@ -59,7 +66,7 @@ export function AddMediaDialog<T>({
   const [picked, setPicked] = useState<T | null>(null);
   const [profileId, setProfileId] = useState<number | "">("");
   const [root, setRoot] = useState("");
-  const [search, setSearch] = useState(true);
+  const [searchMode, setSearchMode] = useState<AddSearchMode>("auto");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -100,7 +107,7 @@ export function AddMediaDialog<T>({
     if (!picked || profileId === "" || !root) return;
     setBusy(true);
     try {
-      await onAdd(picked, { qualityProfileId: profileId, rootFolderPath: root, search });
+      await onAdd(picked, { qualityProfileId: profileId, rootFolderPath: root, search: searchMode === "auto", searchMode });
       toast.success(t.library.added(toItem(picked).title));
       onOpenChange(false);
     } catch (err) {
@@ -128,7 +135,7 @@ export function AddMediaDialog<T>({
               />
             </div>
             <button className="btn-primary" type="submit" disabled={searching}>
-              {searching && <Spinner className="h-4 w-4 text-white" />}
+              {searching && <Spinner className="h-4 w-4 text-current" />}
               {t.common.search}
             </button>
           </form>
@@ -192,16 +199,26 @@ export function AddMediaDialog<T>({
               </select>
             </label>
             {extra}
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={search} onChange={(e) => setSearch(e.target.checked)} />
-              {t.library.searchOnAdd}
-            </label>
+            <div>
+              <span className="label">{t.library.searchOnAdd}</span>
+              <Segmented<AddSearchMode>
+                label={t.library.searchOnAdd}
+                value={searchMode}
+                onChange={setSearchMode}
+                options={[
+                  { value: "none", label: t.library.addNoSearch },
+                  { value: "auto", label: t.library.searchAuto },
+                  { value: "manual", label: t.releases.manual },
+                ]}
+              />
+              {searchMode === "manual" && <p className="mt-1.5 text-xs text-muted">{manualHint}</p>}
+            </div>
             <div className="flex justify-end gap-2">
               <button className="btn-ghost" onClick={() => setPicked(null)}>
                 {t.common.cancel}
               </button>
               <button className="btn-primary" onClick={add} disabled={busy || profileId === "" || !root}>
-                {busy && <Spinner className="h-4 w-4 text-white" />}
+                {busy && <Spinner className="h-4 w-4 text-current" />}
                 {t.common.add}
               </button>
             </div>

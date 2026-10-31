@@ -6,16 +6,37 @@ export interface LibraryDefaults {
   rootFolderPath?: string;
   qualityProfileId?: number;
 }
+/** Fuentes de notas que se pueden mostrar u ocultar en Ajustes. */
+export const RATING_SOURCES = ["filmaffinity", "imdb", "tmdb", "rottenTomatoes", "metacritic", "trakt", "tvdb"] as const;
+export type RatingSource = (typeof RATING_SOURCES)[number];
+
 export interface Prefs {
   theme: Theme;
   notifications: boolean;
   plexNotifications: boolean;
   /** Carpeta y perfil de Sonarr con los que se añaden series y anime. */
   seriesDefaults: Partial<Record<SeriesKind, LibraryDefaults>>;
+  /** Grupos del menú lateral que el usuario ha plegado. */
+  sidebarCollapsed: string[];
+  /** Notas que el usuario ha decidido no ver. */
+  hiddenRatings: RatingSource[];
+  /** País (ISO 3166-1) cuyas fechas de estreno de películas se muestran. */
+  releaseCountry: string;
+  /** Cómo se ve la semana en el calendario. */
+  weekStyle: "agenda" | "posters" | "strip";
 }
 
 const KEY = "dasharr.prefs";
-const DEFAULTS: Prefs = { theme: "dark", notifications: true, plexNotifications: true, seriesDefaults: {} };
+const DEFAULTS: Prefs = {
+  theme: "dark",
+  notifications: true,
+  plexNotifications: true,
+  seriesDefaults: {},
+  sidebarCollapsed: [],
+  hiddenRatings: [],
+  releaseCountry: "ES",
+  weekStyle: "agenda",
+};
 const listeners = new Set<() => void>();
 let cache: Prefs | null = null;
 

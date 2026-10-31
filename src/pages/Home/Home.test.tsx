@@ -1,6 +1,7 @@
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { mockBackend, renderApp } from "@/test/utils";
+import { openUrl } from "@tauri-apps/plugin-opener";
+import { allConfigured, mockBackend, renderApp, view } from "@/test/utils";
 
 test("Inicio: tarjetas de servicio, descargas activas y próximos estrenos; un servicio caído solo afecta a su tarjeta", async () => {
   const soon = new Date(Date.now() + 2 * 86400_000).toISOString();
@@ -14,7 +15,7 @@ test("Inicio: tarjetas de servicio, descargas activas y próximos estrenos; un s
                 { path: "/", freeSpace: 40e9, totalSpace: 100e9 },
                 { path: "/data", freeSpace: 1024 ** 4, totalSpace: 4 * 1024 ** 4 },
               ]
-            : [{ id: 1, title: "Estreno", year: 2026, hasFile: false, digitalRelease: soon }],
+            : [{ id: 1, title: "Estreno", year: 2026, hasFile: false, monitored: true, digitalRelease: soon }],
       sonarr: () => Promise.reject({ kind: "Network", message: "timeout" }),
       prowlarr: () => ({ version: "1.20.0" }),
       bazarr: () => ({ data: { bazarr_version: "1.4.5" } }),
@@ -54,4 +55,26 @@ test("Inicio: tarjetas de servicio, descargas activas y próximos estrenos; un s
   const panel = screen.getByRole("dialog", { name: "Espacio en disco" });
   expect(within(panel).getByText("1 TB / 4 TB")).toBeInTheDocument();
   expect(within(panel).getByText("Sistema (/)")).toBeInTheDocument();
+});
+
+test("Inicio: el botón de cada tarjeta abre la web del servicio, externa si hay y si no la local", async () => {
+  mockBackend({
+    settings: {
+      ...allConfigured(),
+      radarr: view({ local: "http://h:7878", external: "https://movies.x.org" }),
+      bazarr: { ...view(), config: { localUrl: null, externalUrl: null, enabled: false } },
+    },
+    api: {
+      radarr: (r) => (r.path.endsWith("/status") ? { version: "5.2.0" } : []),
+      sonarr: (r) => (r.path.endsWith("/status") ? { version: "4.0.0" } : []),
+    },
+  });
+  renderApp("/");
+  await userEvent.click(await screen.findByRole("button", { name: "Abrir Radarr en el navegador" }));
+  expect(openUrl).toHaveBeenCalledWith("https://movies.x.org");
+  await userEvent.click(screen.getByRole("button", { name: "Abrir Sonarr en el navegador" }));
+  expect(openUrl).toHaveBeenCalledWith("http://h:8989");
+  await userEvent.click(screen.getByRole("button", { name: "Abrir Plex en el navegador" }));
+  expect(openUrl).toHaveBeenCalledWith("http://h:32400/web");
+  expect(screen.queryByRole("button", { name: "Abrir Bazarr en el navegador" })).not.toBeInTheDocument();
 });

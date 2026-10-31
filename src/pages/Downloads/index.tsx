@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { ArrowDown, ArrowUp, HardDrive, Pause, Play, Plus, RotateCw, Trash2, Turtle, Zap } from "lucide-react";
+import { ArrowDown, ArrowUp, Gauge, Pause, Play, Plus, RotateCw, Tag, Trash2, Turtle, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { Page } from "@/components/Page";
 import { ErrorPanel, NotConfigured } from "@/components/ErrorPanel";
@@ -13,6 +13,8 @@ import { errorMessage } from "@/lib/errors";
 import { formatBytes, formatEta, formatPercent, formatSpeed } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import { AddTorrentDialog } from "./AddTorrentDialog";
+import { CategoryDialog, LimitsDialog } from "./BulkDialogs";
+import { TorrentDetail } from "./TorrentDetail";
 
 type Filter = "all" | TorrentGroup;
 
@@ -64,6 +66,8 @@ export default function DownloadsPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [adding, setAdding] = useState(false);
   const [toDelete, setToDelete] = useState<string[] | null>(null);
+  const [detailHash, setDetailHash] = useState<string | null>(null);
+  const [bulk, setBulk] = useState<{ kind: "category" | "limits"; hashes: string[] } | null>(null);
 
   const list = useMemo(() => {
     return (torrents.data ?? []).filter(
@@ -109,10 +113,9 @@ export default function DownloadsPage() {
         </button>
       }
     >
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-3 gap-3">
         <Stat icon={ArrowDown} label={t.downloads.dlSpeed} value={formatSpeed(totalDl)} />
         <Stat icon={ArrowUp} label={t.downloads.upSpeed} value={formatSpeed(totalUp)} />
-        <Stat icon={HardDrive} label={t.downloads.freeSpace} value={formatBytes(server.data?.free_space_on_disk)} />
         <button
           className={cn(
             "card flex items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-2",
@@ -165,6 +168,12 @@ export default function DownloadsPage() {
             <IconButton label={t.downloads.recheck} onClick={() => run(() => qbit.recheck(sel))}>
               <RotateCw className="h-4 w-4" />
             </IconButton>
+            <IconButton label={t.downloads.setCategory} onClick={() => setBulk({ kind: "category", hashes: sel })}>
+              <Tag className="h-4 w-4" />
+            </IconButton>
+            <IconButton label={t.downloads.setLimits} onClick={() => setBulk({ kind: "limits", hashes: sel })}>
+              <Gauge className="h-4 w-4" />
+            </IconButton>
             <IconButton label={t.common.delete} danger onClick={() => setToDelete(sel)}>
               <Trash2 className="h-4 w-4" />
             </IconButton>
@@ -210,6 +219,7 @@ export default function DownloadsPage() {
                   onToggle={() => toggle(tr.hash)}
                   run={run}
                   onDelete={() => setToDelete([tr.hash])}
+                  onOpen={() => setDetailHash(tr.hash)}
                 />
               ))}
             </tbody>
@@ -217,6 +227,27 @@ export default function DownloadsPage() {
         </div>
       )}
 
+      <TorrentDetail
+        torrent={torrents.data?.find((x) => x.hash === detailHash) ?? null}
+        onClose={() => setDetailHash(null)}
+        onCategory={() => detailHash && setBulk({ kind: "category", hashes: [detailHash] })}
+        onLimits={() => detailHash && setBulk({ kind: "limits", hashes: [detailHash] })}
+      />
+      {bulk?.kind === "category" && (
+        <CategoryDialog
+          torrents={(torrents.data ?? []).filter((x) => bulk.hashes.includes(x.hash))}
+          categories={categories.data ?? []}
+          onDone={refresh}
+          onClose={() => setBulk(null)}
+        />
+      )}
+      {bulk?.kind === "limits" && (
+        <LimitsDialog
+          torrents={(torrents.data ?? []).filter((x) => bulk.hashes.includes(x.hash))}
+          onDone={refresh}
+          onClose={() => setBulk(null)}
+        />
+      )}
       <AddTorrentDialog open={adding} onOpenChange={setAdding} categories={categories.data ?? []} onAdded={refresh} />
       <ConfirmDialog
         open={toDelete !== null}
@@ -240,12 +271,14 @@ function TorrentRow({
   onToggle,
   run,
   onDelete,
+  onOpen,
 }: {
   tr: Torrent;
   selected: boolean;
   onToggle: () => void;
   run: (fn: () => Promise<unknown>) => void;
   onDelete: () => void;
+  onOpen: () => void;
 }) {
   const group = torrentGroup(tr);
   const paused = group === "paused" || (group === "completed" && tr.state.startsWith("p")) || tr.state.startsWith("stopped");
@@ -255,12 +288,24 @@ function TorrentRow({
         <input type="checkbox" aria-label={t.downloads.select(tr.name)} checked={selected} onChange={onToggle} />
       </td>
       <td className="max-w-0 px-3 py-2.5">
-        <div className="truncate font-medium" title={tr.name}>
+        <button
+          className="block w-full truncate text-left font-medium hover:text-accent"
+          title={tr.name}
+          aria-label={t.downloads.details(tr.name)}
+          onClick={onOpen}
+        >
           {tr.name}
-        </div>
+        </button>
         <div className="mt-0.5 flex items-center gap-2 text-xs text-muted">
           <span className={cn("chip", groupStyle[group])}>{t.downloads.state[group]}</span>
           {tr.category && <span>{tr.category}</span>}
+          {((tr.dl_limit ?? 0) > 0 || (tr.up_limit ?? 0) > 0) && (
+            <span className="flex items-center gap-0.5" title={t.downloads.setLimits}>
+              <Gauge className="h-3 w-3" />
+              {(tr.dl_limit ?? 0) > 0 && <span>↓{formatSpeed(tr.dl_limit)}</span>}
+              {(tr.up_limit ?? 0) > 0 && <span>↑{formatSpeed(tr.up_limit)}</span>}
+            </span>
+          )}
           <span>
             {t.downloads.seeds}: {tr.num_seeds}
           </span>

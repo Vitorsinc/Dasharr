@@ -15,7 +15,9 @@ use tokio::sync::{Mutex, Notify};
 use crate::state::AppState;
 
 pub const RATING_EVENT: &str = "filmaffinity-rating";
-const CACHE_FILE: &str = "filmaffinity.json";
+// v2: la v1 guardó como "sin coincidencia" todo lo buscado antes de adaptar la lectura a la web de 2026.
+const CACHE_FILE: &str = "filmaffinity-v2.json";
+const OLD_CACHE_FILES: [&str; 1] = ["filmaffinity.json"];
 const PRIORITY_GAP: Duration = Duration::from_secs(1);
 const BACKGROUND_GAP: Duration = Duration::from_secs(4);
 const FIRST_BLOCK: Duration = Duration::from_secs(10 * 60);
@@ -81,6 +83,7 @@ struct Block {
 pub struct FilmAffinity {
     http: OnceLock<reqwest::Client>,
     path: OnceLock<PathBuf>,
+    dump_dir: OnceLock<PathBuf>,
     throttle: Throttle,
     cache: Mutex<HashMap<String, Entry>>,
     queue: Mutex<VecDeque<FaItem>>,
@@ -98,7 +101,14 @@ impl FilmAffinity {
     }
 
     pub async fn load<R: Runtime>(&self, app: &AppHandle<R>) {
+        if let Ok(logs) = app.path().app_log_dir() {
+            let _ = std::fs::create_dir_all(&logs);
+            let _ = self.dump_dir.set(logs);
+        }
         let Ok(dir) = app.path().app_data_dir() else { return };
+        for old in OLD_CACHE_FILES {
+            let _ = std::fs::remove_file(dir.join(old));
+        }
         let path = dir.join(CACHE_FILE);
         if let Ok(text) = std::fs::read_to_string(&path) {
             match serde_json::from_str(&text) {
@@ -147,7 +157,7 @@ impl FilmAffinity {
             titles.push(t);
         }
         titles.push(item.title.as_str());
-        let q = FaQuery { titles, year: item.year, series: item.kind == MediaKind::Series };
+        let q = FaQuery { titles, year: item.year, series: item.kind == MediaKind::Series, dump_dir: self.dump_dir.get().map(PathBuf::as_path) };
         let result = filmaffinity::lookup(self.http(), &self.throttle, gap, &q).await;
         self.on_result(&result).await;
         result
@@ -214,6 +224,13 @@ pub async fn filmaffinity_ratings(state: State<'_, AppState>, items: Vec<FaItem>
         fa.wake.notify_one();
     }
     Ok(out)
+}
+
+/// Vacía la cola en segundo plano (al ocultar FilmAffinity en Ajustes).
+#[tauri::command]
+pub async fn filmaffinity_clear_queue(state: State<'_, AppState>) -> Result<(), ()> {
+    state.filmaffinity.queue.lock().await.clear();
+    Ok(())
 }
 
 /// Nota de una ficha: de la caché si está al día, si no se consulta ya.

@@ -2,8 +2,10 @@ mod commands;
 mod filmaffinity;
 mod images;
 mod logs;
+mod nyaa;
 mod settings;
 mod state;
+mod tmdb;
 mod updater;
 
 use std::time::Duration;
@@ -35,6 +37,7 @@ pub fn run() {
             commands::plex_login_start,
             commands::plex_login_check,
             commands::plex_login_finish,
+            commands::plex_users,
             commands::unit3d_stats,
             logs::read_log,
             logs::clear_log,
@@ -43,6 +46,11 @@ pub fn run() {
             updater::install_update,
             filmaffinity::filmaffinity_ratings,
             filmaffinity::filmaffinity_rating,
+            filmaffinity::filmaffinity_clear_queue,
+            nyaa::nyaa_subtitles,
+            tmdb::tmdb_has_key,
+            tmdb::tmdb_save_key,
+            tmdb::tmdb_release_dates,
         ])
         .setup(|app| {
             log::info!("Dasharr {} iniciado", app.package_info().version);

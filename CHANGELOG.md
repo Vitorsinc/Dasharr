@@ -10,14 +10,29 @@ crea la Release con las notas de esta página.
 
 ## [Sin publicar]
 
+## [0.1.0] - 2026-10-31
+
 ### Añadido
+- Ajustes → Notas: elige qué notas se muestran (FilmAffinity, IMDb, TMDb, Rotten Tomatoes, Metacritic, Trakt, TVDB). Si se quita FilmAffinity, deja de consultarse.
+- Las fichas muestran también las notas que traen Radarr (IMDb, TMDb, Rotten Tomatoes, Metacritic, Trakt) y Sonarr (TVDB), junto a la de FilmAffinity.
 - Inicio con el estado de cada servicio, descargas activas y próximos estrenos.
 - Películas (Radarr) y Series (Sonarr): biblioteca, fichas, añadir, buscar, monitorizar, borrar y cola.
 - Anime separado de Series: sección propia en el menú según el tipo de serie de Sonarr. Al buscar, lo que parece anime se marca y se añade ya como anime con su carpeta y perfil (elegibles en Ajustes). El tipo se puede cambiar desde la ficha.
-- Búsqueda manual de releases en películas, temporadas y episodios, eligiendo cuál descargar.
+- Búsqueda manual de releases en películas, temporadas y episodios, eligiendo cuál descargar. Cada temporada y episodio muestra las dos búsquedas con los iconos de Radarr/Sonarr (lupa = automática, persona = manual), y al añadir se puede elegir no buscar, búsqueda automática o manual.
+- Resultados de la búsqueda manual: se ordenan pulsando cualquier columna (título, indexador, calidad, tamaño, semillas, antigüedad, puntuación) y se filtran por palabras (`-palabra` excluye).
+- Los episodios de cada temporada se listan del más reciente al más antiguo, como en Sonarr.
+- Lista de episodios más limpia: el número del episodio coloreado (verde descargado, borde rojo falta, gris sin emitir) y el marcador de Sonarr/Radarr para monitorizado (relleno) o no (vacío).
+- Subtítulos en la búsqueda manual: cada release muestra los idiomas de subtítulos que indica su título (Multi-Subs, [ESP], [ENG][SPA-LA]…) y, en las de Nyaa, los que dice la página del torrent (descripción, MediaInfo o archivos de subtítulos). El español se resalta en verde. Entiende los formatos de los grupos más populares (SubsPlease, Erai-raws, ToonsHub, VARYG, Judas, Yameii, EMBER, ASW, DKB, AnoZu, Rapta, Tsundere-Raws…) y marca VOSTFR como francés.
 - Importación manual desde la cola de Sonarr/Radarr, asociando cada archivo a su serie/episodio o película, con hardlink.
+- Películas y Series: pestaña «Buscadas» con lo que falta y lo que puede mejorar de calidad, con búsqueda de todo de una vez (en Series y Anime, solo los de su sección).
+- Fichas de película y serie: historial de descargas de Radarr/Sonarr (enviada, importada, fallida, borrada…) y botón «Editar» para cambiar el perfil de calidad y la carpeta (moviendo los archivos). En películas, también la disponibilidad mínima; en series, qué episodios se monitorizan.
+- Series: monitorizar o dejar de monitorizar una temporada entera de un clic, ver la calidad y el tamaño del archivo de cada episodio y borrarlo, y botones para actualizar, reescanear la carpeta y renombrar (con vista previa).
 - Descargas (qBittorrent): control de torrents, añadir por enlace o archivo y aviso de Windows al terminar.
 - Buscar en los indexadores de Prowlarr y enviar a qBittorrent.
+- Descargas: ficha de cada torrent (pulsa su nombre) con datos generales, archivos para elegir cuáles bajar y con qué prioridad, trackers y pares. Cambiar la categoría y limitar la velocidad de uno o de varios seleccionados a la vez.
+- Indexadores (Prowlarr): nueva sección con el estado de cada indexador (funciona, falla, en pausa por fallos), activar o desactivar y probar uno o todos, con el motivo si falla.
+- Subtítulos (Bazarr): búsqueda manual que lista los subtítulos de cada proveedor con su puntuación para elegir cuál bajar, e historial de lo descargado.
+- Inicio: avisos de salud de Radarr, Sonarr, Prowlarr y Bazarr (lo que cada uno enseña en System → Status), también en Indexadores para Prowlarr.
 - Subtítulos que faltan (Bazarr) y búsqueda por idioma.
 - Trackers: ratio, subido, bajado, buffer, seed, bonus y H&R de los trackers UNIT3D que tienes en Prowlarr, sin meter claves nuevas.
 - Calendario semanal y mensual de estrenos y emisiones.
@@ -34,10 +49,25 @@ crea la Release con las notas de esta página.
 - Espacio en disco del servidor siempre visible arriba a la derecha (según Radarr, Sonarr y qBittorrent); al pulsarlo se ven todos los discos, en amarillo o rojo cuando se llenan.
 - Tracearr como servicio nuevo: en la ficha de una película se ve quién la ha visto, cuándo y hasta dónde; en la de una serie, quién la sigue y, en cada episodio, quién lo ha visto y cuándo.
 - Menú Historial: lo que se está viendo ahora y el historial de reproducciones de Tracearr, con filtro por usuario, por películas o episodios y por vistas completas.
+- Calendario con la imagen de cada película o serie de fondo en su barra (el fanart, o el póster si no hay), para reconocerlas de un vistazo.
+- Calendario: la semana se puede ver como Agenda, Pósters o Por día.
+- Películas: próximos estrenos en cines y en digital según el país elegido.
+- Inicio: botón en cada tarjeta para abrir la web del servicio en el navegador.
+- Trackers: icono en la esquina de cada tarjeta para abrir la web del tracker.
+- Avatares de Plex de cada usuario en el historial y en las fichas.
+
+### Cambiado
+- Ajustes se divide en pestañas: Servicios, Contenido, Aspecto, Notificaciones, Sistema y Registro. El Registro deja de tener entrada propia en el menú lateral y pasa a ser una pestaña de Ajustes.
+- El menú lateral se agrupa por servicio (Radarr, Sonarr, qBittorrent, Prowlarr, Bazarr, Plex), con su logo.
+  Cada grupo se puede plegar y Dasharr recuerda cuáles has plegado.
+- Rediseño: cada sección toma el color de su servicio, con tipografía propia. Anime usa un icono de puerta torii.
+- Descargas: se quita la tarjeta de espacio libre, que ya se ve en la parte de arriba.
 
 ### Corregido
+- Notas de FilmAffinity: se adapta la lectura a la nueva página de búsqueda de FilmAffinity, se detecta su aviso de "demasiadas consultas" y se descarta la caché anterior, que había guardado todo como "sin nota".
 - qBittorrent 5.x: se acepta la cookie de sesión `QBT_SID_<puerto>` y el acceso sin sesión.
 - Las API keys se guardan sin espacios ni saltos de línea al pegarlas.
+- Los pósters de las fichas mantienen su proporción en vez de estirarse y recortarse.
 - Un 401 del proxy inverso se distingue de una API key incorrecta, y el error dice dónde copiar la clave correcta (en Bazarr, la de Settings → General → Security).
 - Si el servicio responde una página web en vez de la API, se avisa de que falta la base URL.
 - El usuario y la contraseña del proxy solo se envían a la dirección externa.

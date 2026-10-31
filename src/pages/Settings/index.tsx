@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Upload } from "lucide-react";
+import { Bell, Cpu, Library, Palette, ScrollText, Server, Upload, type LucideIcon } from "lucide-react";
+import { Link, Navigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { disable, enable, isEnabled } from "@tauri-apps/plugin-autostart";
 import { Page } from "@/components/Page";
@@ -9,16 +10,22 @@ import { t } from "@/i18n/es";
 import { SERVICE_KINDS } from "@/lib/types";
 import { useSettings } from "@/hooks/useSettings";
 import { useConnectionStates } from "@/hooks/useConnectionStates";
-import { usePrefs, type Theme } from "@/hooks/usePrefs";
+import { faClearQueue } from "@/api/filmaffinity";
+import { RATING_SOURCES, usePrefs, type RatingSource, type Theme } from "@/hooks/usePrefs";
 import { ServiceForm } from "./ServiceForm";
 import { parseConfigFile } from "@/lib/importConfig";
-import { checkUpdate, saveService } from "@/lib/tauri";
+import { checkUpdate, openExternal, saveService } from "@/lib/tauri";
+import { tmdbSaveKey } from "@/api/tmdb";
+import { useTmdbHasKey } from "@/hooks/useMovieReleases";
+import { COUNTRIES } from "@/lib/countries";
 import { notifyUpdate } from "@/hooks/useUpdates";
 import { versionLabel } from "@/lib/version";
 import { errorMessage } from "@/lib/errors";
 import { settingsKey } from "@/hooks/useSettings";
 import { useSonarrMeta } from "@/hooks/useArr";
 import { defaultsFor, type SeriesKind } from "@/lib/anime";
+import { LogsPanel } from "@/pages/Logs";
+import { cn } from "@/lib/cn";
 
 function readText(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -63,8 +70,54 @@ function ImportButton({ onImported }: { onImported: () => void }) {
   );
 }
 
-function Preferences() {
+function Row({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-4 p-4">
+      <span className="text-sm">{label}</span>
+      {children}
+    </div>
+  );
+}
+
+function Appearance() {
   const [prefs, setPrefs] = usePrefs();
+  return (
+    <section className="card divide-y divide-border">
+      <Row label={t.settings.theme}>
+        <Segmented<Theme>
+          label={t.settings.theme}
+          value={prefs.theme}
+          onChange={(theme) => setPrefs({ theme })}
+          options={[
+            { value: "dark", label: t.settings.themeDark },
+            { value: "light", label: t.settings.themeLight },
+            { value: "system", label: t.settings.themeSystem },
+          ]}
+        />
+      </Row>
+    </section>
+  );
+}
+
+function Notifications() {
+  const [prefs, setPrefs] = usePrefs();
+  return (
+    <section className="card divide-y divide-border">
+      <Row label={t.settings.notifications}>
+        <Toggle label={t.settings.notifications} checked={prefs.notifications} onChange={(notifications) => setPrefs({ notifications })} />
+      </Row>
+      <Row label={t.settings.plexNotifications}>
+        <Toggle
+          label={t.settings.plexNotifications}
+          checked={prefs.plexNotifications}
+          onChange={(plexNotifications) => setPrefs({ plexNotifications })}
+        />
+      </Row>
+    </section>
+  );
+}
+
+function Autostart() {
   const [autostart, setAutostart] = useState<boolean | null>(null);
   useEffect(() => {
     isEnabled().then(setAutostart, () => setAutostart(null));
@@ -77,39 +130,31 @@ function Preferences() {
       /* no disponible fuera de la app de escritorio */
     }
   };
+  if (autostart === null) return null;
   return (
-    <section className="card divide-y divide-border">
-      <div className="flex items-center justify-between gap-4 p-4">
-        <span className="text-sm">{t.settings.theme}</span>
-        <Segmented<Theme>
-          label={t.settings.theme}
-          value={prefs.theme}
-          onChange={(theme) => setPrefs({ theme })}
-          options={[
-            { value: "dark", label: t.settings.themeDark },
-            { value: "light", label: t.settings.themeLight },
-            { value: "system", label: t.settings.themeSystem },
-          ]}
-        />
-      </div>
-      <div className="flex items-center justify-between gap-4 p-4">
-        <span className="text-sm">{t.settings.notifications}</span>
-        <Toggle label={t.settings.notifications} checked={prefs.notifications} onChange={(notifications) => setPrefs({ notifications })} />
-      </div>
-      <div className="flex items-center justify-between gap-4 p-4">
-        <span className="text-sm">{t.settings.plexNotifications}</span>
-        <Toggle
-          label={t.settings.plexNotifications}
-          checked={prefs.plexNotifications}
-          onChange={(plexNotifications) => setPrefs({ plexNotifications })}
-        />
-      </div>
-      {autostart !== null && (
-        <div className="flex items-center justify-between gap-4 p-4">
-          <span className="text-sm">{t.settings.autostart}</span>
-          <Toggle label={t.settings.autostart} checked={autostart} onChange={toggleAutostart} />
+    <section className="card">
+      <Row label={t.settings.autostart}>
+        <Toggle label={t.settings.autostart} checked={autostart} onChange={toggleAutostart} />
+      </Row>
+    </section>
+  );
+}
+
+function RatingsSettings() {
+  const [prefs, setPrefs] = usePrefs();
+  const label = (s: RatingSource) => (s === "filmaffinity" ? t.filmaffinity.label : t.arrRatings[s]);
+  const toggle = (s: RatingSource, show: boolean) => {
+    setPrefs({ hiddenRatings: show ? prefs.hiddenRatings.filter((h) => h !== s) : [...prefs.hiddenRatings, s] });
+    if (s === "filmaffinity" && !show) faClearQueue().catch(() => {});
+  };
+  return (
+    <section className="card grid divide-border sm:grid-cols-2" aria-label={t.settings.ratings}>
+      {RATING_SOURCES.map((s) => (
+        <div key={s} className="flex items-center justify-between gap-4 p-4">
+          <span className="text-sm">{label(s)}</span>
+          <Toggle label={label(s)} checked={!prefs.hiddenRatings.includes(s)} onChange={(v) => toggle(s, v)} />
         </div>
-      )}
+      ))}
     </section>
   );
 }
@@ -175,6 +220,81 @@ function SeriesDefaults() {
   );
 }
 
+function MovieReleasesSettings() {
+  const qc = useQueryClient();
+  const [prefs, setPrefs] = usePrefs();
+  const hasKey = useTmdbHasKey().data === true;
+  const [key, setKey] = useState("");
+  const [busy, setBusy] = useState(false);
+  async function save(value: string) {
+    setBusy(true);
+    try {
+      await tmdbSaveKey(value);
+      setKey("");
+      await qc.invalidateQueries({ queryKey: ["tmdb"] });
+      toast.success(value ? t.premieres.tmdbSaved : t.premieres.tmdbRemoved);
+    } catch (e) {
+      toast.error(errorMessage(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <section className="card divide-y divide-border" aria-label={t.premieres.title}>
+      <label className="flex flex-wrap items-center justify-between gap-4 p-4">
+        <span>
+          <span className="block text-sm">{t.premieres.country}</span>
+          <span className="block text-xs text-muted">{t.premieres.countryHint}</span>
+        </span>
+        <select className="input w-56" value={prefs.releaseCountry} onChange={(e) => setPrefs({ releaseCountry: e.target.value })}>
+          {COUNTRIES.map((c) => (
+            <option key={c.code} value={c.code}>
+              {c.name}
+            </option>
+          ))}
+        </select>
+      </label>
+      <form
+        className="flex flex-col gap-2 p-4"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (key.trim()) save(key.trim());
+        }}
+      >
+        <span className="label">{t.premieres.tmdbKey}</span>
+        <div className="flex gap-2">
+          <input
+            className="input flex-1"
+            type="password"
+            aria-label={t.premieres.tmdbKey}
+            placeholder={hasKey ? t.settings.savedSecret : ""}
+            value={key}
+            onChange={(e) => setKey(e.target.value)}
+          />
+          <button className="btn-primary" type="submit" disabled={busy || !key.trim()}>
+            {t.premieres.save}
+          </button>
+          {hasKey && (
+            <button className="btn-outline" type="button" disabled={busy} onClick={() => save("")}>
+              {t.premieres.tmdbRemove}
+            </button>
+          )}
+        </div>
+        <span className="text-xs text-muted">
+          {t.premieres.tmdbKeyHint}{" "}
+          <button
+            type="button"
+            className="text-accent hover:underline"
+            onClick={() => openExternal("https://www.themoviedb.org/settings/api")}
+          >
+            {t.premieres.tmdbGetKey}
+          </button>
+        </span>
+      </form>
+    </section>
+  );
+}
+
 function Updates() {
   const [state, setState] = useState<"idle" | "checking" | "latest">("idle");
   async function check() {
@@ -203,32 +323,113 @@ function Updates() {
   );
 }
 
-export default function SettingsPage() {
+function Section({ title, hint, children }: { title: string; hint?: string; children: ReactNode }) {
+  return (
+    <div className="flex flex-col gap-4">
+      <div>
+        <h2 className="text-lg font-semibold">{title}</h2>
+        {hint && <p className="text-sm text-muted">{hint}</p>}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function Services() {
   const { data, isLoading } = useSettings();
   const { data: routes } = useConnectionStates();
   const [generation, setGeneration] = useState(0);
   return (
-    <Page title={t.nav.settings} actions={<ImportButton onImported={() => setGeneration((g) => g + 1)} />}>
-      <div className="flex max-w-4xl flex-col gap-4">
-        <div>
-          <h2 className="text-lg font-semibold">{t.settings.servicesTitle}</h2>
-          <p className="text-sm text-muted">{t.settings.autoSwitch}</p>
-        </div>
-        {isLoading ? (
-          <Loading />
-        ) : (
-          SERVICE_KINDS.map((s) => <ServiceForm key={`${s}-${generation}`} service={s} view={data?.[s]} route={routes?.[s]} />)
-        )}
-        <div className="mt-4">
-          <h2 className="text-lg font-semibold">{t.settings.seriesDefaults}</h2>
-          <p className="text-sm text-muted">{t.settings.seriesDefaultsHint}</p>
-        </div>
-        <SeriesDefaults />
-        <h2 className="mt-4 text-lg font-semibold">{t.settings.preferences}</h2>
-        <Preferences />
-        <h2 className="mt-4 text-lg font-semibold">{t.updates.title}</h2>
-        <Updates />
+    <Section title={t.settings.servicesTitle} hint={t.settings.autoSwitch}>
+      <div>
+        <ImportButton onImported={() => setGeneration((g) => g + 1)} />
       </div>
+      {isLoading ? (
+        <Loading />
+      ) : (
+        SERVICE_KINDS.map((s) => <ServiceForm key={`${s}-${generation}`} service={s} view={data?.[s]} route={routes?.[s]} />)
+      )}
+    </Section>
+  );
+}
+
+const tabs: { id: string; label: string; icon: LucideIcon; wide?: boolean; render: () => ReactNode }[] = [
+  { id: "servicios", label: t.settings.tabs.services, icon: Server, render: () => <Services /> },
+  {
+    id: "contenido",
+    label: t.settings.tabs.content,
+    icon: Library,
+    render: () => (
+      <div className="flex flex-col gap-8">
+        <Section title={t.settings.seriesDefaults} hint={t.settings.seriesDefaultsHint}>
+          <SeriesDefaults />
+        </Section>
+        <Section title={t.settings.ratings} hint={t.settings.ratingsHint}>
+          <RatingsSettings />
+        </Section>
+        <Section title={t.premieres.title}>
+          <MovieReleasesSettings />
+        </Section>
+      </div>
+    ),
+  },
+  {
+    id: "aspecto",
+    label: t.settings.tabs.appearance,
+    icon: Palette,
+    render: () => (
+      <Section title={t.settings.tabs.appearance}>
+        <Appearance />
+      </Section>
+    ),
+  },
+  {
+    id: "notificaciones",
+    label: t.settings.tabs.notifications,
+    icon: Bell,
+    render: () => (
+      <Section title={t.settings.tabs.notifications}>
+        <Notifications />
+      </Section>
+    ),
+  },
+  {
+    id: "sistema",
+    label: t.settings.tabs.system,
+    icon: Cpu,
+    render: () => (
+      <Section title={t.settings.tabs.system}>
+        <Autostart />
+        <Updates />
+      </Section>
+    ),
+  },
+  { id: "registro", label: t.nav.logs, icon: ScrollText, wide: true, render: () => <LogsPanel /> },
+];
+
+export default function SettingsPage() {
+  const { tab = tabs[0].id } = useParams();
+  const current = tabs.find((x) => x.id === tab);
+  if (!current) return <Navigate to="/ajustes" replace />;
+  return (
+    <Page title={t.nav.settings}>
+      <nav className="-mt-2 flex flex-wrap gap-1 border-b border-border" aria-label={t.settings.tabs.label}>
+        {tabs.map(({ id, label, icon: Icon }) => (
+          <Link
+            key={id}
+            to={id === tabs[0].id ? "/ajustes" : `/ajustes/${id}`}
+            aria-current={id === current.id ? "page" : undefined}
+            className={cn(
+              "-mb-px flex items-center gap-2 border-b-2 px-3 py-2 text-sm font-medium transition-colors",
+              id === current.id ? "border-accent text-fg" : "border-transparent text-muted hover:text-fg",
+            )}
+          >
+            <Icon className="h-4 w-4" aria-hidden />
+            {label}
+          </Link>
+        ))}
+      </nav>
+      <div className={cn("flex flex-col gap-4", !current.wide && "max-w-4xl")}>{current.render()}</div>
     </Page>
   );
 }

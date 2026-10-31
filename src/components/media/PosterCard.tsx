@@ -15,7 +15,7 @@ const stateStyle: Record<LibState, { dot: string; label: string }> = {
 export function Poster({ src, title, className }: { src?: string; title: string; className?: string }) {
   const [failed, setFailed] = useState(false);
   return (
-    <div className={cn("relative aspect-[2/3] overflow-hidden rounded-lg bg-surface-2", className)}>
+    <div className={cn("relative aspect-[2/3] self-start overflow-hidden rounded-lg bg-surface-2", className)}>
       {src && !failed ? (
         <img src={src} alt={title} loading="lazy" className="h-full w-full object-cover" onError={() => setFailed(true)} />
       ) : (

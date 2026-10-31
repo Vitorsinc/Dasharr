@@ -16,7 +16,7 @@ const session = {
   index: 1,
   duration: 1000,
   viewOffset: 500,
-  User: { id: "3", title: "Ana" },
+  User: { id: "3", title: "Ana", thumb: "https://plex.tv/users/ana/avatar" },
   Player: { title: "Salón", state: "playing" },
   Session: { id: "s1", bandwidth: 8000, location: "wan" },
   TranscodeSession: { videoDecision: "transcode" },
@@ -57,6 +57,7 @@ test("página de Plex: quién ve qué, detener, servidor, bibliotecas y mantenim
   expect(await screen.findByText("Breaking Bad")).toBeInTheDocument();
   expect(screen.getByText("T01E01 · Piloto")).toBeInTheDocument();
   expect(screen.getByText("Ana")).toBeInTheDocument();
+  expect(document.querySelector('img[src="https://plex.tv/users/ana/avatar"]')).toBeInTheDocument();
   expect(screen.getByText("Convirtiendo")).toBeInTheDocument();
   expect(screen.getByText("Fuera de casa")).toBeInTheDocument();
 

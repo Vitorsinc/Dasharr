@@ -1,6 +1,7 @@
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { mockBackend, renderApp } from "@/test/utils";
+import { setPrefs } from "@/hooks/usePrefs";
 
 const movies = [
   {
@@ -42,6 +43,8 @@ function backend() {
             { title: "Interstellar", year: 2014, tmdbId: 157336, images: [] },
             { title: "Dune", year: 2021, tmdbId: 10 },
           ];
+        if (req.path === "/api/v3/movie" && req.method === "POST") return { id: 99, title: "Interstellar", year: 2014 };
+        if (req.path === "/api/v3/release") return [];
         return {};
       },
     },
@@ -84,13 +87,31 @@ test("añadir película envía el perfil, la carpeta y buscar al añadir", async
   });
 });
 
-test("ficha: buscar ahora y borrar con confirmación", async () => {
+test("añadir película con búsqueda manual abre las releases para elegir", async () => {
+  const calls = backend();
+  renderApp("/peliculas");
+  await userEvent.click(await screen.findByRole("button", { name: "Añadir película" }));
+  const dialog = await screen.findByRole("dialog");
+  await userEvent.type(within(dialog).getByRole("textbox"), "inter");
+  await userEvent.click(within(dialog).getByRole("button", { name: "Buscar" }));
+  await userEvent.click(await within(dialog).findByRole("button", { name: /Interstellar/ }));
+  await userEvent.click(within(dialog).getByRole("tab", { name: "Búsqueda manual" }));
+  await userEvent.click(within(dialog).getByRole("button", { name: "Añadir" }));
+  expect(await screen.findByRole("dialog", { name: "Releases · Interstellar" })).toBeInTheDocument();
+  const post = calls.find((c) => c.method === "POST" && c.path === "/api/v3/movie");
+  expect(post.body.value.addOptions).toEqual({ searchForMovie: false });
+  await vi.waitFor(() =>
+    expect(calls.find((c) => c.path === "/api/v3/release" && c.method === "GET")?.query).toEqual([["movieId", "99"]]),
+  );
+});
+
+test("ficha: búsqueda automática y borrar con confirmación", async () => {
   const calls = backend();
   renderApp("/peliculas");
   await userEvent.click(await screen.findByRole("button", { name: "Dune" }));
   const dialog = await screen.findByRole("dialog", { name: "Dune (2021)" });
   expect(within(dialog).getByText("Bluray-2160p")).toBeInTheDocument();
-  await userEvent.click(within(dialog).getByRole("button", { name: "Buscar ahora" }));
+  await userEvent.click(within(dialog).getByRole("button", { name: "Búsqueda automática" }));
   expect(calls.find((c) => c.path === "/api/v3/command")?.body.value).toEqual({ name: "MoviesSearch", movieIds: [1] });
   await userEvent.click(within(dialog).getByRole("button", { name: "Borrar" }));
   const confirm = await screen.findByRole("dialog", { name: "Borrar película" });
@@ -144,6 +165,14 @@ test("búsqueda manual: lista releases y descarga la elegida", async () => {
   expect(screen.getByText("2 releases · 1 aceptadas")).toBeInTheDocument();
   const get = calls.find((c) => c.path === "/api/v3/release" && c.method === "GET");
   expect(get.query).toEqual([["movieId", "1"]]);
+  // Ordenar por columna (semillas, de más a menos) y filtrar por palabras.
+  await userEvent.click(screen.getByRole("button", { name: "Semillas" }));
+  expect(screen.getAllByRole("row")[1]).toHaveTextContent("Dune.2021.CAM");
+  await userEvent.click(screen.getByRole("button", { name: "Semillas" }));
+  expect(screen.getAllByRole("row")[1]).toHaveTextContent("Dune.2021.1080p.WEB");
+  await userEvent.type(screen.getByRole("textbox", { name: /Filtrar por palabras/ }), "-web");
+  expect(screen.queryByText("Dune.2021.1080p.WEB")).not.toBeInTheDocument();
+  await userEvent.clear(screen.getByRole("textbox", { name: /Filtrar por palabras/ }));
   await userEvent.click(screen.getByRole("button", { name: "Descargar: Dune.2021.1080p.WEB" }));
   await vi.waitFor(() =>
     expect(calls.find((c) => c.path === "/api/v3/release" && c.method === "POST")?.body).toEqual({
@@ -178,4 +207,47 @@ test("muestra la nota de FilmAffinity en la lista y en la ficha", async () => {
   const link = await screen.findByRole("link", { name: /7,3/ });
   expect(link).toHaveAttribute("href", "https://www.filmaffinity.com/es/film1.html");
   expect(link).toHaveTextContent("52.310 votos");
+});
+
+test("la ficha muestra también las notas que trae Radarr", async () => {
+  const rated = [
+    {
+      ...movies[0],
+      ratings: {
+        imdb: { value: 8.1, votes: 920000 },
+        tmdb: { value: 7.8, votes: 0 },
+        rottenTomatoes: { value: 92 },
+        metacritic: { value: 0 },
+      },
+    },
+  ];
+  mockBackend({ api: { radarr: (req) => (req.path === "/api/v3/movie" && req.method === "GET" ? rated : []) } });
+  renderApp("/peliculas");
+  await userEvent.click(await screen.findByRole("button", { name: "Dune" }));
+  expect(await screen.findByText("IMDb")).toBeInTheDocument();
+  expect(screen.getByText("8,1")).toBeInTheDocument();
+  expect(screen.getByText("920.000 votos")).toBeInTheDocument();
+  expect(screen.getByText("7,8")).toBeInTheDocument();
+  expect(screen.getByText("92 %")).toBeInTheDocument();
+  expect(screen.queryByText("Metacritic")).not.toBeInTheDocument();
+});
+
+test("las notas ocultas en Ajustes no se muestran ni se consultan", async () => {
+  setPrefs({ hiddenRatings: ["imdb", "filmaffinity"] });
+  const asked: string[] = [];
+  const rated = [{ ...movies[0], ratings: { imdb: { value: 8.1 }, tmdb: { value: 7.8 } } }];
+  mockBackend({
+    api: { radarr: (req) => (req.path === "/api/v3/movie" && req.method === "GET" ? rated : []) },
+    commands: {
+      filmaffinity_ratings: () => (asked.push("lista"), {}),
+      filmaffinity_rating: () => (asked.push("ficha"), null),
+    },
+  });
+  renderApp("/peliculas");
+  await userEvent.click(await screen.findByRole("button", { name: "Dune" }));
+  expect(await screen.findByText("TMDb")).toBeInTheDocument();
+  expect(screen.queryByText("IMDb")).not.toBeInTheDocument();
+  expect(screen.queryByText("FilmAffinity")).not.toBeInTheDocument();
+  expect(asked).toEqual([]);
+  setPrefs({ hiddenRatings: [] });
 });

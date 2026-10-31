@@ -10,6 +10,8 @@ import { addDays, dayKey, sameDay, startOfMonth, startOfWeek } from "@/lib/dates
 import { cn } from "@/lib/cn";
 import { MovieDetail } from "@/pages/Movies/MovieDetail";
 import { SeriesDetail } from "@/pages/Series/SeriesDetail";
+import { WEEK_VIEWS, type WeekStyle } from "./WeekViews";
+import { usePrefs } from "@/hooks/usePrefs";
 
 type View = "week" | "month";
 
@@ -17,18 +19,37 @@ const monthFmt = new Intl.DateTimeFormat("es-ES", { month: "long", year: "numeri
 const dayFmt = new Intl.DateTimeFormat("es-ES", { day: "numeric", month: "short" });
 
 export function CalendarChip({ item, onClick, compact }: { item: CalItem; onClick: () => void; compact?: boolean }) {
+  const [imgFailed, setImgFailed] = useState(false);
+  const withImage = !!item.backdrop && !imgFailed;
   return (
     <button
       onClick={onClick}
       title={`${item.title} · ${item.subtitle}`}
       className={cn(
-        "w-full rounded-md border-l-2 px-2 py-1 text-left text-xs transition-colors hover:brightness-110",
-        item.source === "radarr" ? "border-warning bg-warning/10" : "border-accent bg-accent/10",
+        "group relative w-full overflow-hidden rounded-md border-l-2 text-left text-xs transition-[filter] hover:brightness-110",
+        item.source === "radarr" ? "border-radarr bg-radarr/10" : "border-sonarr bg-sonarr/10",
+        withImage && "bg-black text-white",
+        withImage && !compact && "flex min-h-16 flex-col justify-end",
         item.hasFile && "opacity-60",
       )}
     >
-      <div className="truncate font-medium">{item.title}</div>
-      {!compact && <div className="truncate text-muted">{item.subtitle}</div>}
+      {withImage && (
+        <>
+          <img
+            src={item.backdrop}
+            alt=""
+            loading="lazy"
+            onError={() => setImgFailed(true)}
+            className="absolute inset-0 h-full w-full object-cover object-[center_25%] transition-transform duration-300 group-hover:scale-105"
+          />
+          {/* Degradado oscuro para que el texto se lea sobre cualquier imagen. */}
+          <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/55 to-black/15" />
+        </>
+      )}
+      <div className={cn("relative w-full px-2", compact ? "py-1" : "py-1.5")}>
+        <div className={cn("truncate font-medium", withImage && "drop-shadow")}>{item.title}</div>
+        {!compact && <div className={cn("truncate", withImage ? "text-white/75 drop-shadow" : "text-muted")}>{item.subtitle}</div>}
+      </div>
     </button>
   );
 }
@@ -58,6 +79,8 @@ export default function CalendarPage() {
   const end = addDays(days[days.length - 1], 1);
   const cal = useCalendar(start, end);
   const { openItem, dialogs } = useItemDetail();
+  const [{ weekStyle }, setPrefs] = usePrefs();
+  const WeekView = WEEK_VIEWS[weekStyle] ?? WEEK_VIEWS.agenda;
   const byDay = useMemo(() => {
     const m = new Map<string, CalItem[]>();
     for (const it of cal.items) m.set(dayKey(it.date), [...(m.get(dayKey(it.date)) ?? []), it]);
@@ -92,6 +115,18 @@ export default function CalendarPage() {
             </button>
           </div>
           <span className="min-w-40 text-center text-sm font-medium capitalize">{title}</span>
+          {view === "week" && (
+            <Segmented<WeekStyle>
+              label={t.calendar.weekStyle}
+              value={weekStyle}
+              onChange={(v) => setPrefs({ weekStyle: v })}
+              options={[
+                { value: "agenda", label: t.calendar.styles.agenda },
+                { value: "posters", label: t.calendar.styles.posters },
+                { value: "strip", label: t.calendar.styles.strip },
+              ]}
+            />
+          )}
           <Segmented<View>
             value={view}
             onChange={setView}
@@ -108,6 +143,8 @@ export default function CalendarPage() {
       ))}
       {cal.isLoading ? (
         <Loading />
+      ) : view === "week" ? (
+        <WeekView days={days} byDay={byDay} onOpen={openItem} />
       ) : (
         <div className="card overflow-hidden">
           <div className="grid grid-cols-7 border-b border-border text-center text-xs font-medium text-muted">
@@ -127,14 +164,13 @@ export default function CalendarPage() {
                   data-testid={`day-${dayKey(d)}`}
                   className={cn(
                     "flex flex-col gap-1 border-b border-r border-border p-1.5 [&:nth-child(7n)]:border-r-0",
-                    view === "week" && "min-h-[60vh]",
                     outside && "bg-surface-2/40",
                   )}
                 >
                   <div
                     className={cn(
                       "mb-1 self-end rounded-full px-1.5 text-xs tabular-nums",
-                      sameDay(d, today) ? "bg-accent text-white" : outside ? "text-muted/60" : "text-muted",
+                      sameDay(d, today) ? "bg-accent text-accent-fg" : outside ? "text-muted/60" : "text-muted",
                     )}
                   >
                     {d.getDate()}

@@ -388,3 +388,25 @@ Guardar el resultado por tracker y volver a probar solo al pulsar "Actualizar" o
 En Dasharr: comando Tauri `unit3d_stats` (`src-tauri/src/commands.rs`) con la lógica en
 `crates/dasharr-core/src/unit3d.rs`. El token no llega a la interfaz; la página Trackers refresca cada
 30 min o con el botón. Solo trackers de Prowlarr (decisión de Vitor, 2026-10-29), sin alta manual.
+
+## 12. Funciones añadidas el 29/10/2026 (endpoints)
+
+Comprobado en el código de Radarr, Sonarr, Prowlarr, Bazarr y qBittorrent (develop/master de ese día).
+
+| Función | Llamada |
+|---|---|
+| Buscadas | `GET /api/v3/wanted/missing` y `/wanted/cutoff` (`page`, `pageSize`, `monitored=true`; Sonarr `includeSeries`, `includeEpisodeFile`) → `{ records }` |
+| Buscar todas | Radarr `MissingMoviesSearch` / `CutoffUnmetMoviesSearch`; en Sonarr Dasharr manda `EpisodeSearch` con los ids de la sección (Series o Anime) |
+| Historial | Radarr `GET /api/v3/history/movie?movieId=`; Sonarr `GET /api/v3/history/series?seriesId=&includeEpisode=true`. `eventType` en camelCase (`grabbed`, `downloadFolderImported`, `downloadFailed`, `*FileDeleted`…) |
+| Editar | `PUT /api/v3/movie|series/{id}?moveFiles=true` con el recurso completo y `path` nuevo (raíz nueva + misma subcarpeta) |
+| Monitorización de episodios | `POST /api/v3/seasonpass` `{ series: [{ id, monitored }], monitoringOptions: { monitor } }` |
+| Temporada entera | `PUT /api/v3/series/{id}` cambiando `seasons[].monitored`: Sonarr marca sus episodios |
+| Archivos de episodio | `GET /api/v3/episodefile?seriesId=`, `DELETE /api/v3/episodefile/{id}` |
+| Renombrar | vista previa `GET /api/v3/rename?seriesId=`, luego comando `RenameFiles { seriesId, files }` |
+| Actualizar / reescanear | comandos `RefreshSeries { seriesId }` y `RescanSeries { seriesId }` |
+| Salud | `GET /api/v3/health` (Radarr/Sonarr), `/api/v1/health` (Prowlarr): `{ source, type, message, wikiUrl }`; Bazarr `GET /api/system/health` → `{ data: [{ object, issue }] }` |
+| Indexadores | `GET /api/v1/indexerstatus` (`disabledTill`, `mostRecentFailure`), `PUT /api/v1/indexer/{id}` con el recurso completo, `POST /api/v1/indexer/test?forceTest=true` (400 con `[{ errorMessage }]` si falla) |
+| qBittorrent ficha | `torrents/properties`, `torrents/files`, `torrents/filePrio` (`hash`, `id`=índices con `|`, `priority` 0/1/6/7), `torrents/trackers`, `sync/torrentPeers?hash&rid=0` |
+| qBittorrent lote | `torrents/setCategory` (`hashes`, `category`), `torrents/setDownloadLimit` y `setUploadLimit` (`limit` en bytes/s, 0 = sin límite) |
+| Bazarr manual | `GET /api/providers/movies?radarrid=` o `/providers/episodes?episodeid=` (puede tardar minutos) y `POST` al mismo con `hi`, `forced`, `original_format` ("True"/"False"), `provider`, `subtitle` (+ `radarrid` o `seriesid`+`episodeid`) |
+| Bazarr historial | `GET /api/movies/history` y `/api/episodes/history` (`start`, `length`); `action` 0 borrado, 1 descargado, 2 manual, 3 mejorado, 4 subido, 5 sincronizado, 6 traducido |

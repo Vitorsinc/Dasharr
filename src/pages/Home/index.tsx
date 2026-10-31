@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
-import { ArrowDown, ArrowUp } from "lucide-react";
+import { ArrowDown, ArrowUp, ExternalLink } from "lucide-react";
 import { Page } from "@/components/Page";
 import { ErrorPanel } from "@/components/ErrorPanel";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -11,6 +11,9 @@ import { isActive } from "@/api/qbit";
 import { serviceVersion } from "@/api/status";
 import { SERVICE_KINDS, type ServiceKind } from "@/lib/types";
 import { useConnectionStates } from "@/hooks/useConnectionStates";
+import { useSettings } from "@/hooks/useSettings";
+import { openExternal } from "@/lib/tauri";
+import { serviceWebUrl } from "@/lib/webUrl";
 import { REFRESH, useServiceQuery } from "@/hooks/useServiceQuery";
 import { useTorrents } from "@/hooks/useTorrents";
 import { useCalendar } from "@/hooks/useCalendar";
@@ -20,7 +23,16 @@ import { formatDate, formatEta, formatSpeed } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import { useItemDetail } from "@/pages/Calendar";
 import { NowWatching } from "@/components/NowWatching";
+import { HealthList } from "@/components/HealthList";
+import { HEALTH_SERVICES } from "@/api/health";
 import { RecentlyAdded } from "@/components/plex/RecentlyAdded";
+import radarrLogo from "@/assets/services/radarr.svg";
+import sonarrLogo from "@/assets/services/sonarr.svg";
+import prowlarrLogo from "@/assets/services/prowlarr.svg";
+import bazarrLogo from "@/assets/services/bazarr.svg";
+import qbittorrentLogo from "@/assets/services/qbittorrent.svg";
+import tracearrLogo from "@/assets/services/tracearr.svg";
+import plexLogo from "@/assets/services/plex.svg";
 
 const servicePage: Record<ServiceKind, string> = {
   radarr: "/peliculas",
@@ -32,28 +44,86 @@ const servicePage: Record<ServiceKind, string> = {
   plex: "/plex",
 };
 
-function ServiceCard({ service, route }: { service: ServiceKind; route: Parameters<typeof StatusBadge>[0]["route"] }) {
-  const v = useServiceQuery(service, ["version"], () => serviceVersion(service), { refetchInterval: REFRESH.status });
+const serviceLogo: Record<ServiceKind, string> = {
+  radarr: radarrLogo,
+  sonarr: sonarrLogo,
+  prowlarr: prowlarrLogo,
+  bazarr: bazarrLogo,
+  qbittorrent: qbittorrentLogo,
+  tracearr: tracearrLogo,
+  plex: plexLogo,
+};
+
+/** Botón en la esquina de la tarjeta que abre la web del servicio en el navegador (externa, si no local). */
+function OpenWebButton({ service, url }: { service: ServiceKind; url: string }) {
+  const label = t.home.openWeb(t.services[service]);
   return (
-    <Link
-      to={v.configured === false ? "/ajustes" : servicePage[service]}
-      className="card flex flex-col gap-2 p-4 transition-colors hover:bg-surface-2"
-      aria-label={t.services[service]}
+    <button
+      type="button"
+      className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-md text-muted transition-colors hover:bg-surface-2 hover:text-accent focus-visible:text-accent"
+      onClick={() => void openExternal(url)}
+      title={`${label}\n${url}`}
+      aria-label={label}
     >
-      <div className="flex items-center justify-between gap-2">
-        <span className="font-semibold">{t.services[service]}</span>
-        {v.configured !== false && <StatusBadge route={v.isError ? "offline" : route} />}
-      </div>
-      <div className={cn("truncate text-xs", v.isError ? "text-danger" : "text-muted")}>
-        {v.configured === false
-          ? t.common.notConfigured(t.services[service])
-          : v.isError
-            ? errorMessage(v.error)
-            : v.data
-              ? t.home.version(v.data)
-              : t.common.loading}
-      </div>
-    </Link>
+      <ExternalLink className="h-4 w-4" aria-hidden />
+    </button>
+  );
+}
+
+function ServiceCard({ service, route }: { service: ServiceKind; route: Parameters<typeof StatusBadge>[0]["route"] }) {
+  const { data: settings } = useSettings();
+  const webUrl = serviceWebUrl(service, settings?.[service]?.config);
+  const v = useServiceQuery(service, ["version"], () => serviceVersion(service), { refetchInterval: REFRESH.status });
+  const name = t.services[service];
+  const notConfigured = v.configured === false;
+  const detail = notConfigured
+    ? t.home.setUpInSettings
+    : v.isError
+      ? errorMessage(v.error)
+      : v.data
+        ? t.home.version(v.data)
+        : t.common.loading;
+  // Nombre, estado y detalle van en líneas separadas para que nada se pise aunque la tarjeta sea estrecha;
+  // el detalle (versión o error) ocupa como mucho dos líneas y se ve entero al pasar el ratón.
+  // El botón va fuera del enlace (un botón dentro de un enlace no es válido) y se coloca encima de la tarjeta.
+  return (
+    <div className="relative min-w-0">
+      <Link
+        to={notConfigured ? "/ajustes" : servicePage[service]}
+        className={cn(
+          "card group relative isolate flex h-full min-w-0 flex-col items-start gap-2 overflow-hidden p-4 transition-colors hover:bg-surface-2",
+          notConfigured && "border-dashed bg-transparent",
+        )}
+        aria-label={name}
+      >
+        {/* Logo grande de marca de agua, recortado por la esquina inferior derecha. */}
+        <img
+          src={serviceLogo[service]}
+          alt=""
+          aria-hidden
+          draggable={false}
+          className={cn(
+            "pointer-events-none absolute -bottom-6 -right-6 -z-10 h-20 w-20 select-none transition-opacity",
+            notConfigured ? "opacity-10 grayscale" : "opacity-45 group-hover:opacity-70",
+          )}
+        />
+        <span className={cn("w-full truncate font-semibold", notConfigured && "text-muted", webUrl && "pr-7")} title={name}>
+          {name}
+        </span>
+        {notConfigured ? (
+          <span className="chip whitespace-nowrap bg-surface-2 text-muted">{t.home.notConfigured}</span>
+        ) : (
+          <StatusBadge route={v.isError ? "offline" : route} />
+        )}
+        <span
+          className={cn("line-clamp-2 w-full break-words text-xs tabular-nums", v.isError ? "text-danger" : "text-muted")}
+          title={detail}
+        >
+          {detail}
+        </span>
+      </Link>
+      {webUrl && <OpenWebButton service={service} url={webUrl} />}
+    </div>
   );
 }
 
@@ -153,11 +223,12 @@ export default function HomePage() {
   const { data: routes } = useConnectionStates();
   return (
     <Page title={t.nav.home}>
-      <section className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-7" aria-label={t.home.services}>
+      <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 min-[1400px]:grid-cols-7" aria-label={t.home.services}>
         {SERVICE_KINDS.map((s) => (
           <ServiceCard key={s} service={s} route={routes?.[s]} />
         ))}
       </section>
+      <HealthList services={HEALTH_SERVICES} hideWhenOk />
       <NowWatching title={t.home.nowPlaying} hideWhenEmpty />
       <ActiveDownloads />
       <Upcoming />

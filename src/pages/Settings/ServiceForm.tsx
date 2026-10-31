@@ -78,7 +78,7 @@ function PlexLogin({ onDone }: { onDone: (server: PlexServerChoice) => Promise<v
     <div className="mt-4 flex flex-col gap-3">
       <div className="flex flex-wrap items-center gap-3">
         <button className="btn-primary" onClick={start} disabled={state === "waiting"}>
-          {state === "waiting" ? <Spinner className="h-4 w-4 text-white" /> : <LogIn className="h-4 w-4" />}
+          {state === "waiting" ? <Spinner className="h-4 w-4 text-current" /> : <LogIn className="h-4 w-4" />}
           {t.settings.plexLogin}
         </button>
         {state === "waiting" && <span className="text-sm text-muted">{t.settings.plexWaiting}</span>}
@@ -288,7 +288,7 @@ export function ServiceForm({ service, view, route }: { service: ServiceKind; vi
           {busy === "test" ? t.settings.testing : t.settings.test}
         </button>
         <button className="btn-primary" onClick={onSave} disabled={busy !== null}>
-          {busy === "save" && <Spinner className="h-4 w-4 text-white" />}
+          {busy === "save" && <Spinner className="h-4 w-4 text-current" />}
           {t.common.save}
         </button>
         {result && (

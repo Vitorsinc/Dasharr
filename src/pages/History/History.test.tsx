@@ -1,4 +1,4 @@
-import { screen, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { allConfigured, mockBackend, renderApp } from "@/test/utils";
 import { movieRefs, playsByEpisode, showRefs, viewers, type Play } from "@/api/tracearr";
@@ -185,4 +185,27 @@ test("con Plex y Tracearr, «Viendo ahora» sale una sola vez y con los datos de
   expect(screen.getAllByRole("heading", { name: "Viendo ahora" })).toHaveLength(1);
   expect(screen.queryByText("De Tracearr")).not.toBeInTheDocument();
   expect(tracearrPaths).not.toContain("/api/v2/public/streams");
+});
+
+test("los avatares salen de Plex si el usuario lo tiene allí; si no, de Tracearr", async () => {
+  mockBackend({
+    commands: { plex_users: () => [{ username: "ana", title: "Ana", thumb: "https://plex.tv/users/ana/avatar" }] },
+    api: {
+      radarr: (req) =>
+        req.path === "/api/v3/movie"
+          ? [{ id: 1, title: "Dune", year: 2021, tmdbId: 10, hasFile: true, monitored: true, images: [] }]
+          : {},
+      tracearr: () => ({
+        data: [play({ user: { ...ana, avatar_url: "/api/v1/images/proxy?a" } }), play({ user: { ...luis, avatar_url: "/api/v1/images/proxy?l" } })],
+        meta: { nextCursor: null, pageSize: 100 },
+      }),
+    },
+  });
+  renderApp("/peliculas");
+  await userEvent.click(await screen.findByRole("button", { name: "Dune" }));
+  const seen = await within(await screen.findByRole("dialog")).findByRole("region", { name: "Visto por" });
+  await waitFor(() => expect(seen.querySelector('img[src="https://plex.tv/users/ana/avatar"]')).toBeInTheDocument());
+  const imgs = [...seen.querySelectorAll("img")].map((i) => i.getAttribute("src"));
+  expect(imgs.some((src) => src?.includes("tracearr") && src.includes("proxy"))).toBe(true);
+  expect(imgs.filter((src) => src === "https://plex.tv/users/ana/avatar")).toHaveLength(1);
 });

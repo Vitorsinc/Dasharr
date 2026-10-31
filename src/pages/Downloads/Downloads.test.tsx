@@ -67,7 +67,8 @@ test("lista torrents con progreso y filtra por estado", async () => {
   expect(await screen.findByText("Dune.Part.Two.2024.2160p")).toBeInTheDocument();
   expect(screen.getByText("42,5 %")).toBeInTheDocument();
   expect(screen.getByText("1 h 1 min")).toBeInTheDocument();
-  expect(screen.getByText("500 GB")).toBeInTheDocument();
+  // El espacio libre se ve al pie del menú; la página no lo repite.
+  expect(screen.queryByText("Espacio libre")).not.toBeInTheDocument();
   await userEvent.click(screen.getByRole("tab", { name: "Sembrando" }));
   expect(screen.queryByText("Dune.Part.Two.2024.2160p")).not.toBeInTheDocument();
   expect(screen.getByText("Shogun.S01E01.1080p")).toBeInTheDocument();

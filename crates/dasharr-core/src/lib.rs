@@ -3,8 +3,10 @@ mod client;
 mod error;
 pub mod filmaffinity;
 mod model;
+pub mod nyaa;
 pub mod plex;
 mod registry;
+pub mod tmdb;
 pub mod unit3d;
 mod url;
 

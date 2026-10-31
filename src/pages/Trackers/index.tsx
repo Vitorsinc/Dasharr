@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowUp, RefreshCw } from "lucide-react";
+import { ArrowDown, ArrowUp, ExternalLink, RefreshCw } from "lucide-react";
 import { Page } from "@/components/Page";
 import { ErrorPanel } from "@/components/ErrorPanel";
 import { Empty, Loading, Spinner } from "@/components/ui";
@@ -7,12 +7,15 @@ import { getTrackerStats, type TrackerStats, type TrackerStatus, type TrackerUse
 import { useServiceQuery } from "@/hooks/useServiceQuery";
 import { formatBytes } from "@/lib/format";
 import { cn } from "@/lib/cn";
+import { openExternal } from "@/lib/tauri";
 
 // El límite de UNIT3D es de 30 peticiones por minuto, compartido con las búsquedas de Prowlarr.
 const REFRESH_MS = 30 * 60_000;
 
 const nf = new Intl.NumberFormat("es-ES", { maximumFractionDigits: 2 });
 const num = (n: number | null) => (n == null ? "—" : nf.format(n));
+const nfCompact = new Intl.NumberFormat("es-ES", { notation: "compact", maximumFractionDigits: 1 });
+const compact = (n: number | null) => (n == null ? "—" : nfCompact.format(n));
 
 function bufferLabel(u: TrackerUser) {
   if (u.bufferInfinite) return t.trackers.infinite;
@@ -36,43 +39,58 @@ const statusStyle: Record<TrackerStatus, string> = {
 function Stat({ label, value, className }: { label: string; value: string; className?: string }) {
   return (
     <div className="flex flex-col">
-      <span className="text-xs text-muted">{label}</span>
-      <span className={cn("text-sm font-semibold tabular-nums", className)}>{value}</span>
+      <span className="whitespace-nowrap text-[11px] leading-tight text-muted">{label}</span>
+      <span className={cn("whitespace-nowrap text-sm font-medium tabular-nums", className)}>{value}</span>
     </div>
+  );
+}
+
+/** Botón que abre la web del tracker en el navegador. Solo enlaces http(s). */
+function SiteLink({ tr }: { tr: TrackerStats }) {
+  if (!/^https?:\/\//i.test(tr.siteUrl)) return null;
+  return (
+    <button
+      type="button"
+      className="grid h-6 w-6 shrink-0 place-items-center rounded-md text-muted transition-colors hover:bg-surface-2 hover:text-accent focus-visible:text-accent"
+      onClick={() => void openExternal(tr.siteUrl)}
+      title={t.trackers.openSite}
+      aria-label={`${t.trackers.openSite}: ${tr.name}`}
+    >
+      <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+    </button>
   );
 }
 
 function TrackerCard({ tr }: { tr: TrackerStats & { user: TrackerUser } }) {
   const u = tr.user;
   return (
-    <article className="card flex flex-col gap-4 p-4" aria-label={tr.name}>
-      <header className="flex items-start justify-between gap-2">
+    <article className="card flex flex-col gap-2.5 px-3.5 py-3" aria-label={tr.name}>
+      <header className="flex items-center justify-between gap-2">
         <div className="min-w-0">
-          <div className="truncate font-semibold">{tr.name}</div>
-          <div className="truncate text-xs text-muted">
-            {u.username}
-            {u.group && ` · ${u.group}`}
-          </div>
+          <div className="truncate text-sm font-semibold">{tr.name}</div>
+          <div className="truncate text-xs text-muted" title={u.username}>{u.group || u.username}</div>
         </div>
-        <div className={cn("text-2xl font-bold tabular-nums", ratioTone(u.ratio))} title={t.trackers.ratio}>
-          {u.ratio == null ? t.trackers.infinite : nf.format(u.ratio)}
+        <div className="-mr-1.5 flex items-center gap-0.5">
+          <div className={cn("text-xl font-bold tabular-nums", ratioTone(u.ratio))} title={t.trackers.ratio}>
+            {u.ratio == null ? t.trackers.infinite : nf.format(u.ratio)}
+          </div>
+          <SiteLink tr={tr} />
         </div>
       </header>
-      <div className="flex items-center gap-4 text-sm tabular-nums">
+      <div className="flex items-center gap-3 text-xs tabular-nums">
         <span className="flex items-center gap-1" title={t.trackers.uploaded}>
-          <ArrowUp className="h-4 w-4 text-success" aria-hidden />
+          <ArrowUp className="h-3.5 w-3.5 text-success" aria-hidden />
           {formatBytes(u.uploaded)}
         </span>
         <span className="flex items-center gap-1" title={t.trackers.downloaded}>
-          <ArrowDown className="h-4 w-4 text-accent" aria-hidden />
+          <ArrowDown className="h-3.5 w-3.5 text-accent" aria-hidden />
           {formatBytes(u.downloaded)}
         </span>
       </div>
-      <div className="grid grid-cols-3 gap-3">
+      <div className="flex justify-between gap-3 border-t border-border pt-2">
         <Stat label={t.trackers.buffer} value={bufferLabel(u)} className={u.buffer != null && u.buffer < 0 ? "text-danger" : undefined} />
         <Stat label={t.trackers.seeding} value={num(u.seeding)} />
-        <Stat label={t.trackers.leeching} value={num(u.leeching)} />
-        <Stat label={t.trackers.bonus} value={num(u.seedbonus)} />
+        <Stat label={t.trackers.bonus} value={compact(u.seedbonus)} />
         <Stat label={t.trackers.hitAndRuns} value={num(u.hitAndRuns)} className={u.hitAndRuns ? "text-danger" : undefined} />
       </div>
     </article>
@@ -92,6 +110,7 @@ function Unavailable({ list }: { list: TrackerStats[] }) {
               {tr.message && <div className="truncate text-xs text-muted">{tr.message}</div>}
             </div>
             <span className={cn("chip", statusStyle[tr.status])}>{t.trackers.status[tr.status]}</span>
+            <SiteLink tr={tr} />
           </div>
         ))}
       </div>
@@ -130,7 +149,7 @@ export default function TrackersPage() {
       ) : (
         <>
           {ok.length > 0 && (
-            <section className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+            <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
               {ok.map((tr) => (
                 <TrackerCard key={tr.indexerId} tr={tr} />
               ))}

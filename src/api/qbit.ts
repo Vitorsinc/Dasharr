@@ -20,6 +20,57 @@ export interface Torrent {
   amount_left: number;
   /** Motivo del error (qBittorrent 5.3+). */
   error?: string;
+  save_path?: string;
+  /** Límites de velocidad en bytes/s; 0 o -1 = sin límite. */
+  dl_limit?: number;
+  up_limit?: number;
+}
+
+export interface TorrentProperties {
+  save_path: string;
+  addition_date: number;
+  completion_date: number;
+  share_ratio: number;
+  total_downloaded: number;
+  total_uploaded: number;
+  seeds: number;
+  seeds_total: number;
+  peers: number;
+  peers_total: number;
+  dl_limit: number;
+  up_limit: number;
+  comment?: string;
+  is_private?: boolean;
+}
+
+export interface TorrentFile {
+  index: number;
+  name: string;
+  size: number;
+  progress: number;
+  /** 0 = no descargar, 1 = normal, 6 = alta, 7 = máxima. */
+  priority: number;
+}
+
+export interface TorrentTracker {
+  url: string;
+  /** 0 desactivado, 1 sin contactar, 2 funciona, 3 actualizando, 4 no funciona (5 y 6, errores en qBittorrent 5). */
+  status: number;
+  tier: number;
+  num_seeds: number;
+  num_leeches: number;
+  num_peers: number;
+  msg: string;
+}
+
+export interface TorrentPeer {
+  ip: string;
+  port: number;
+  client: string;
+  country?: string;
+  progress: number;
+  dl_speed: number;
+  up_speed: number;
 }
 
 export interface TransferInfo {
@@ -122,6 +173,27 @@ export const qbit = {
   recheck: (hashes: string[]) => post("/api/v2/torrents/recheck", { hashes: join(hashes) }),
   remove: (hashes: string[], deleteFiles: boolean) =>
     post("/api/v2/torrents/delete", { hashes: join(hashes), deleteFiles: String(deleteFiles) }),
+  getProperties: (hash: string) => apiRequest<TorrentProperties>("qbittorrent", { path: "/api/v2/torrents/properties", query: { hash } }),
+  getFiles: (hash: string) => apiRequest<TorrentFile[]>("qbittorrent", { path: "/api/v2/torrents/files", query: { hash } }),
+  setFilePriority: (hash: string, indexes: number[], priority: number) =>
+    post("/api/v2/torrents/filePrio", { hash, id: indexes.join("|"), priority: String(priority) }),
+  getTrackers: (hash: string) => apiRequest<TorrentTracker[]>("qbittorrent", { path: "/api/v2/torrents/trackers", query: { hash } }),
+  getPeers: async (hash: string) =>
+    Object.values(
+      (
+        await apiRequest<{ peers?: Record<string, TorrentPeer> }>("qbittorrent", {
+          path: "/api/v2/sync/torrentPeers",
+          query: { hash, rid: 0 },
+        })
+      ).peers ?? {},
+    ),
+  /** Categoría vacía = quitarla. */
+  setCategory: (hashes: string[], category: string) => post("/api/v2/torrents/setCategory", { hashes: join(hashes), category }),
+  /** Límites en bytes/s; 0 = sin límite. */
+  setDownloadLimit: (hashes: string[], limit: number) =>
+    post("/api/v2/torrents/setDownloadLimit", { hashes: join(hashes), limit: String(limit) }),
+  setUploadLimit: (hashes: string[], limit: number) =>
+    post("/api/v2/torrents/setUploadLimit", { hashes: join(hashes), limit: String(limit) }),
   toggleAltSpeed: () => post("/api/v2/transfer/toggleSpeedLimitsMode", {}),
   addUrls: (urls: string[], category?: string) =>
     checkAdded(
