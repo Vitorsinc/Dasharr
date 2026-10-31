@@ -1,5 +1,6 @@
 import { NavLink, useLocation } from "react-router-dom";
 import {
+  Activity,
   ArrowUpCircle,
   CalendarDays,
   Captions,
@@ -13,6 +14,7 @@ import {
   Radar,
   Search,
   Settings,
+  SlidersHorizontal,
   Tv,
   type LucideIcon,
 } from "lucide-react";
@@ -36,6 +38,8 @@ interface NavItem {
   label: string;
   icon: LucideIcon;
   end?: boolean;
+  /** Nombre para lectores de pantalla cuando la etiqueta se repite en varios grupos («Actividad · Radarr»). */
+  ariaLabel?: string;
 }
 
 /** Páginas que mezclan varios servicios: van arriba, sin grupo. */
@@ -46,13 +50,23 @@ const general: NavItem[] = [
 
 /** El resto, agrupado por el servicio del que salen los datos. */
 const groups: { service: ServiceKind; logo: string; items: NavItem[] }[] = [
-  { service: "radarr", logo: radarrLogo, items: [{ to: "/peliculas", label: t.nav.movies, icon: Clapperboard }] },
+  {
+    service: "radarr",
+    logo: radarrLogo,
+    items: [
+      { to: "/peliculas", label: t.nav.movies, icon: Clapperboard },
+      { to: "/actividad/radarr", label: t.activity.nav, icon: Activity, ariaLabel: `${t.activity.nav} · ${t.services.radarr}` },
+      { to: "/gestion/radarr", label: t.manage.nav, icon: SlidersHorizontal, ariaLabel: `${t.manage.nav} · ${t.services.radarr}` },
+    ],
+  },
   {
     service: "sonarr",
     logo: sonarrLogo,
     items: [
       { to: "/series", label: t.nav.series, icon: Tv },
       { to: "/anime", label: t.nav.anime, icon: Torii },
+      { to: "/actividad/sonarr", label: t.activity.nav, icon: Activity, ariaLabel: `${t.activity.nav} · ${t.services.sonarr}` },
+      { to: "/gestion/sonarr", label: t.manage.nav, icon: SlidersHorizontal, ariaLabel: `${t.manage.nav} · ${t.services.sonarr}` },
     ],
   },
   { service: "qbittorrent", logo: qbittorrentLogo, items: [{ to: "/descargas", label: t.nav.downloads, icon: Download }] },
@@ -77,11 +91,12 @@ const groups: { service: ServiceKind; logo: string; items: NavItem[] }[] = [
   },
 ];
 
-function Item({ to, label, icon: Icon, end }: NavItem) {
+function Item({ to, label, icon: Icon, end, ariaLabel }: NavItem) {
   return (
     <NavLink
       to={to}
       end={end}
+      aria-label={ariaLabel}
       className={({ isActive }) =>
         cn(
           "flex items-center gap-3 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",

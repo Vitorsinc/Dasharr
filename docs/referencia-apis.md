@@ -410,3 +410,24 @@ Comprobado en el código de Radarr, Sonarr, Prowlarr, Bazarr y qBittorrent (deve
 | qBittorrent lote | `torrents/setCategory` (`hashes`, `category`), `torrents/setDownloadLimit` y `setUploadLimit` (`limit` en bytes/s, 0 = sin límite) |
 | Bazarr manual | `GET /api/providers/movies?radarrid=` o `/providers/episodes?episodeid=` (puede tardar minutos) y `POST` al mismo con `hi`, `forced`, `original_format` ("True"/"False"), `provider`, `subtitle` (+ `radarrid` o `seriesid`+`episodeid`) |
 | Bazarr historial | `GET /api/movies/history` y `/api/episodes/history` (`start`, `length`); `action` 0 borrado, 1 descargado, 2 manual, 3 mejorado, 4 subido, 5 sincronizado, 6 traducido |
+
+## 13. Funciones añadidas el 31/10/2026 (endpoints)
+
+| Función | Llamada |
+|---|---|
+| Blocklist | `GET /api/v3/blocklist?page&pageSize&sortKey=date&sortDirection=descending` → `{ totalRecords, records }` (Radarr trae `movie`, Sonarr `series`); `DELETE /api/v3/blocklist/{id}`; `DELETE /api/v3/blocklist/bulk` con `{ ids }`; vaciar = comando `ClearBlocklist` |
+| Marcar como fallida | `POST /api/v3/history/failed/{id}` (id de una línea `grabbed` del historial) |
+| Etiquetas | `GET/POST /api/v3/tag`, `PUT/DELETE /api/v3/tag/{id}`, uso en `GET /api/v3/tag/detail` (`movieIds`/`seriesIds`, `delayProfileIds`…). Asignar: `PUT /movie|series/{id}` con `tags` |
+| Perfiles de calidad | `GET /api/v3/qualityprofile`, plantilla `GET /qualityprofile/schema`, `POST`, `PUT/DELETE /qualityprofile/{id}`. `items` va de peor a mejor; `cutoff` es el id de la calidad o del grupo (debe estar permitido); `formatItems[{ format, name, score }]`, `minFormatScore`, `cutoffFormatScore` |
+| Formatos personalizados | `GET/POST /api/v3/customformat`, `PUT/DELETE /customformat/{id}`. La API quiere `specifications[].fields` como lista `[{ name, value }]`; las guías TRaSH lo dan como objeto y Dasharr lo convierte |
+| Carpetas raíz | `POST /api/v3/rootfolder { path }`, `DELETE /rootfolder/{id}` (no borra nada del disco) |
+| Perfiles de retraso | `GET/POST /api/v3/delayprofile`, `PUT/DELETE /delayprofile/{id}`; retrasos en minutos; el id 1 es el de por defecto (sin etiquetas, no se borra) |
+| Edición masiva | `PUT /api/v3/movie/editor { movieIds, monitored?, qualityProfileId?, rootFolderPath?, moveFiles?, tags?, applyTags: add|remove|replace }`; Sonarr igual en `/series/editor` con `seriesIds`. Borrar: `DELETE /movie/editor { movieIds, deleteFiles, addImportExclusion }` / `DELETE /series/editor { seriesIds, deleteFiles, addImportListExclusion }` (cuerpo JSON en un DELETE) |
+| Listas de importación | `GET /api/v3/importlist`, `PUT /importlist/{id}` con el recurso completo (activar: Radarr `enabled`, Sonarr `enableAutomaticAdd`), `DELETE /importlist/{id}`, comando `ImportListSync` |
+| Exclusiones | Radarr `GET /api/v3/exclusions` (`tmdbId`, `movieTitle`, `movieYear`) y `DELETE /exclusions/{id}`; Sonarr `GET /api/v3/importlistexclusion` (`tvdbId`, `title`) y `DELETE /importlistexclusion/{id}` |
+| Borrar con exclusión | Radarr `DELETE /movie/{id}?deleteFiles&addImportExclusion=true`; Sonarr `DELETE /series/{id}?deleteFiles&addImportListExclusion=true` |
+| Película: herramientas | comandos `RefreshMovie { movieIds }`, `RescanMovie { movieId }`; vista previa `GET /api/v3/rename?movieId=` (`movieFileId`, `existingPath`, `newPath`) y comando `RenameMovie { movieIds }`; `DELETE /api/v3/moviefile/{id}` |
+| Prowlarr: alta y edición | definiciones en `GET /api/v1/indexer/schema` (grande: cada una con `implementation`, `configContract`, `fields[{ name, label, type, value, advanced, hidden, selectOptions }]`); `POST /api/v1/indexer` con la definición rellena (Prowlarr la prueba y responde 400 con `[{ errorMessage }]`), `PUT/DELETE /api/v1/indexer/{id}`; perfiles en `GET /api/v1/appprofile` |
+| Prowlarr: estadísticas e historial | `GET /api/v1/indexerstats` → `{ indexers: [{ indexerId, indexerName, numberOfQueries, numberOfGrabs, numberOfFailed*, averageResponseTime }] }`; `GET /api/v1/history?page&pageSize&sortKey=date&sortDirection=descending&eventType=` (1 grab, 2 búsqueda, 3 RSS, 4 auth, 5 info) |
+| Prowlarr: aplicaciones | `GET /api/v1/applications` (`syncLevel`: disabled, addOnly, fullSync); sincronizar con el comando `ApplicationIndexerSync` |
+| Historial global | `GET /api/v3/history?page&pageSize&sortKey=date&sortDirection=descending&eventType=` (+ Radarr `includeMovie=true`; Sonarr `includeSeries=true&includeEpisode=true`). `eventType` numérico: Radarr 1 grab, 3 importada, 7 importada de carpeta, 4 fallida, 6 borrada, 8 renombrada; Sonarr 1 grab, 3 importada, 2 importada de carpeta, 4 fallida, 5 borrada, 6 renombrada. Las versiones con `int? eventType` solo usan el primero |

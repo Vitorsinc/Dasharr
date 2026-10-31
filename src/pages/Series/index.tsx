@@ -21,6 +21,8 @@ import { sonarr, type MonitorOption, type Series, type SeriesType } from "@/api/
 import { useSeries, useSonarrMeta, useSonarrQueue, useSonarrWanted } from "@/hooks/useArr";
 import { usePrefs } from "@/hooks/usePrefs";
 import { useFaRatings } from "@/hooks/useFilmAffinity";
+import { useRun, useTags } from "@/hooks/useArrManage";
+import { BulkEditBar } from "@/components/media/BulkEditBar";
 import { t } from "@/i18n/es";
 import { defaultsFor, kindOf, looksLikeAnime, seriesTypeLabel, typeForKind, type SeriesKind } from "@/lib/anime";
 import { SeriesDetail } from "./SeriesDetail";
@@ -48,6 +50,23 @@ export default function SeriesPage({ kind = "series" }: { kind?: SeriesKind }) {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<LibFilter>("all");
   const [sort, setSort] = useState<LibSort>("title");
+  const [tag, setTag] = useState<number | null>(null);
+  const tags = useTags("sonarr");
+  const [selecting, setSelecting] = useState(false);
+  const [picked, setPicked] = useState<Set<number>>(new Set());
+  const run = useRun("sonarr");
+  const togglePick = (id: number) =>
+    setPicked((s) => {
+      const n = new Set(s);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
+  const exitSelection = () => {
+    setSelecting(false);
+    setPicked(new Set());
+  };
+  const activeTag = tags.data?.some((x) => x.id === tag) ? tag : null;
   const [adding, setAdding] = useState(false);
   const [monitor, setMonitor] = useState<MonitorOption>("all");
   const [seriesType, setSeriesType] = useState<SeriesType>(typeForKind(kind));
@@ -78,8 +97,8 @@ export default function SeriesPage({ kind = "series" }: { kind?: SeriesKind }) {
   const base = useMemo(() => mine.map((s) => ({ ...s, ...seriesLibFlags(s) })), [mine]);
   // FilmAffinity se pide en el orden en que se ve la lista (o por título al ordenar por nota).
   const faItems = useMemo(
-    () => (tab === "library" && showFa ? filterSort(base, { query, filter, sort: fetchOrder(activeSort) }).map(seriesItem) : []),
-    [base, tab, showFa, query, filter, activeSort],
+    () => (tab === "library" && showFa ? filterSort(base, { query, filter, tag: activeTag, sort: fetchOrder(activeSort) }).map(seriesItem) : []),
+    [base, tab, showFa, query, filter, activeTag, activeSort],
   );
   const ratings = useFaRatings(faItems);
   const items = useMemo(
@@ -89,9 +108,9 @@ export default function SeriesPage({ kind = "series" }: { kind?: SeriesKind }) {
           ...s,
           scores: visibleScores({ ...arrScores({ tvdb: s.ratings }), filmaffinity: ratings[faKey(seriesItem(s))]?.rating ?? undefined }, hiddenRatings),
         })),
-        { query, filter, sort: activeSort },
+        { query, filter, tag: activeTag, sort: activeSort },
       ),
-    [base, ratings, hiddenRatings, query, filter, activeSort],
+    [base, ratings, hiddenRatings, query, filter, activeTag, activeSort],
   );
   const existing = useMemo(() => new Set((series.data ?? []).map((s) => s.tvdbId)), [series.data]);
   const selected = series.data?.find((s) => s.id === selectedId) ?? null;
@@ -177,7 +196,21 @@ export default function SeriesPage({ kind = "series" }: { kind?: SeriesKind }) {
         )
       ) : (
         <>
-          <LibraryToolbar series query={query} onQuery={setQuery} filter={filter} onFilter={setFilter} sort={activeSort} onSort={setSort} ratingSources={sortSources} />
+          <LibraryToolbar
+            series
+            query={query}
+            onQuery={setQuery}
+            filter={filter}
+            onFilter={setFilter}
+            sort={activeSort}
+            onSort={setSort}
+            ratingSources={sortSources}
+            tags={tags.data ?? []}
+            tag={activeTag}
+            onTag={setTag}
+            selecting={selecting}
+            onSelecting={(v) => (v ? setSelecting(true) : exitSelection())}
+          />
           {series.isLoading || series.configured === undefined ? (
             <Loading />
           ) : series.isError ? (
@@ -194,10 +227,30 @@ export default function SeriesPage({ kind = "series" }: { kind?: SeriesKind }) {
                   poster={posterUrl("sonarr", s)}
                   state={libState(s)}
                   scores={s.scores}
-                  onClick={() => setSelectedId(s.id)}
+                  selected={selecting ? picked.has(s.id) : undefined}
+                  onClick={() => (selecting ? togglePick(s.id) : setSelectedId(s.id))}
                 />
               ))}
             </PosterGrid>
+          )}
+          {selecting && (
+            <BulkEditBar
+              service="sonarr"
+              count={picked.size}
+              visible={items.length}
+              profiles={meta.profiles.data ?? []}
+              rootFolders={meta.roots.data ?? []}
+              exclusionLabel={t.library.addExclusion}
+              onSelectAll={() => setPicked(new Set(items.map((s) => s.id)))}
+              onClear={() => setPicked(new Set())}
+              onExit={exitSelection}
+              onApply={(e) => run(() => sonarr.editSeries([...picked], e), t.bulk.applied(picked.size))}
+              onDelete={async (o) => {
+                const ok = await run(() => sonarr.deleteSeriesBulk([...picked], o), t.bulk.deleted(picked.size));
+                if (ok) setPicked(new Set());
+                return ok;
+              }}
+            />
           )}
         </>
       )}
