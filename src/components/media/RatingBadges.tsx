@@ -1,6 +1,8 @@
+import { Fragment } from "react";
 import type { ArrRating } from "@/api/arr";
 import { RATING_SOURCES, type RatingSource } from "@/hooks/usePrefs";
 import { t } from "@/i18n/es";
+import { cn } from "@/lib/cn";
 import { formatRating } from "@/lib/format";
 import { tone } from "./FilmAffinity";
 import type { Scores } from "./library";
@@ -45,23 +47,26 @@ export function visibleScores(scores: Scores, hidden: RatingSource[]): Scores {
   return out;
 }
 
-/** Notas sobre el póster de las listas, una pastilla por fuente. */
+/** Notas sobre el póster de las listas: un panel en el lateral izquierdo, una fila por fuente con las notas alineadas. */
 export function RatingBadges({ scores }: { scores?: Scores }) {
   const items = RATING_SOURCES.flatMap((s) => (scores?.[s] != null ? [{ source: s, value: scores[s]! }] : []));
   if (!items.length) return null;
   return (
-    <div className="absolute inset-x-2 bottom-2 flex flex-wrap items-end gap-1">
+    <div className="absolute bottom-2 left-0 grid grid-cols-[auto_auto] gap-x-2 gap-y-1 rounded-r-md bg-black/75 py-1.5 pl-2 pr-2 shadow-md backdrop-blur">
       {items.map(({ source, value }) => {
         const v = formatScore(source, value);
         return (
-          <span
-            key={source}
-            className="flex items-center gap-1 rounded-full bg-black/70 px-1.5 py-0.5 text-[11px] font-semibold leading-none text-white backdrop-blur"
-            title={t.library.ratingBadge(ratingName(source), v)}
-          >
-            <span className="text-[9px] font-bold tracking-wide text-white/70">{SHORT[source]}</span>
-            <span className={scoreTone(source, value)}>{v}</span>
-          </span>
+          <Fragment key={source}>
+            <span className="self-center text-[9px] font-bold leading-none tracking-wide text-white/60" aria-hidden>
+              {SHORT[source]}
+            </span>
+            <span
+              className={cn("text-right text-xs font-semibold leading-none tabular-nums", scoreTone(source, value))}
+              title={t.library.ratingBadge(ratingName(source), v)}
+            >
+              {v}
+            </span>
+          </Fragment>
         );
       })}
     </div>

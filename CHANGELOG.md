@@ -13,7 +13,7 @@ También se puede lanzar a mano en Actions → Release → «Run workflow» indi
 ## [Sin publicar]
 
 ### Añadido
-- Las portadas de Películas, Series y Anime muestran las notas activadas en Ajustes → Notas (FilmAffinity, IMDb, TMDb, Rotten Tomatoes, Metacritic, Trakt, TVDB).
+- Las portadas de Películas, Series y Anime muestran las notas activadas en Ajustes → Notas (FilmAffinity, IMDb, TMDb, Rotten Tomatoes, Metacritic, Trakt, TVDB) en un panel lateral, una por fila y alineadas.
 - Ordenar la biblioteca por cualquiera de esas notas, de mayor a menor; lo que aún no tiene nota va al final.
 
 ## [0.1.0] - 2026-10-31
