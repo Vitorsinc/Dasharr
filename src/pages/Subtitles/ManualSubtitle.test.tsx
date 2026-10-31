@@ -55,6 +55,39 @@ function backend() {
   return calls;
 }
 
+test("subtítulos: al reabrir la búsqueda manual vuelve a buscar y no muestra los resultados anteriores", async () => {
+  let searches = 0;
+  mockBackend({
+    api: {
+      bazarr: (req) => {
+        if (req.path === "/api/movies/wanted")
+          return { data: [{ title: "Dune", radarrId: 5, missing_subtitles: [{ name: "Spanish", code2: "es" }] }] };
+        if (req.path === "/api/episodes/wanted") return { data: [] };
+        if (req.path === "/api/providers/movies" && req.method === "GET") {
+          searches++;
+          if (searches > 1) return new Promise(() => {}); // la segunda búsqueda no termina
+          return {
+            data: [{ provider: "subdivx", subtitle: "B2", language: "es", forced: "False", hearing_impaired: "False", original_format: "False", score: 95, release_info: ["Dune.2021.BluRay"] }],
+          };
+        }
+        return "";
+      },
+    },
+  });
+  renderApp("/subtitulos");
+  await userEvent.click(await screen.findByRole("button", { name: "Manual: Dune" }));
+  const dialog = await screen.findByRole("dialog", { name: "Subtítulos · Dune" });
+  expect(await within(dialog).findByText("Dune.2021.BluRay")).toBeInTheDocument();
+  await userEvent.keyboard("{Escape}");
+  await vi.waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+
+  await userEvent.click(screen.getByRole("button", { name: "Manual: Dune" }));
+  const again = await screen.findByRole("dialog", { name: "Subtítulos · Dune" });
+  await vi.waitFor(() => expect(searches).toBe(2));
+  expect(within(again).getByText(/Buscando en los proveedores/)).toBeInTheDocument();
+  expect(within(again).queryByText("Dune.2021.BluRay")).not.toBeInTheDocument();
+});
+
 test("subtítulos: búsqueda manual elige un candidato y el historial muestra lo bajado", async () => {
   const calls = backend();
   renderApp("/subtitulos");

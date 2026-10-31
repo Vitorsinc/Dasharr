@@ -14,12 +14,13 @@ import { useConnectionStates } from "@/hooks/useConnectionStates";
 import { useSettings } from "@/hooks/useSettings";
 import { openExternal } from "@/lib/tauri";
 import { serviceWebUrl } from "@/lib/webUrl";
+import { serviceSettingsPath } from "@/lib/settingsPaths";
 import { REFRESH, useServiceQuery } from "@/hooks/useServiceQuery";
 import { useTorrents } from "@/hooks/useTorrents";
 import { useCalendar } from "@/hooks/useCalendar";
 import { addDays, startOfDay } from "@/lib/dates";
 import { errorMessage } from "@/lib/errors";
-import { formatDate, formatEta, formatSpeed } from "@/lib/format";
+import { formatBytes, formatDate, formatEta, formatSpeed } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import { useItemDetail } from "@/pages/Calendar";
 import { NowWatching } from "@/components/NowWatching";
@@ -89,7 +90,7 @@ function ServiceCard({ service, route }: { service: ServiceKind; route: Paramete
   return (
     <div className="relative min-w-0">
       <Link
-        to={notConfigured ? "/ajustes" : servicePage[service]}
+        to={notConfigured ? serviceSettingsPath(service) : servicePage[service]}
         className={cn(
           "card group relative isolate flex h-full min-w-0 flex-col items-start gap-2 overflow-hidden p-4 transition-colors hover:bg-surface-2",
           notConfigured && "border-dashed bg-transparent",
@@ -166,11 +167,12 @@ function ActiveDownloads() {
               <div className="min-w-0 flex-1 truncate text-sm font-medium" title={tr.name}>
                 {tr.name}
               </div>
-              <div className="w-48">
+              <div className="w-48 shrink-0">
                 <ProgressBar value={tr.progress} />
               </div>
-              <div className="w-20 text-right text-xs tabular-nums text-muted">{formatSpeed(tr.dlspeed)}</div>
-              <div className="w-16 text-right text-xs tabular-nums text-muted">{formatEta(tr.eta)}</div>
+              <div className="w-20 shrink-0 whitespace-nowrap text-right text-xs tabular-nums text-muted">{formatBytes(tr.size)}</div>
+              <div className="w-20 shrink-0 whitespace-nowrap text-right text-xs tabular-nums text-muted">{formatSpeed(tr.dlspeed)}</div>
+              <div className="w-16 shrink-0 whitespace-nowrap text-right text-xs tabular-nums text-muted">{formatEta(tr.eta)}</div>
             </div>
           ))}
         </div>

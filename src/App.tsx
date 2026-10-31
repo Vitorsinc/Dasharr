@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { createMemoryRouter, createBrowserRouter, Navigate, RouterProvider, type RouteObject } from "react-router-dom";
+import { createMemoryRouter, createBrowserRouter, Navigate, RouterProvider, useParams, type RouteObject } from "react-router-dom";
 import { Layout } from "@/components/Layout";
 import { RouteError } from "@/components/RouteError";
 import HomePage from "@/pages/Home";
@@ -15,7 +15,15 @@ import PlexPage from "@/pages/Plex";
 import TrackersPage from "@/pages/Trackers";
 import IndexersPage from "@/pages/Indexers";
 import ActivityPage from "@/pages/Activity";
-import ManagePage from "@/pages/Manage";
+import { manageTabs } from "@/pages/Manage";
+import { SERVICES_SETTINGS_PATH, serviceSettingsPath } from "@/lib/settingsPaths";
+
+/** Compatibilidad con los enlaces antiguos /gestion/:service/:tab (por defecto, perfiles). */
+function ManageRedirect() {
+  const { service, tab = manageTabs[0].id } = useParams();
+  const to = service === "radarr" || service === "sonarr" ? serviceSettingsPath(service, tab) : SERVICES_SETTINGS_PATH;
+  return <Navigate to={to} replace />;
+}
 
 export const routes: RouteObject[] = [
   {
@@ -38,9 +46,10 @@ export const routes: RouteObject[] = [
           { path: "/indexadores/:tab?", element: <IndexersPage /> },
           { path: "/actividad/radarr/:tab?", element: <ActivityPage key="radarr" service="radarr" /> },
           { path: "/actividad/sonarr/:tab?", element: <ActivityPage key="sonarr" service="sonarr" /> },
-          { path: "/gestion/radarr/:tab?", element: <ManagePage key="radarr" service="radarr" /> },
-          { path: "/gestion/sonarr/:tab?", element: <ManagePage key="sonarr" service="sonarr" /> },
+          // La gestión de Radarr/Sonarr vivía en /gestion; ahora está en Ajustes → Servicios.
+          { path: "/gestion/:service?/:tab?", element: <ManageRedirect /> },
           { path: "/registro", element: <Navigate to="/ajustes/registro" replace /> },
+          { path: "/ajustes/servicios/:service?/:section?", element: <SettingsPage /> },
           { path: "/ajustes/:tab?", element: <SettingsPage /> },
         ],
       },

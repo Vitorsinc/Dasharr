@@ -123,7 +123,7 @@ test("Ajustes: iniciar sesión con Plex y elegir el servidor", async () => {
       plex_login_finish: (args) => finish(args),
     },
   });
-  renderApp("/ajustes");
+  renderApp("/ajustes/servicios/plex");
   const form = await screen.findByRole("region", { name: "Plex" });
   await userEvent.click(within(form).getByRole("button", { name: "Iniciar sesión con Plex" }));
   expect(openUrl).toHaveBeenCalledWith("https://app.plex.tv/auth#?code=x");

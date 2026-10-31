@@ -4,6 +4,7 @@ import { t } from "@/i18n/es";
 import { errorMessage } from "@/lib/errors";
 import { isApiError, type ServiceKind } from "@/lib/types";
 import { cn } from "@/lib/cn";
+import { serviceSettingsPath } from "@/lib/settingsPaths";
 
 export function NotConfigured({ service, compact }: { service: ServiceKind; compact?: boolean }) {
   const name = t.services[service];
@@ -14,7 +15,7 @@ export function NotConfigured({ service, compact }: { service: ServiceKind; comp
         <p className="font-medium">{t.common.notConfigured(name)}</p>
         {!compact && <p className="mt-1 text-sm text-muted">{t.common.notConfiguredHint}</p>}
       </div>
-      <Link to="/ajustes" className="btn-outline">
+      <Link to={serviceSettingsPath(service)} className="btn-outline">
         {t.common.goToSettings}
       </Link>
     </div>

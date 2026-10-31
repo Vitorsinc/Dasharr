@@ -125,6 +125,7 @@ export const es = {
       notifications: "Notificaciones",
       system: "Sistema",
     },
+    serviceTabsLabel: "Servicio",
     autoSwitch: "Dasharr usa la dirección local cuando responde y la externa cuando no.",
   },
   downloads: {
@@ -388,10 +389,9 @@ export const es = {
     selectAll: "Seleccionar toda la página",
   },
   manage: {
-    nav: "Gestión",
-    title: (service: string) => `Gestión de ${service}`,
-    tabsLabel: "Secciones de gestión",
+    tabsLabel: (service: string) => `Secciones de ${service}`,
     tabs: {
+      connection: "Conexión",
       tags: "Etiquetas",
       profiles: "Perfiles de calidad",
       formats: "Formatos",

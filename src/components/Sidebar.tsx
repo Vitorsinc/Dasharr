@@ -14,7 +14,6 @@ import {
   Radar,
   Search,
   Settings,
-  SlidersHorizontal,
   Tv,
   type LucideIcon,
 } from "lucide-react";
@@ -56,7 +55,6 @@ const groups: { service: ServiceKind; logo: string; items: NavItem[] }[] = [
     items: [
       { to: "/peliculas", label: t.nav.movies, icon: Clapperboard },
       { to: "/actividad/radarr", label: t.activity.nav, icon: Activity, ariaLabel: `${t.activity.nav} · ${t.services.radarr}` },
-      { to: "/gestion/radarr", label: t.manage.nav, icon: SlidersHorizontal, ariaLabel: `${t.manage.nav} · ${t.services.radarr}` },
     ],
   },
   {
@@ -66,7 +64,6 @@ const groups: { service: ServiceKind; logo: string; items: NavItem[] }[] = [
       { to: "/series", label: t.nav.series, icon: Tv },
       { to: "/anime", label: t.nav.anime, icon: Torii },
       { to: "/actividad/sonarr", label: t.activity.nav, icon: Activity, ariaLabel: `${t.activity.nav} · ${t.services.sonarr}` },
-      { to: "/gestion/sonarr", label: t.manage.nav, icon: SlidersHorizontal, ariaLabel: `${t.manage.nav} · ${t.services.sonarr}` },
     ],
   },
   { service: "qbittorrent", logo: qbittorrentLogo, items: [{ to: "/descargas", label: t.nav.downloads, icon: Download }] },

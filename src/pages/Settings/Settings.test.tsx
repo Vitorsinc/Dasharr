@@ -39,7 +39,7 @@ test("muestra el error de API key incorrecta", async () => {
 test("guarda con semántica de parche: el secreto no tocado no se envía", async () => {
   const save = vi.fn();
   mockBackend({ settings, commands: { save_service: save } });
-  renderApp("/ajustes");
+  renderApp("/ajustes/servicios/sonarr");
   const sonarr = await screen.findByRole("region", { name: "Sonarr" });
   await userEvent.type(within(sonarr).getByLabelText("Dirección local"), "http://h:8989");
   await userEvent.type(within(sonarr).getByLabelText(/API key/), "k123");
@@ -53,7 +53,7 @@ test("guarda con semántica de parche: el secreto no tocado no se envía", async
 
 test("pide al menos una dirección", async () => {
   mockBackend({ settings });
-  renderApp("/ajustes");
+  renderApp("/ajustes/servicios/bazarr");
   const bazarr = await screen.findByRole("region", { name: "Bazarr" });
   await userEvent.click(within(bazarr).getByRole("button", { name: "Probar conexión" }));
   expect(await within(bazarr).findByText("Indica al menos una dirección.")).toBeInTheDocument();
@@ -84,6 +84,7 @@ test("importa la configuración desde un archivo JSON", async () => {
       secrets: { apiKey: "abc", username: undefined, password: undefined, proxyUsername: undefined, proxyPassword: undefined },
     }),
   );
+  await userEvent.click(within(screen.getByRole("navigation", { name: "Servicio" })).getByRole("link", { name: "Sonarr" }));
   const sonarr = await screen.findByRole("region", { name: "Sonarr" });
   expect(await within(sonarr).findByDisplayValue("http://h:8989")).toBeInTheDocument();
 });
@@ -100,6 +101,41 @@ test("separa los ajustes en pestañas", async () => {
   expect(screen.getByRole("switch", { name: "Avisar cuando termine una descarga" })).toBeInTheDocument();
   await userEvent.click(within(tabs).getByRole("link", { name: "Servicios" }));
   expect(await screen.findByRole("region", { name: "Radarr" })).toBeInTheDocument();
+});
+
+test("Servicios se divide en una subpestaña por servicio y solo muestra el formulario elegido", async () => {
+  mockBackend({ settings });
+  renderApp("/ajustes/servicios");
+  const services = await screen.findByRole("navigation", { name: "Servicio" });
+  expect(within(services).getAllByRole("link").map((l) => l.textContent)).toEqual([
+    "Radarr",
+    "Sonarr",
+    "Prowlarr",
+    "Bazarr",
+    "qBittorrent",
+    "Tracearr",
+    "Plex",
+  ]);
+  expect(await screen.findByRole("region", { name: "Radarr" })).toBeInTheDocument();
+  for (const other of ["Sonarr", "Prowlarr", "Bazarr", "qBittorrent", "Tracearr", "Plex"])
+    expect(screen.queryByRole("region", { name: other })).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Importar desde archivo" })).toBeInTheDocument();
+  await userEvent.click(within(services).getByRole("link", { name: "Bazarr" }));
+  expect(await screen.findByRole("region", { name: "Bazarr" })).toBeInTheDocument();
+  expect(screen.queryByRole("region", { name: "Radarr" })).not.toBeInTheDocument();
+  expect(within(services).getByRole("link", { name: "Bazarr" })).toHaveAttribute("aria-current", "page");
+  // Bazarr no tiene menús de gestión; Radarr sí (y Sonarr, sin configurar, no los enseña).
+  expect(screen.queryByRole("navigation", { name: /^Secciones de Bazarr/ })).not.toBeInTheDocument();
+  await userEvent.click(within(services).getByRole("link", { name: "Sonarr" }));
+  expect(await screen.findByRole("region", { name: "Sonarr" })).toBeInTheDocument();
+  expect(screen.queryByRole("navigation", { name: "Secciones de Sonarr" })).not.toBeInTheDocument();
+});
+
+test("la gestión de un servicio sin configurar vuelve a su conexión", async () => {
+  mockBackend({ settings });
+  renderApp("/ajustes/servicios/sonarr/etiquetas");
+  expect(await screen.findByRole("region", { name: "Sonarr" })).toBeInTheDocument();
+  expect(screen.queryByRole("navigation", { name: "Secciones de Sonarr" })).not.toBeInTheDocument();
 });
 
 test("buscar actualizaciones avisa si ya está al día", async () => {
