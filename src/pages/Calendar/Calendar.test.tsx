@@ -69,6 +69,29 @@ test("coloca los elementos en su día de la semana y cambia a vista mensual", as
   expect(screen.getAllByTestId(/^day-/)).toHaveLength(42);
 });
 
+test("la semana se puede ver como agenda, pósters o por día, y se recuerda", async () => {
+  const today = new Date();
+  today.setHours(12);
+  mockBackend({
+    api: {
+      radarr: () => [{ id: 1, title: "Película X", year: 2026, hasFile: false, monitored: true, digitalRelease: today.toISOString() }],
+      sonarr: () => [],
+    },
+  });
+  renderApp("/calendario");
+  expect((await screen.findByText("Película X")).closest("section")).toHaveAttribute("data-testid", `day-${dayKey(today)}`);
+  await userEvent.click(screen.getByRole("tab", { name: "Pósters" }));
+  expect(screen.getByText("Película X").closest("[data-testid^='day-']")).toHaveAttribute("data-testid", `day-${dayKey(today)}`);
+  await userEvent.click(screen.getByRole("tab", { name: "Por día" }));
+  // Hoy está abierto por defecto, con sus estrenos debajo de la tira.
+  expect(screen.getByText("Película X").closest("[data-testid='day-item']")).toBeInTheDocument();
+  expect(screen.getByTestId(`day-${dayKey(today)}`)).toHaveAttribute("aria-pressed", "true");
+  expect(JSON.parse(localStorage.getItem("dasharr.prefs")!).weekStyle).toBe("strip");
+  // En la vista de mes no aparece el selector de estilo.
+  await userEvent.click(screen.getByRole("tab", { name: "Mes" }));
+  expect(screen.queryByRole("tab", { name: "Pósters" })).not.toBeInTheDocument();
+});
+
 test("mergeCalendar usa el fanart como fondo y, si no hay, el póster", () => {
   const movies = [
     {

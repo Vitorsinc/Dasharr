@@ -10,6 +10,8 @@ import { addDays, dayKey, sameDay, startOfMonth, startOfWeek } from "@/lib/dates
 import { cn } from "@/lib/cn";
 import { MovieDetail } from "@/pages/Movies/MovieDetail";
 import { SeriesDetail } from "@/pages/Series/SeriesDetail";
+import { WEEK_VIEWS, type WeekStyle } from "./WeekViews";
+import { usePrefs } from "@/hooks/usePrefs";
 
 type View = "week" | "month";
 
@@ -46,9 +48,7 @@ export function CalendarChip({ item, onClick, compact }: { item: CalItem; onClic
       )}
       <div className={cn("relative w-full px-2", compact ? "py-1" : "py-1.5")}>
         <div className={cn("truncate font-medium", withImage && "drop-shadow")}>{item.title}</div>
-        {!compact && (
-          <div className={cn("truncate", withImage ? "text-white/75 drop-shadow" : "text-muted")}>{item.subtitle}</div>
-        )}
+        {!compact && <div className={cn("truncate", withImage ? "text-white/75 drop-shadow" : "text-muted")}>{item.subtitle}</div>}
       </div>
     </button>
   );
@@ -79,6 +79,8 @@ export default function CalendarPage() {
   const end = addDays(days[days.length - 1], 1);
   const cal = useCalendar(start, end);
   const { openItem, dialogs } = useItemDetail();
+  const [{ weekStyle }, setPrefs] = usePrefs();
+  const WeekView = WEEK_VIEWS[weekStyle] ?? WEEK_VIEWS.agenda;
   const byDay = useMemo(() => {
     const m = new Map<string, CalItem[]>();
     for (const it of cal.items) m.set(dayKey(it.date), [...(m.get(dayKey(it.date)) ?? []), it]);
@@ -113,6 +115,18 @@ export default function CalendarPage() {
             </button>
           </div>
           <span className="min-w-40 text-center text-sm font-medium capitalize">{title}</span>
+          {view === "week" && (
+            <Segmented<WeekStyle>
+              label={t.calendar.weekStyle}
+              value={weekStyle}
+              onChange={(v) => setPrefs({ weekStyle: v })}
+              options={[
+                { value: "agenda", label: t.calendar.styles.agenda },
+                { value: "posters", label: t.calendar.styles.posters },
+                { value: "strip", label: t.calendar.styles.strip },
+              ]}
+            />
+          )}
           <Segmented<View>
             value={view}
             onChange={setView}
@@ -129,6 +143,8 @@ export default function CalendarPage() {
       ))}
       {cal.isLoading ? (
         <Loading />
+      ) : view === "week" ? (
+        <WeekView days={days} byDay={byDay} onOpen={openItem} />
       ) : (
         <div className="card overflow-hidden">
           <div className="grid grid-cols-7 border-b border-border text-center text-xs font-medium text-muted">
@@ -148,7 +164,6 @@ export default function CalendarPage() {
                   data-testid={`day-${dayKey(d)}`}
                   className={cn(
                     "flex flex-col gap-1 border-b border-r border-border p-1.5 [&:nth-child(7n)]:border-r-0",
-                    view === "week" && "min-h-[60vh]",
                     outside && "bg-surface-2/40",
                   )}
                 >

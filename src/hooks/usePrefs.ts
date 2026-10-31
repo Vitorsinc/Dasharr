@@ -22,6 +22,8 @@ export interface Prefs {
   hiddenRatings: RatingSource[];
   /** País (ISO 3166-1) cuyas fechas de estreno de películas se muestran. */
   releaseCountry: string;
+  /** Cómo se ve la semana en el calendario. */
+  weekStyle: "agenda" | "posters" | "strip";
 }
 
 const KEY = "dasharr.prefs";
@@ -33,6 +35,7 @@ const DEFAULTS: Prefs = {
   sidebarCollapsed: [],
   hiddenRatings: [],
   releaseCountry: "ES",
+  weekStyle: "agenda",
 };
 const listeners = new Set<() => void>();
 let cache: Prefs | null = null;
