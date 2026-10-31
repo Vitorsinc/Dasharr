@@ -10,6 +10,8 @@ crea la Release con las notas de esta página.
 
 ## [Sin publicar]
 
+## [0.1.0] - 2026-10-31
+
 ### Añadido
 - Ajustes → Notas: elige qué notas se muestran (FilmAffinity, IMDb, TMDb, Rotten Tomatoes, Metacritic, Trakt, TVDB). Si se quita FilmAffinity, deja de consultarse.
 - Las fichas muestran también las notas que traen Radarr (IMDb, TMDb, Rotten Tomatoes, Metacritic, Trakt) y Sonarr (TVDB), junto a la de FilmAffinity.
@@ -48,16 +50,24 @@ crea la Release con las notas de esta página.
 - Tracearr como servicio nuevo: en la ficha de una película se ve quién la ha visto, cuándo y hasta dónde; en la de una serie, quién la sigue y, en cada episodio, quién lo ha visto y cuándo.
 - Menú Historial: lo que se está viendo ahora y el historial de reproducciones de Tracearr, con filtro por usuario, por películas o episodios y por vistas completas.
 - Calendario con la imagen de cada película o serie de fondo en su barra (el fanart, o el póster si no hay), para reconocerlas de un vistazo.
+- Calendario: la semana se puede ver como Agenda, Pósters o Por día.
+- Películas: próximos estrenos en cines y en digital según el país elegido.
+- Inicio: botón en cada tarjeta para abrir la web del servicio en el navegador.
+- Trackers: icono en la esquina de cada tarjeta para abrir la web del tracker.
+- Avatares de Plex de cada usuario en el historial y en las fichas.
 
 ### Cambiado
 - Ajustes se divide en pestañas: Servicios, Contenido, Aspecto, Notificaciones, Sistema y Registro. El Registro deja de tener entrada propia en el menú lateral y pasa a ser una pestaña de Ajustes.
 - El menú lateral se agrupa por servicio (Radarr, Sonarr, qBittorrent, Prowlarr, Bazarr, Plex), con su logo.
   Cada grupo se puede plegar y Dasharr recuerda cuáles has plegado.
+- Rediseño: cada sección toma el color de su servicio, con tipografía propia. Anime usa un icono de puerta torii.
+- Descargas: se quita la tarjeta de espacio libre, que ya se ve en la parte de arriba.
 
 ### Corregido
 - Notas de FilmAffinity: se adapta la lectura a la nueva página de búsqueda de FilmAffinity, se detecta su aviso de "demasiadas consultas" y se descarta la caché anterior, que había guardado todo como "sin nota".
 - qBittorrent 5.x: se acepta la cookie de sesión `QBT_SID_<puerto>` y el acceso sin sesión.
 - Las API keys se guardan sin espacios ni saltos de línea al pegarlas.
+- Los pósters de las fichas mantienen su proporción en vez de estirarse y recortarse.
 - Un 401 del proxy inverso se distingue de una API key incorrecta, y el error dice dónde copiar la clave correcta (en Bazarr, la de Settings → General → Security).
 - Si el servicio responde una página web en vez de la API, se avisa de que falta la base URL.
 - El usuario y la contraseña del proxy solo se envían a la dirección externa.
