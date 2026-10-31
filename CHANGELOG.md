@@ -12,6 +12,17 @@ También se puede lanzar a mano en Actions → Release → «Run workflow» indi
 
 ## [Sin publicar]
 
+## [0.2.1] - 2026-10-31
+
+### Cambiado
+- La gestión de Radarr y Sonarr (perfiles, formatos, etiquetas, carpetas, retrasos, listas y exclusiones) pasa a Ajustes → Servicios, dentro de cada servicio junto a su conexión. Los enlaces antiguos de «Gestión» redirigen a la nueva ubicación.
+- Ajustes → Servicios tiene ahora una subpestaña por servicio, con su logo.
+
+### Corregido
+- La búsqueda manual de releases y de subtítulos vuelve a consultar siempre a los indexadores/proveedores, en lugar de enseñar resultados en caché.
+- Al cerrar la búsqueda interactiva se descartan el filtro y las opciones, para que la siguiente empiece limpia.
+- Se pueden descargar varias releases a la vez desde la búsqueda interactiva; antes, al lanzar una segunda se perdía el indicador de la primera.
+
 ## [0.2.0] - 2026-10-31
 
 ### Añadido

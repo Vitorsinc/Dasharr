@@ -26,7 +26,10 @@ export function ManualSubtitleDialog({ target, what, onClose }: { target: Manual
     queryKey: ["bazarr", "manual", key],
     queryFn: () => bazarr.manualSearch(target!),
     enabled: !!target,
-    staleTime: 60_000,
+    // Cada apertura debe buscar de nuevo en los proveedores: sin caché ni refetch al volver a la ventana (la búsqueda tarda minutos).
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnWindowFocus: false,
     retry: false,
   });
   const langs = useMemo(() => [...new Set((q.data ?? []).map((c) => c.language))].sort(), [q.data]);

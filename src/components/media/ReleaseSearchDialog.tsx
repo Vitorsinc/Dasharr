@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, ArrowDown, ArrowUp, ArrowUpDown, Download, ExternalLink, Filter, X } from "lucide-react";
 import { toast } from "sonner";
@@ -81,14 +81,25 @@ export function ReleaseSearchDialog({
     queryKey: [service, "releases", query],
     queryFn: () => getReleases(service, query!),
     enabled: query !== null,
-    staleTime: 60_000,
+    // Cada apertura debe consultar de nuevo a los indexadores: sin caché ni refetch al volver a la ventana.
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnWindowFocus: false,
     retry: false,
   });
   const [sort, setSort] = usePersistedSort<ReleaseSort>(`releases.${service}`, DEFAULT_RELEASE_SORT, isReleaseSort);
   const [filter, setFilter] = useState("");
   const [showRejected, setShowRejected] = useState(true);
-  const [grabbing, setGrabbing] = useState<string | null>(null);
+  // Varias descargas pueden estar en curso a la vez: se guardan todas las releases en proceso.
+  const [grabbing, setGrabbing] = useState<ReadonlySet<string>>(new Set());
   const [confirm, setConfirm] = useState<Release | null>(null);
+  // Al cerrar el diálogo se descartan filtro y opciones, para que la siguiente búsqueda empiece limpia.
+  useEffect(() => {
+    if (query !== null) return;
+    setFilter("");
+    setShowRejected(true);
+    setConfirm(null);
+  }, [query]);
   const list = useMemo(
     () =>
       sortReleases(
@@ -101,7 +112,7 @@ export function ReleaseSearchDialog({
     setSort((s) => (s.key === key ? { key, dir: s.dir === "asc" ? "desc" : "asc" } : { key, dir: releaseSortDefaultDir[key] }));
 
   async function grab(r: Release) {
-    setGrabbing(r.guid);
+    setGrabbing((s) => new Set(s).add(r.guid));
     try {
       await grabRelease(service, r);
       toast.success(t.releases.grabbed, { description: r.title });
@@ -110,7 +121,11 @@ export function ReleaseSearchDialog({
       const status = isApiError(e) && e.kind === "Http" ? e.status : undefined;
       toast.error(status === 404 ? t.releases.expired : status === 409 ? t.releases.indexerFailed : errorMessage(e, service));
     } finally {
-      setGrabbing(null);
+      setGrabbing((s) => {
+        const next = new Set(s);
+        next.delete(r.guid);
+        return next;
+      });
     }
   }
 
@@ -240,12 +255,12 @@ export function ReleaseSearchDialog({
                           )}
                           <button
                             className="btn-ghost p-1.5 text-accent"
-                            disabled={grabbing === r.guid}
+                            disabled={grabbing.has(r.guid)}
                             onClick={() => (r.rejected ? setConfirm(r) : grab(r))}
                             aria-label={`${t.releases.download}: ${r.title}`}
                             title={t.releases.download}
                           >
-                            {grabbing === r.guid ? <Spinner className="h-4 w-4" /> : <Download className="h-4 w-4" />}
+                            {grabbing.has(r.guid) ? <Spinner className="h-4 w-4" /> : <Download className="h-4 w-4" />}
                           </button>
                         </div>
                       </td>

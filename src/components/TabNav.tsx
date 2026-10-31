@@ -6,13 +6,15 @@ export interface TabLink {
   id: string;
   label: string;
   icon?: LucideIcon;
+  /** Imagen (logo de un servicio) en lugar del icono. */
+  logo?: string;
 }
 
 /** Pestañas que son rutas (`base` para la primera, `base/id` para el resto), como en Ajustes. */
 export function TabNav({ tabs, current, base, label }: { tabs: TabLink[]; current: string; base: string; label: string }) {
   return (
     <nav className="-mt-2 flex flex-wrap gap-1 border-b border-border" aria-label={label}>
-      {tabs.map(({ id, label: text, icon: Icon }) => (
+      {tabs.map(({ id, label: text, icon: Icon, logo }) => (
         <Link
           key={id}
           to={id === tabs[0].id ? base : `${base}/${id}`}
@@ -22,7 +24,7 @@ export function TabNav({ tabs, current, base, label }: { tabs: TabLink[]; curren
             id === current ? "border-accent text-fg" : "border-transparent text-muted hover:text-fg",
           )}
         >
-          {Icon && <Icon className="h-4 w-4" aria-hidden />}
+          {logo ? <img src={logo} alt="" className="h-4 w-4" /> : Icon && <Icon className="h-4 w-4" aria-hidden />}
           {text}
         </Link>
       ))}

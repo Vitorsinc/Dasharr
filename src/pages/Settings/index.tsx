@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Bell, Cpu, Library, Palette, ScrollText, Server, Upload, type LucideIcon } from "lucide-react";
+import { Bell, Cpu, Library, Palette, Plug, ScrollText, Server, Upload, type LucideIcon } from "lucide-react";
 import { Navigate, useParams } from "react-router-dom";
 import { TabNav } from "@/components/TabNav";
 import { toast } from "sonner";
@@ -8,8 +8,17 @@ import { disable, enable, isEnabled } from "@tauri-apps/plugin-autostart";
 import { Page } from "@/components/Page";
 import { Loading, Segmented, Toggle } from "@/components/ui";
 import { t } from "@/i18n/es";
-import { SERVICE_KINDS } from "@/lib/types";
-import { useSettings } from "@/hooks/useSettings";
+import { SERVICE_KINDS, type ServiceKind } from "@/lib/types";
+import { useIsConfigured, useSettings } from "@/hooks/useSettings";
+import { SERVICES_SETTINGS_PATH, serviceSettingsPath } from "@/lib/settingsPaths";
+import { isManageable, manageTabs } from "@/pages/Manage";
+import radarrLogo from "@/assets/services/radarr.svg";
+import sonarrLogo from "@/assets/services/sonarr.svg";
+import prowlarrLogo from "@/assets/services/prowlarr.svg";
+import bazarrLogo from "@/assets/services/bazarr.svg";
+import qbittorrentLogo from "@/assets/services/qbittorrent.svg";
+import tracearrLogo from "@/assets/services/tracearr.svg";
+import plexLogo from "@/assets/services/plex.svg";
 import { useConnectionStates } from "@/hooks/useConnectionStates";
 import { faClearQueue } from "@/api/filmaffinity";
 import { RATING_SOURCES, usePrefs, type RatingSource, type Theme } from "@/hooks/usePrefs";
@@ -390,19 +399,56 @@ function Section({ title, hint, children }: { title: string; hint?: string; chil
   );
 }
 
+const serviceLogos: Record<ServiceKind, string> = {
+  radarr: radarrLogo,
+  sonarr: sonarrLogo,
+  prowlarr: prowlarrLogo,
+  bazarr: bazarrLogo,
+  qbittorrent: qbittorrentLogo,
+  tracearr: tracearrLogo,
+  plex: plexLogo,
+};
+
+const serviceTabs = SERVICE_KINDS.map((s) => ({ id: s, label: t.services[s], logo: serviceLogos[s] }));
+const SERVICES_BASE = SERVICES_SETTINGS_PATH;
+const CONNECTION = "conexion";
+
+/** Ajustes → Servicios: una subpestaña por servicio; Radarr y Sonarr suman sus menús de gestión tras la conexión. */
 function Services() {
+  const { service: param = SERVICE_KINDS[0], section } = useParams();
+  const service = SERVICE_KINDS.find((s) => s === param);
   const { data, isLoading } = useSettings();
   const { data: routes } = useConnectionStates();
+  const configured = useIsConfigured(service ?? SERVICE_KINDS[0]);
   const [generation, setGeneration] = useState(0);
+  if (!service) return <Navigate to={SERVICES_BASE} replace />;
+
+  const manageable = isManageable(service);
+  const manage = section ? manageTabs.find((x) => x.id === section) : undefined;
+  // Secciones que no existen, o gestión de un servicio sin configurar: a su pestaña de conexión.
+  if (section && (!manageable || !manage || configured === false)) return <Navigate to={serviceSettingsPath(service)} replace />;
+  const subTabs = manageable && configured ? [{ id: CONNECTION, label: t.manage.tabs.connection, icon: Plug }, ...manageTabs] : [];
+
   return (
     <Section title={t.settings.servicesTitle} hint={t.settings.autoSwitch}>
       <div>
         <ImportButton onImported={() => setGeneration((g) => g + 1)} />
       </div>
-      {isLoading ? (
+      <TabNav tabs={serviceTabs} current={service} base={SERVICES_BASE} label={t.settings.serviceTabsLabel} />
+      {subTabs.length > 0 && (
+        <TabNav
+          tabs={subTabs}
+          current={manage?.id ?? CONNECTION}
+          base={serviceSettingsPath(service)}
+          label={t.manage.tabsLabel(t.services[service])}
+        />
+      )}
+      {manage && manageable ? (
+        configured ? manage.render(service) : <Loading />
+      ) : isLoading ? (
         <Loading />
       ) : (
-        SERVICE_KINDS.map((s) => <ServiceForm key={`${s}-${generation}`} service={s} view={data?.[s]} route={routes?.[s]} />)
+        <ServiceForm key={`${service}-${generation}`} service={service} view={data?.[service]} route={routes?.[service]} />
       )}
     </Section>
   );

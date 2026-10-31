@@ -25,7 +25,7 @@ test("listas de Sonarr: desactivar mandando la lista completa, sincronizar y bor
       },
     },
   });
-  renderApp("/gestion/sonarr/listas");
+  renderApp("/ajustes/servicios/sonarr/listas");
   expect(await screen.findByText("Trakt popular")).toBeInTheDocument();
   await userEvent.click(screen.getByRole("switch", { name: "Desactivar Trakt popular" }));
   await vi.waitFor(() => expect(calls.find((c) => c.method === "PUT")).toBeTruthy());
@@ -57,7 +57,7 @@ test("exclusiones de Radarr: filtrar y quitar con confirmación", async () => {
       },
     },
   });
-  renderApp("/gestion/radarr/exclusiones");
+  renderApp("/ajustes/servicios/radarr/exclusiones");
   expect(await screen.findByText("Heat (1995)")).toBeInTheDocument();
   await userEvent.type(screen.getByRole("textbox", { name: "Filtrar exclusiones…" }), "matr");
   expect(screen.queryByText("Heat (1995)")).not.toBeInTheDocument();

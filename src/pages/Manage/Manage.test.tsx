@@ -47,8 +47,9 @@ function backend(over: Record<string, unknown> = {}) {
 
 test("perfiles: editar calidades, orden, límite y puntuación de formatos", async () => {
   const calls = backend();
-  renderApp("/gestion/radarr");
-  expect(await screen.findByRole("heading", { name: "Gestión de Radarr" })).toBeInTheDocument();
+  renderApp("/ajustes/servicios/radarr/perfiles");
+  const sections = await screen.findByRole("navigation", { name: "Secciones de Radarr" });
+  expect(within(sections).getByRole("link", { name: "Perfiles de calidad" })).toHaveAttribute("aria-current", "page");
   expect(await screen.findByText(/2 calidades · Mejora hasta Bluray-1080p/)).toBeInTheDocument();
 
   await userEvent.click(screen.getByRole("button", { name: "Editar perfil · HD" }));
@@ -72,7 +73,7 @@ test("perfiles: editar calidades, orden, límite y puntuación de formatos", asy
 
 test("perfiles: crear desde la plantilla y avisar de lo que falta", async () => {
   const calls = backend();
-  renderApp("/gestion/radarr/perfiles");
+  renderApp("/ajustes/servicios/radarr/perfiles");
   await userEvent.click(await screen.findByRole("button", { name: "Perfil nuevo" }));
   const dialog = await screen.findByRole("dialog", { name: "Crear perfil" });
   const name = within(dialog).getByLabelText("Nombre");
@@ -101,7 +102,7 @@ test("perfiles: un error de validación del *arr se enseña con su motivo", asyn
       },
     },
   });
-  renderApp("/gestion/radarr");
+  renderApp("/ajustes/servicios/radarr/perfiles");
   await userEvent.click(await screen.findByRole("button", { name: "Borrar: HD" }));
   const confirm = await screen.findByRole("dialog", { name: "Borrar perfil de calidad" });
   await userEvent.click(within(confirm).getByRole("button", { name: "Borrar" }));
@@ -111,7 +112,7 @@ test("perfiles: un error de validación del *arr se enseña con su motivo", asyn
 
 test("formatos: lista con uso en perfiles, importar JSON y borrar", async () => {
   const calls = backend();
-  renderApp("/gestion/radarr/formatos");
+  renderApp("/ajustes/servicios/radarr/formatos");
   expect(await screen.findByText("x265")).toBeInTheDocument();
   expect(await screen.findByText(/0 condiciones · puntúa en 1 perfil/)).toBeInTheDocument();
 
@@ -140,7 +141,7 @@ test("formatos: lista con uso en perfiles, importar JSON y borrar", async () => 
 
 test("etiquetas: uso, crear, renombrar y borrar", async () => {
   const calls = backend();
-  renderApp("/gestion/radarr/etiquetas");
+  renderApp("/ajustes/servicios/radarr/etiquetas");
   expect(await screen.findByText("2 en la biblioteca · 1 en ajustes")).toBeInTheDocument();
   expect(screen.getByText("Sin usar")).toBeInTheDocument();
 
@@ -162,7 +163,7 @@ test("etiquetas: uso, crear, renombrar y borrar", async () => {
 
 test("carpetas raíz: añadir y quitar con confirmación", async () => {
   const calls = backend();
-  renderApp("/gestion/radarr/carpetas");
+  renderApp("/ajustes/servicios/radarr/carpetas");
   expect(await screen.findByText("/movies")).toBeInTheDocument();
   expect(screen.getByText("2 TB libres")).toBeInTheDocument();
   expect(screen.getByText("1 carpeta sin importar")).toBeInTheDocument();
@@ -176,7 +177,7 @@ test("carpetas raíz: añadir y quitar con confirmación", async () => {
 
 test("retraso: lista en orden, el de por defecto no se borra, y editar", async () => {
   const calls = backend();
-  renderApp("/gestion/radarr/retraso");
+  renderApp("/ajustes/servicios/radarr/retraso");
   const list = await screen.findByRole("list", { name: "Retraso" });
   const rows = within(list).getAllByRole("listitem");
   expect(rows[0]).toHaveTextContent("4k");
@@ -192,4 +193,38 @@ test("retraso: lista en orden, el de por defecto no se borra, y editar", async (
   await userEvent.click(within(dialog).getByRole("button", { name: "Guardar" }));
   await vi.waitFor(() => expect(calls.find((c) => c.method === "PUT")).toBeTruthy());
   expect(calls.find((c) => c.method === "PUT")).toMatchObject({ path: "/api/v3/delayprofile/1", body: { value: { torrentDelay: 120, tags: [] } } });
+});
+
+test("la gestión está en Ajustes → Servicios: la barra lateral ya no tiene «Gestión»", async () => {
+  backend();
+  renderApp("/ajustes/servicios/radarr");
+  const radarr = await screen.findByRole("region", { name: "Radarr" });
+  expect(radarr).toBeInTheDocument();
+  expect(screen.queryByRole("link", { name: /Gestión/ })).not.toBeInTheDocument();
+  expect(document.querySelector('a[href^="/gestion"]')).toBeNull();
+  // Desde la conexión se llega a la gestión con la segunda fila de pestañas.
+  const sections = await screen.findByRole("navigation", { name: "Secciones de Radarr" });
+  expect(within(sections).getByRole("link", { name: "Conexión" })).toHaveAttribute("aria-current", "page");
+  await userEvent.click(within(sections).getByRole("link", { name: "Etiquetas" }));
+  expect(await screen.findByText("2 en la biblioteca · 1 en ajustes")).toBeInTheDocument();
+  expect(screen.queryByRole("region", { name: "Radarr" })).not.toBeInTheDocument();
+});
+
+test("los enlaces antiguos de /gestion llevan a Ajustes → Servicios", async () => {
+  backend();
+  renderApp("/gestion/radarr/etiquetas");
+  expect(await screen.findByText("2 en la biblioteca · 1 en ajustes")).toBeInTheDocument();
+  const sections = screen.getByRole("navigation", { name: "Secciones de Radarr" });
+  expect(within(sections).getByRole("link", { name: "Etiquetas" })).toHaveAttribute("aria-current", "page");
+  expect(within(screen.getByRole("navigation", { name: "Servicio" })).getByRole("link", { name: "Radarr" })).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
+});
+
+test("/gestion/sonarr sin pestaña abre los perfiles de Sonarr", async () => {
+  mockBackend({ api: { sonarr: (req) => (req.path === "/api/v3/qualityprofile" ? [profile()] : []) } });
+  renderApp("/gestion/sonarr");
+  const sections = await screen.findByRole("navigation", { name: "Secciones de Sonarr" });
+  expect(within(sections).getByRole("link", { name: "Perfiles de calidad" })).toHaveAttribute("aria-current", "page");
 });

@@ -1,11 +1,7 @@
 import { Ban, FolderTree, Gauge, Hourglass, ListPlus, Sparkles, Tags as TagsIcon, type LucideIcon } from "lucide-react";
-import { Navigate, useParams } from "react-router-dom";
 import type { ReactNode } from "react";
-import { Page } from "@/components/Page";
-import { NotConfigured } from "@/components/ErrorPanel";
-import { TabNav } from "@/components/TabNav";
 import type { ArrService } from "@/api/arr";
-import { useIsConfigured } from "@/hooks/useSettings";
+import type { ServiceKind } from "@/lib/types";
 import { t } from "@/i18n/es";
 import { Tags } from "./Tags";
 import { QualityProfiles } from "./QualityProfiles";
@@ -14,14 +10,18 @@ import { RootFolders } from "./RootFolders";
 import { DelayProfiles } from "./DelayProfiles";
 import { Exclusions, ImportLists } from "./ImportLists";
 
-interface Tab {
+export interface ManageTab {
   id: string;
   label: string;
   icon: LucideIcon;
   render: (service: ArrService) => ReactNode;
 }
 
-const tabs: Tab[] = [
+/**
+ * Ajustes de biblioteca de Radarr o Sonarr: perfiles, formatos, etiquetas, carpetas, retrasos y listas de importación.
+ * Viven en Ajustes → Servicios → Radarr/Sonarr, junto a la conexión.
+ */
+export const manageTabs: ManageTab[] = [
   { id: "perfiles", label: t.manage.tabs.profiles, icon: Gauge, render: (s) => <QualityProfiles key={s} service={s} /> },
   { id: "formatos", label: t.manage.tabs.formats, icon: Sparkles, render: (s) => <CustomFormats key={s} service={s} /> },
   { id: "etiquetas", label: t.manage.tabs.tags, icon: TagsIcon, render: (s) => <Tags key={s} service={s} /> },
@@ -31,23 +31,7 @@ const tabs: Tab[] = [
   { id: "exclusiones", label: t.manage.tabs.exclusions, icon: Ban, render: (s) => <Exclusions key={s} service={s} /> },
 ];
 
-/** Ajustes de biblioteca de Radarr o Sonarr: perfiles, formatos, etiquetas, carpetas, retrasos y listas de importación. */
-export default function ManagePage({ service }: { service: ArrService }) {
-  const { tab = tabs[0].id } = useParams();
-  const configured = useIsConfigured(service);
-  const current = tabs.find((x) => x.id === tab);
-  const base = `/gestion/${service}`;
-  if (!current) return <Navigate to={base} replace />;
-  return (
-    <Page title={t.manage.title(t.services[service])}>
-      {configured === false ? (
-        <NotConfigured service={service} />
-      ) : (
-        <>
-          <TabNav tabs={tabs} current={current.id} base={base} label={t.manage.tabsLabel} />
-          <div className="max-w-4xl">{current.render(service)}</div>
-        </>
-      )}
-    </Page>
-  );
+/** Solo Radarr y Sonarr tienen menús de gestión. */
+export function isManageable(service: ServiceKind): service is ArrService {
+  return service === "radarr" || service === "sonarr";
 }

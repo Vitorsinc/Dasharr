@@ -1,6 +1,6 @@
 [package]
 name = "dasharr"
-version = "0.2.0"
+version = "0.2.1"
 description = "Dashboard de escritorio para Radarr, Sonarr, Prowlarr, Bazarr, qBittorrent y Plex"
 edition = "2021"
 
