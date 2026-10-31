@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { t } from "@/i18n/es";
 
@@ -72,6 +72,33 @@ export function Segmented<T extends string>({
         </button>
       ))}
     </div>
+  );
+}
+
+/** Anterior / siguiente para las listas paginadas del *arr. No se ve si todo cabe en una página. */
+export function Pager({
+  page,
+  pageSize,
+  total,
+  onPage,
+}: {
+  page: number;
+  pageSize: number;
+  total: number;
+  onPage: (p: number) => void;
+}) {
+  const pages = Math.max(1, Math.ceil(total / pageSize));
+  if (pages <= 1) return null;
+  return (
+    <nav className="flex items-center justify-end gap-2 text-sm" aria-label={t.common.pagination}>
+      <button className="btn-outline px-2.5 py-1.5" disabled={page <= 1} onClick={() => onPage(page - 1)} aria-label={t.common.prevPage}>
+        <ChevronLeft className="h-4 w-4" aria-hidden />
+      </button>
+      <span className="tabular-nums text-muted">{t.common.pageOf(page, pages)}</span>
+      <button className="btn-outline px-2.5 py-1.5" disabled={page >= pages} onClick={() => onPage(page + 1)} aria-label={t.common.nextPage}>
+        <ChevronRight className="h-4 w-4" aria-hidden />
+      </button>
+    </nav>
   );
 }
 

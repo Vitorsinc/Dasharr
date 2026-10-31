@@ -16,6 +16,7 @@ También se puede lanzar a mano en Actions → Release → «Run workflow» indi
 - Actualizaciones automáticas: Dasharr mira si hay versión nueva al abrirse y cada 6 horas, avisa y la instala sola tras 30 segundos (con «Instalar ahora» o «Más tarde»). Se puede desactivar en Ajustes → Sistema, donde también se ven las novedades de la versión nueva y se instala con un clic. El menú lateral muestra «Actualizar a vX» mientras haya una pendiente.
 - Las portadas de Películas, Series y Anime muestran las notas activadas en Ajustes → Notas (FilmAffinity, IMDb, TMDb, Rotten Tomatoes, Metacritic, Trakt, TVDB) en un panel lateral, una por fila y alineadas.
 - Ordenar la biblioteca por cualquiera de esas notas, de mayor a menor; lo que aún no tiene nota va al final.
+- Radarr y Sonarr: nueva sección «Actividad» en el menú de cada uno con la lista de releases bloqueadas (blocklist): quitar una, varias seleccionadas o vaciarla entera, siempre con confirmación. En el historial de descargas de cada ficha, «Marcar como fallida» en las descargas enviadas para que la bloquee y busque otra.
 
 ### Corregido
 - Las versiones publicadas a mano desde Actions ya no se muestran como compilación de prueba («· dev abc1234»).

@@ -410,3 +410,10 @@ Comprobado en el código de Radarr, Sonarr, Prowlarr, Bazarr y qBittorrent (deve
 | qBittorrent lote | `torrents/setCategory` (`hashes`, `category`), `torrents/setDownloadLimit` y `setUploadLimit` (`limit` en bytes/s, 0 = sin límite) |
 | Bazarr manual | `GET /api/providers/movies?radarrid=` o `/providers/episodes?episodeid=` (puede tardar minutos) y `POST` al mismo con `hi`, `forced`, `original_format` ("True"/"False"), `provider`, `subtitle` (+ `radarrid` o `seriesid`+`episodeid`) |
 | Bazarr historial | `GET /api/movies/history` y `/api/episodes/history` (`start`, `length`); `action` 0 borrado, 1 descargado, 2 manual, 3 mejorado, 4 subido, 5 sincronizado, 6 traducido |
+
+## 13. Funciones añadidas el 31/10/2026 (endpoints)
+
+| Función | Llamada |
+|---|---|
+| Blocklist | `GET /api/v3/blocklist?page&pageSize&sortKey=date&sortDirection=descending` → `{ totalRecords, records }` (Radarr trae `movie`, Sonarr `series`); `DELETE /api/v3/blocklist/{id}`; `DELETE /api/v3/blocklist/bulk` con `{ ids }`; vaciar = comando `ClearBlocklist` |
+| Marcar como fallida | `POST /api/v3/history/failed/{id}` (id de una línea `grabbed` del historial) |

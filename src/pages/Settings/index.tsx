@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Bell, Cpu, Library, Palette, ScrollText, Server, Upload, type LucideIcon } from "lucide-react";
-import { Link, Navigate, useParams } from "react-router-dom";
+import { Navigate, useParams } from "react-router-dom";
+import { TabNav } from "@/components/TabNav";
 import { toast } from "sonner";
 import { disable, enable, isEnabled } from "@tauri-apps/plugin-autostart";
 import { Page } from "@/components/Page";
@@ -470,22 +471,7 @@ export default function SettingsPage() {
   if (!current) return <Navigate to="/ajustes" replace />;
   return (
     <Page title={t.nav.settings}>
-      <nav className="-mt-2 flex flex-wrap gap-1 border-b border-border" aria-label={t.settings.tabs.label}>
-        {tabs.map(({ id, label, icon: Icon }) => (
-          <Link
-            key={id}
-            to={id === tabs[0].id ? "/ajustes" : `/ajustes/${id}`}
-            aria-current={id === current.id ? "page" : undefined}
-            className={cn(
-              "-mb-px flex items-center gap-2 border-b-2 px-3 py-2 text-sm font-medium transition-colors",
-              id === current.id ? "border-accent text-fg" : "border-transparent text-muted hover:text-fg",
-            )}
-          >
-            <Icon className="h-4 w-4" aria-hidden />
-            {label}
-          </Link>
-        ))}
-      </nav>
+      <TabNav tabs={tabs} current={current.id} base="/ajustes" label={t.settings.tabs.label} />
       <div className={cn("flex flex-col gap-4", !current.wide && "max-w-4xl")}>{current.render()}</div>
     </Page>
   );
