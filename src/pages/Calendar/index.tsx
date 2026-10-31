@@ -10,8 +10,10 @@ import { addDays, dayKey, sameDay, startOfMonth, startOfWeek } from "@/lib/dates
 import { cn } from "@/lib/cn";
 import { MovieDetail } from "@/pages/Movies/MovieDetail";
 import { SeriesDetail } from "@/pages/Series/SeriesDetail";
+import { WeekAgenda, WeekPosters, WeekStrip } from "./WeekAlternatives";
 
 type View = "week" | "month";
+const ALT = new URLSearchParams(location.search).get("v") as "a" | "b" | "c" | null;
 
 const monthFmt = new Intl.DateTimeFormat("es-ES", { month: "long", year: "numeric" });
 const dayFmt = new Intl.DateTimeFormat("es-ES", { day: "numeric", month: "short" });
@@ -129,6 +131,8 @@ export default function CalendarPage() {
       ))}
       {cal.isLoading ? (
         <Loading />
+      ) : view === "week" && ALT ? (
+        (() => { const C = { a: WeekAgenda, b: WeekPosters, c: WeekStrip }[ALT]!; return <C days={days} byDay={byDay} onOpen={openItem} />; })()
       ) : (
         <div className="card overflow-hidden">
           <div className="grid grid-cols-7 border-b border-border text-center text-xs font-medium text-muted">
