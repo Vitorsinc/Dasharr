@@ -50,6 +50,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          exe=$(ls src-tauri/target/release/bundle/nsis/*-setup.exe)
+          # El proyecto es un workspace de Cargo: la compilación queda en target/ de la raíz.
+          exe=$(ls target/release/bundle/nsis/*-setup.exe)
           sha256sum "$exe" | cut -d' ' -f1 > "$exe.sha256"
           gh release upload "$TAG" "$exe.sha256" --clobber
