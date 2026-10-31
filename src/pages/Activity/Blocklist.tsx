@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Trash2, XCircle } from "lucide-react";
 import { toast } from "sonner";
@@ -26,6 +26,11 @@ export function Blocklist({ service }: { service: ArrService }) {
   const titles = useLibraryTitles(service);
   const records = q.data?.records ?? [];
   const total = q.data?.totalRecords ?? 0;
+  // Al quitar las últimas de la última página, volver a la que ahora es la última.
+  const pages = Math.max(1, Math.ceil(total / BLOCKLIST_PAGE));
+  useEffect(() => {
+    if (q.data && !q.isPlaceholderData && page > pages) setPage(pages);
+  }, [q.data, q.isPlaceholderData, page, pages]);
 
   const refresh = () => qc.invalidateQueries({ queryKey: [service, "blocklist"] });
   async function run(fn: () => Promise<unknown>, ok: string) {

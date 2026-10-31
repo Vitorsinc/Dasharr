@@ -59,6 +59,11 @@ function Input({ field, onChange, id }: { field: ProviderField; onChange: (v: un
       }
       return (
         <select id={id} className="input" value={str} onChange={(e) => onChange(optionValue(field, e.target.value))}>
+          {field.value == null && (
+            <option value="" disabled>
+              —
+            </option>
+          )}
           {options.map((o) => (
             <option key={String(o.value)} value={String(o.value)}>
               {o.name}
