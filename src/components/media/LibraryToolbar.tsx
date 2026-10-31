@@ -1,4 +1,4 @@
-import { Search } from "lucide-react";
+import { CheckSquare, Search } from "lucide-react";
 import { Segmented } from "@/components/ui";
 import { t } from "@/i18n/es";
 import type { RatingSource } from "@/hooks/usePrefs";
@@ -18,6 +18,8 @@ export function LibraryToolbar({
   tags = [],
   tag = null,
   onTag,
+  selecting,
+  onSelecting,
 }: {
   query: string;
   onQuery: (v: string) => void;
@@ -32,6 +34,9 @@ export function LibraryToolbar({
   tags?: Tag[];
   tag?: number | null;
   onTag?: (id: number | null) => void;
+  /** Modo selección para la edición masiva. */
+  selecting?: boolean;
+  onSelecting?: (v: boolean) => void;
 }) {
   return (
     <div className="flex flex-wrap items-center gap-3">
@@ -86,6 +91,16 @@ export function LibraryToolbar({
           ))}
         </select>
       </label>
+      {onSelecting && (
+        <button
+          className={selecting ? "btn-primary" : "btn-outline"}
+          aria-pressed={!!selecting}
+          title={t.bulk.selectHint}
+          onClick={() => onSelecting(!selecting)}
+        >
+          <CheckSquare className="h-4 w-4" aria-hidden /> {t.bulk.select}
+        </button>
+      )}
     </div>
   );
 }

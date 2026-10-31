@@ -1,5 +1,5 @@
 import { apiRequest } from "@/lib/tauri";
-import { arrCommon, type ArrImage, type ArrRating, type HistoryRecord, type WantedKind } from "./arr";
+import { arrCommon, type ArrImage, type ArrRating, type BulkEdit, type DeleteOptions, type HistoryRecord, type WantedKind } from "./arr";
 
 export interface SeasonStats {
   episodeFileCount: number;
@@ -141,6 +141,14 @@ export const sonarr = {
       method: "DELETE",
       path: `/api/v3/series/${id}`,
       query: { deleteFiles, addImportListExclusion: false },
+    }),
+  editSeries: (seriesIds: number[], e: BulkEdit) =>
+    apiRequest<unknown>("sonarr", { method: "PUT", path: "/api/v3/series/editor", json: { seriesIds, ...e } }),
+  deleteSeriesBulk: (seriesIds: number[], o: DeleteOptions) =>
+    apiRequest<unknown>("sonarr", {
+      method: "DELETE",
+      path: "/api/v3/series/editor",
+      json: { seriesIds, deleteFiles: o.deleteFiles, addImportListExclusion: o.addExclusion },
     }),
   updateSeries: async (series: Series, e: SeriesEdit) => {
     await apiRequest<Series>("sonarr", {

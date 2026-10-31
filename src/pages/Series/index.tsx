@@ -21,7 +21,8 @@ import { sonarr, type MonitorOption, type Series, type SeriesType } from "@/api/
 import { useSeries, useSonarrMeta, useSonarrQueue, useSonarrWanted } from "@/hooks/useArr";
 import { usePrefs } from "@/hooks/usePrefs";
 import { useFaRatings } from "@/hooks/useFilmAffinity";
-import { useTags } from "@/hooks/useArrManage";
+import { useRun, useTags } from "@/hooks/useArrManage";
+import { BulkEditBar } from "@/components/media/BulkEditBar";
 import { t } from "@/i18n/es";
 import { defaultsFor, kindOf, looksLikeAnime, seriesTypeLabel, typeForKind, type SeriesKind } from "@/lib/anime";
 import { SeriesDetail } from "./SeriesDetail";
@@ -51,6 +52,20 @@ export default function SeriesPage({ kind = "series" }: { kind?: SeriesKind }) {
   const [sort, setSort] = useState<LibSort>("title");
   const [tag, setTag] = useState<number | null>(null);
   const tags = useTags("sonarr");
+  const [selecting, setSelecting] = useState(false);
+  const [picked, setPicked] = useState<Set<number>>(new Set());
+  const run = useRun("sonarr");
+  const togglePick = (id: number) =>
+    setPicked((s) => {
+      const n = new Set(s);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
+  const exitSelection = () => {
+    setSelecting(false);
+    setPicked(new Set());
+  };
   const activeTag = tags.data?.some((x) => x.id === tag) ? tag : null;
   const [adding, setAdding] = useState(false);
   const [monitor, setMonitor] = useState<MonitorOption>("all");
@@ -193,6 +208,8 @@ export default function SeriesPage({ kind = "series" }: { kind?: SeriesKind }) {
             tags={tags.data ?? []}
             tag={activeTag}
             onTag={setTag}
+            selecting={selecting}
+            onSelecting={(v) => (v ? setSelecting(true) : exitSelection())}
           />
           {series.isLoading || series.configured === undefined ? (
             <Loading />
@@ -210,10 +227,29 @@ export default function SeriesPage({ kind = "series" }: { kind?: SeriesKind }) {
                   poster={posterUrl("sonarr", s)}
                   state={libState(s)}
                   scores={s.scores}
-                  onClick={() => setSelectedId(s.id)}
+                  selected={selecting ? picked.has(s.id) : undefined}
+                  onClick={() => (selecting ? togglePick(s.id) : setSelectedId(s.id))}
                 />
               ))}
             </PosterGrid>
+          )}
+          {selecting && (
+            <BulkEditBar
+              service="sonarr"
+              count={picked.size}
+              visible={items.length}
+              profiles={meta.profiles.data ?? []}
+              rootFolders={meta.roots.data ?? []}
+              onSelectAll={() => setPicked(new Set(items.map((s) => s.id)))}
+              onClear={() => setPicked(new Set())}
+              onExit={exitSelection}
+              onApply={(e) => run(() => sonarr.editSeries([...picked], e), t.bulk.applied(picked.size))}
+              onDelete={async (o) => {
+                const ok = await run(() => sonarr.deleteSeriesBulk([...picked], o), t.bulk.deleted(picked.size));
+                if (ok) setPicked(new Set());
+                return ok;
+              }}
+            />
           )}
         </>
       )}

@@ -20,7 +20,8 @@ import { faKey, movieItem } from "@/api/filmaffinity";
 import { movieReleaseDate, radarr, type Movie } from "@/api/radarr";
 import { useMovies, useRadarrMeta, useRadarrQueue, useRadarrWanted } from "@/hooks/useArr";
 import { useFaRatings } from "@/hooks/useFilmAffinity";
-import { useTags } from "@/hooks/useArrManage";
+import { useRun, useTags } from "@/hooks/useArrManage";
+import { BulkEditBar } from "@/components/media/BulkEditBar";
 import { usePrefs } from "@/hooks/usePrefs";
 import { t } from "@/i18n/es";
 import { movieDefaultsFor } from "@/lib/anime";
@@ -42,6 +43,20 @@ export default function MoviesPage() {
   const [sort, setSort] = useState<LibSort>("title");
   const [tag, setTag] = useState<number | null>(null);
   const tags = useTags("radarr");
+  const [selecting, setSelecting] = useState(false);
+  const [picked, setPicked] = useState<Set<number>>(new Set());
+  const run = useRun("radarr");
+  const togglePick = (id: number) =>
+    setPicked((s) => {
+      const n = new Set(s);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
+  const exitSelection = () => {
+    setSelecting(false);
+    setPicked(new Set());
+  };
   const activeTag = tags.data?.some((x) => x.id === tag) ? tag : null;
   const [adding, setAdding] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -167,6 +182,8 @@ export default function MoviesPage() {
             tags={tags.data ?? []}
             tag={activeTag}
             onTag={setTag}
+            selecting={selecting}
+            onSelecting={(v) => (v ? setSelecting(true) : exitSelection())}
           />
           {movies.isLoading || movies.configured === undefined ? (
             <Loading />
@@ -184,10 +201,29 @@ export default function MoviesPage() {
                   poster={posterUrl("radarr", m)}
                   state={libState(m)}
                   scores={m.scores}
-                  onClick={() => setSelectedId(m.id)}
+                  selected={selecting ? picked.has(m.id) : undefined}
+                  onClick={() => (selecting ? togglePick(m.id) : setSelectedId(m.id))}
                 />
               ))}
             </PosterGrid>
+          )}
+          {selecting && (
+            <BulkEditBar
+              service="radarr"
+              count={picked.size}
+              visible={items.length}
+              profiles={meta.profiles.data ?? []}
+              rootFolders={meta.roots.data ?? []}
+              onSelectAll={() => setPicked(new Set(items.map((m) => m.id)))}
+              onClear={() => setPicked(new Set())}
+              onExit={exitSelection}
+              onApply={(e) => run(() => radarr.editMovies([...picked], e), t.bulk.applied(picked.size))}
+              onDelete={async (o) => {
+                const ok = await run(() => radarr.deleteMovies([...picked], o), t.bulk.deleted(picked.size));
+                if (ok) setPicked(new Set());
+                return ok;
+              }}
+            />
           )}
         </>
       )}

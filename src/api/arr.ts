@@ -109,6 +109,23 @@ export interface HistoryRecord {
   episode?: { seasonNumber: number; episodeNumber: number; title: string };
 }
 
+/** Cambios en lote (`PUT /movie/editor`, `/series/editor`): solo se aplica lo que viene definido. */
+export interface BulkEdit {
+  monitored?: boolean;
+  qualityProfileId?: number;
+  rootFolderPath?: string;
+  /** Con carpeta raíz nueva: si el *arr mueve los archivos o solo cambia la ruta. */
+  moveFiles?: boolean;
+  tags?: number[];
+  applyTags?: "add" | "remove" | "replace";
+}
+
+export interface DeleteOptions {
+  deleteFiles: boolean;
+  /** Añadir a las exclusiones de las listas de importación para que no se vuelva a añadir sola. */
+  addExclusion: boolean;
+}
+
 export interface HealthItem {
   source: string;
   type: "ok" | "notice" | "warning" | "error";

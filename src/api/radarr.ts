@@ -1,5 +1,5 @@
 import { apiRequest } from "@/lib/tauri";
-import { arrCommon, type ArrImage, type ArrRating, type HistoryRecord, type WantedKind } from "./arr";
+import { arrCommon, type ArrImage, type ArrRating, type BulkEdit, type DeleteOptions, type HistoryRecord, type WantedKind } from "./arr";
 
 export interface Movie {
   id: number;
@@ -79,6 +79,14 @@ export const radarr = {
       path: `/api/v3/movie/${movie.id}`,
       query: { moveFiles: e.moveFiles && e.path !== movie.path },
       json: { ...movie, qualityProfileId: e.qualityProfileId, minimumAvailability: e.minimumAvailability, path: e.path },
+    }),
+  editMovies: (movieIds: number[], e: BulkEdit) =>
+    apiRequest<unknown>("radarr", { method: "PUT", path: "/api/v3/movie/editor", json: { movieIds, ...e } }),
+  deleteMovies: (movieIds: number[], o: DeleteOptions) =>
+    apiRequest<unknown>("radarr", {
+      method: "DELETE",
+      path: "/api/v3/movie/editor",
+      json: { movieIds, deleteFiles: o.deleteFiles, addImportExclusion: o.addExclusion },
     }),
   search: (movieIds: number[]) => common.command({ name: "MoviesSearch", movieIds }),
   getWanted: async (kind: WantedKind) => (await common.getWanted<Movie>(kind)).records ?? [],
