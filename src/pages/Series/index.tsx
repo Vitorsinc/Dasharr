@@ -8,7 +8,8 @@ import { AddMediaDialog } from "@/components/media/AddMediaDialog";
 import { LibraryToolbar } from "@/components/media/LibraryToolbar";
 import { PosterCard, PosterGrid } from "@/components/media/PosterCard";
 import { QueueList } from "@/components/media/QueueList";
-import { filterSort, libState, type LibFilter, type LibSort } from "@/components/media/library";
+import { fetchOrder, filterSort, isAvailable, libState, SERIES_SOURCES, type LibFilter, type LibSort } from "@/components/media/library";
+import { arrScores, visibleScores } from "@/components/media/RatingBadges";
 import { posterUrl, type ReleaseQuery, type WantedKind } from "@/api/arr";
 import { WantedList } from "@/components/media/WantedList";
 import { ReleaseSearchDialog } from "@/components/media/ReleaseSearchDialog";
@@ -71,17 +72,27 @@ export default function SeriesPage({ kind = "series" }: { kind?: SeriesKind }) {
   const preset = defaultsFor(addKind, meta.roots.data ?? [], meta.profiles.data ?? [], seriesDefaults[addKind]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
 
+  const showFa = !hiddenRatings.includes("filmaffinity");
+  const sortSources = SERIES_SOURCES.filter((s) => !hiddenRatings.includes(s));
+  const activeSort = isAvailable(sort, sortSources) ? sort : "title";
+  const base = useMemo(() => mine.map((s) => ({ ...s, ...seriesLibFlags(s) })), [mine]);
+  // FilmAffinity se pide en el orden en que se ve la lista (o por título al ordenar por nota).
+  const faItems = useMemo(
+    () => (tab === "library" && showFa ? filterSort(base, { query, filter, sort: fetchOrder(activeSort) }).map(seriesItem) : []),
+    [base, tab, showFa, query, filter, activeSort],
+  );
+  const ratings = useFaRatings(faItems);
   const items = useMemo(
     () =>
       filterSort(
-        mine.map((s) => ({ ...s, ...seriesLibFlags(s) })),
-        { query, filter, sort },
+        base.map((s) => ({
+          ...s,
+          scores: visibleScores({ ...arrScores({ tvdb: s.ratings }), filmaffinity: ratings[faKey(seriesItem(s))]?.rating ?? undefined }, hiddenRatings),
+        })),
+        { query, filter, sort: activeSort },
       ),
-    [mine, query, filter, sort],
+    [base, ratings, hiddenRatings, query, filter, activeSort],
   );
-  const showFa = !hiddenRatings.includes("filmaffinity");
-  const faItems = useMemo(() => (tab === "library" && showFa ? items.map(seriesItem) : []), [items, tab, showFa]);
-  const ratings = useFaRatings(faItems);
   const existing = useMemo(() => new Set((series.data ?? []).map((s) => s.tvdbId)), [series.data]);
   const selected = series.data?.find((s) => s.id === selectedId) ?? null;
 
@@ -166,7 +177,7 @@ export default function SeriesPage({ kind = "series" }: { kind?: SeriesKind }) {
         )
       ) : (
         <>
-          <LibraryToolbar series query={query} onQuery={setQuery} filter={filter} onFilter={setFilter} sort={sort} onSort={setSort} />
+          <LibraryToolbar series query={query} onQuery={setQuery} filter={filter} onFilter={setFilter} sort={activeSort} onSort={setSort} ratingSources={sortSources} />
           {series.isLoading || series.configured === undefined ? (
             <Loading />
           ) : series.isError ? (
@@ -182,7 +193,7 @@ export default function SeriesPage({ kind = "series" }: { kind?: SeriesKind }) {
                   subtitle={s.statistics ? t.library.episodes(s.statistics.episodeFileCount, s.statistics.episodeCount) : String(s.year)}
                   poster={posterUrl("sonarr", s)}
                   state={libState(s)}
-                  rating={showFa ? ratings[faKey(seriesItem(s))]?.rating : undefined}
+                  scores={s.scores}
                   onClick={() => setSelectedId(s.id)}
                 />
               ))}

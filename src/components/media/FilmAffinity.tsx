@@ -12,21 +12,6 @@ export function tone(rating: number) {
   return "text-danger";
 }
 
-/** Nota sobre el póster de las listas. */
-export function FaBadge({ rating }: { rating?: number | null }) {
-  if (rating == null) return null;
-  const r = formatRating(rating);
-  return (
-    <span
-      className="absolute bottom-2 left-2 flex items-center gap-1 rounded-full bg-black/70 px-2 py-0.5 text-[11px] font-semibold text-white backdrop-blur"
-      title={t.filmaffinity.badge(r)}
-    >
-      <span className="text-[9px] font-bold tracking-wide text-white/70">FA</span>
-      <span className={tone(rating)}>{r}</span>
-    </span>
-  );
-}
-
 /** Nota y enlace en la ficha de una película o serie. */
 export function FaInfo({ item }: { item: FaItem }) {
   const [{ hiddenRatings }] = usePrefs();

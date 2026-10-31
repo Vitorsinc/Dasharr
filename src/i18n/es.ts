@@ -229,6 +229,8 @@ export const es = {
     sortAdded: "Añadido",
     sortYear: "Año",
     sortBy: "Ordenar por",
+    sortRating: (name: string) => `Nota ${name}`,
+    ratingBadge: (name: string, r: string) => `Nota de ${name}: ${r}`,
     addMovie: "Añadir película",
     addSeries: "Añadir serie",
     addAnime: "Añadir anime",
@@ -428,7 +430,6 @@ export const es = {
     noRating: "Sin nota todavía",
     unavailable: "No disponible ahora",
     open: "Ver en FilmAffinity",
-    badge: (r: string) => `Nota de FilmAffinity: ${r}`,
   },
   releases: {
     manual: "Búsqueda manual",

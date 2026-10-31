@@ -2,8 +2,8 @@ import { useState } from "react";
 import { Film } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { t } from "@/i18n/es";
-import { FaBadge } from "./FilmAffinity";
-import type { LibState } from "./library";
+import type { LibState, Scores } from "./library";
+import { RatingBadges } from "./RatingBadges";
 
 const stateStyle: Record<LibState, { dot: string; label: string }> = {
   downloaded: { dot: "bg-success", label: t.library.statusDownloaded },
@@ -33,15 +33,15 @@ export function PosterCard({
   subtitle,
   poster,
   state,
-  rating,
+  scores,
   onClick,
 }: {
   title: string;
   subtitle?: string;
   poster?: string;
   state?: LibState;
-  /** Nota de FilmAffinity. */
-  rating?: number | null;
+  /** Notas que se ven sobre el póster (ya filtradas por Ajustes). */
+  scores?: Scores;
   onClick?: () => void;
 }) {
   const s = state ? stateStyle[state] : null;
@@ -58,7 +58,7 @@ export function PosterCard({
             {s.label}
           </span>
         )}
-        <FaBadge rating={rating} />
+        <RatingBadges scores={scores} />
       </div>
       <div className="min-w-0 px-0.5">
         <div className="truncate text-sm font-medium" title={title}>
