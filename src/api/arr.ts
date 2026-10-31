@@ -234,6 +234,12 @@ export interface ReleaseSort {
   dir: SortDir;
 }
 
+const RELEASE_SORT_KEYS: readonly string[] = ["default", "title", "indexer", "quality", "size", "seeders", "age", "score"];
+export function isReleaseSort(v: unknown): v is ReleaseSort {
+  const s = v as ReleaseSort | null;
+  return !!s && typeof s === "object" && RELEASE_SORT_KEYS.includes(s.key) && (s.dir === "asc" || s.dir === "desc");
+}
+
 /** Sentido con el que empieza cada columna al pulsarla, como en Radarr/Sonarr. */
 export const releaseSortDefaultDir: Record<ReleaseSortKey, SortDir> = {
   default: "asc",

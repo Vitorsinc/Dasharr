@@ -8,7 +8,8 @@ import { AddMediaDialog } from "@/components/media/AddMediaDialog";
 import { LibraryToolbar } from "@/components/media/LibraryToolbar";
 import { PosterCard, PosterGrid } from "@/components/media/PosterCard";
 import { QueueList } from "@/components/media/QueueList";
-import { fetchOrder, filterSort, isAvailable, libState, SERIES_SOURCES, type LibFilter, type LibSort } from "@/components/media/library";
+import { usePersistedSort } from "@/hooks/usePersistedSort";
+import { fetchOrder, filterSort, isAvailable, isLibSort, libState, SERIES_SOURCES, type LibFilter, type LibSort } from "@/components/media/library";
 import { arrScores, visibleScores } from "@/components/media/RatingBadges";
 import { posterUrl, type ReleaseQuery, type WantedKind } from "@/api/arr";
 import { WantedList } from "@/components/media/WantedList";
@@ -49,7 +50,7 @@ export default function SeriesPage({ kind = "series" }: { kind?: SeriesKind }) {
   const [manual, setManual] = useState<{ query: ReleaseQuery; what: string } | null>(null);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<LibFilter>("all");
-  const [sort, setSort] = useState<LibSort>("title");
+  const [sort, setSort] = usePersistedSort<LibSort>(kind, "title", isLibSort);
   const [tag, setTag] = useState<number | null>(null);
   const tags = useTags("sonarr");
   const [selecting, setSelecting] = useState(false);

@@ -9,7 +9,8 @@ import { LibraryToolbar } from "@/components/media/LibraryToolbar";
 import { PosterCard, PosterGrid } from "@/components/media/PosterCard";
 import { QueueList } from "@/components/media/QueueList";
 import { ReleaseSearchDialog } from "@/components/media/ReleaseSearchDialog";
-import { fetchOrder, filterSort, isAvailable, libState, MOVIE_SOURCES, type LibFilter, type LibSort } from "@/components/media/library";
+import { usePersistedSort } from "@/hooks/usePersistedSort";
+import { fetchOrder, filterSort, isAvailable, isLibSort, libState, MOVIE_SOURCES, type LibFilter, type LibSort } from "@/components/media/library";
 import { arrScores, visibleScores } from "@/components/media/RatingBadges";
 import { posterUrl, type WantedKind } from "@/api/arr";
 import { WantedList } from "@/components/media/WantedList";
@@ -40,7 +41,7 @@ export default function MoviesPage() {
   const wanted = useRadarrWanted(wantedKind, tab === "wanted");
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<LibFilter>("all");
-  const [sort, setSort] = useState<LibSort>("title");
+  const [sort, setSort] = usePersistedSort<LibSort>("movies", "title", isLibSort);
   const [tag, setTag] = useState<number | null>(null);
   const tags = useTags("radarr");
   const [selecting, setSelecting] = useState(false);

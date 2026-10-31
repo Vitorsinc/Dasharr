@@ -286,3 +286,20 @@ test("las portadas muestran las notas y se puede ordenar por ellas", async () =>
   await userEvent.selectOptions(sort, "Nota FilmAffinity");
   expect(order()).toEqual(["Arrival", "Dune", "Blade Runner"]);
 });
+
+test("el orden elegido se conserva al volver a montar la pantalla y al cambiar de pestaña", async () => {
+  setPrefs({ sorts: {} });
+  mockBackend({ api: { radarr: (req) => (req.path === "/api/v3/movie" && req.method === "GET" ? movies : []) } });
+  const first = renderApp("/peliculas");
+  await screen.findByRole("button", { name: "Dune" });
+  await userEvent.selectOptions(screen.getByRole("combobox", { name: "Ordenar por" }), "Año");
+  expect(screen.getByRole("combobox", { name: "Ordenar por" })).toHaveValue("year");
+  await userEvent.click(screen.getByRole("tab", { name: /Cola/ }));
+  await userEvent.click(screen.getByRole("tab", { name: /Biblioteca/ }));
+  expect(screen.getByRole("combobox", { name: "Ordenar por" })).toHaveValue("year");
+  first.unmount();
+  renderApp("/peliculas");
+  await screen.findByRole("button", { name: "Dune" });
+  expect(screen.getByRole("combobox", { name: "Ordenar por" })).toHaveValue("year");
+  setPrefs({ sorts: {} });
+});
