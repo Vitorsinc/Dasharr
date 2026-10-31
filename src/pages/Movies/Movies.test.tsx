@@ -224,12 +224,13 @@ test("la ficha muestra también las notas que trae Radarr", async () => {
   mockBackend({ api: { radarr: (req) => (req.path === "/api/v3/movie" && req.method === "GET" ? rated : []) } });
   renderApp("/peliculas");
   await userEvent.click(await screen.findByRole("button", { name: "Dune" }));
-  expect(await screen.findByText("IMDb")).toBeInTheDocument();
-  expect(screen.getByText("8,1")).toBeInTheDocument();
-  expect(screen.getByText("920.000 votos")).toBeInTheDocument();
-  expect(screen.getByText("7,8")).toBeInTheDocument();
-  expect(screen.getByText("92 %")).toBeInTheDocument();
-  expect(screen.queryByText("Metacritic")).not.toBeInTheDocument();
+  const d = within(await screen.findByRole("dialog", { name: "Dune (2021)" }));
+  expect(await d.findByText("IMDb")).toBeInTheDocument();
+  expect(d.getByText("8,1")).toBeInTheDocument();
+  expect(d.getByText("920.000 votos")).toBeInTheDocument();
+  expect(d.getByText("7,8")).toBeInTheDocument();
+  expect(d.getByText("92 %")).toBeInTheDocument();
+  expect(d.queryByText("Metacritic")).not.toBeInTheDocument();
 });
 
 test("las notas ocultas en Ajustes no se muestran ni se consultan", async () => {
@@ -244,10 +245,44 @@ test("las notas ocultas en Ajustes no se muestran ni se consultan", async () => 
     },
   });
   renderApp("/peliculas");
-  await userEvent.click(await screen.findByRole("button", { name: "Dune" }));
-  expect(await screen.findByText("TMDb")).toBeInTheDocument();
-  expect(screen.queryByText("IMDb")).not.toBeInTheDocument();
-  expect(screen.queryByText("FilmAffinity")).not.toBeInTheDocument();
+  expect(await screen.findByTitle("Nota de TMDb: 7,8")).toBeInTheDocument();
+  expect(screen.queryByTitle("Nota de IMDb: 8,1")).not.toBeInTheDocument();
+  const sort = screen.getByRole("combobox", { name: "Ordenar por" });
+  expect(within(sort).queryByRole("option", { name: "Nota IMDb" })).not.toBeInTheDocument();
+  expect(within(sort).queryByRole("option", { name: "Nota FilmAffinity" })).not.toBeInTheDocument();
+  await userEvent.click(screen.getByRole("button", { name: "Dune" }));
+  const d = within(await screen.findByRole("dialog", { name: "Dune (2021)" }));
+  expect(await d.findByText("TMDb")).toBeInTheDocument();
+  expect(d.queryByText("IMDb")).not.toBeInTheDocument();
+  expect(d.queryByText("FilmAffinity")).not.toBeInTheDocument();
   expect(asked).toEqual([]);
   setPrefs({ hiddenRatings: [] });
+});
+
+test("las portadas muestran las notas y se puede ordenar por ellas", async () => {
+  const rated = [
+    { ...movies[0], ratings: { imdb: { value: 8.1 }, rottenTomatoes: { value: 83 } } },
+    { ...movies[1], ratings: { imdb: { value: 7.9 } } },
+    { ...movies[2], ratings: { imdb: { value: 8.2 } } },
+  ];
+  mockBackend({
+    api: { radarr: (req) => (req.path === "/api/v3/movie" && req.method === "GET" ? rated : []) },
+    commands: {
+      filmaffinity_ratings: () => ({
+        "movie:10": { id: 1, url: "", title: "Dune", rating: 7.3 },
+        "movie:11": { id: 2, url: "", title: "Arrival", rating: 7.6 },
+      }),
+    },
+  });
+  renderApp("/peliculas");
+  expect(await screen.findByTitle("Nota de FilmAffinity: 7,3")).toBeInTheDocument();
+  expect(screen.getByTitle("Nota de IMDb: 8,1")).toBeInTheDocument();
+  expect(screen.getByTitle("Nota de Rotten Tomatoes: 83 %")).toBeInTheDocument();
+
+  const order = () => screen.getAllByRole("button", { name: /^(Dune|Arrival|Blade Runner)$/ }).map((b) => b.getAttribute("aria-label"));
+  const sort = screen.getByRole("combobox", { name: "Ordenar por" });
+  await userEvent.selectOptions(sort, "Nota IMDb");
+  expect(order()).toEqual(["Blade Runner", "Dune", "Arrival"]);
+  await userEvent.selectOptions(sort, "Nota FilmAffinity");
+  expect(order()).toEqual(["Arrival", "Dune", "Blade Runner"]);
 });

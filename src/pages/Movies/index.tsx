@@ -9,7 +9,8 @@ import { LibraryToolbar } from "@/components/media/LibraryToolbar";
 import { PosterCard, PosterGrid } from "@/components/media/PosterCard";
 import { QueueList } from "@/components/media/QueueList";
 import { ReleaseSearchDialog } from "@/components/media/ReleaseSearchDialog";
-import { filterSort, libState, type LibFilter, type LibSort } from "@/components/media/library";
+import { fetchOrder, filterSort, isAvailable, libState, MOVIE_SOURCES, type LibFilter, type LibSort } from "@/components/media/library";
+import { arrScores, visibleScores } from "@/components/media/RatingBadges";
 import { posterUrl, type WantedKind } from "@/api/arr";
 import { WantedList } from "@/components/media/WantedList";
 import { toast } from "sonner";
@@ -41,18 +42,31 @@ export default function MoviesPage() {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [manualFor, setManualFor] = useState<Movie | null>(null);
 
+  const [{ hiddenRatings }] = usePrefs();
+  const showFa = !hiddenRatings.includes("filmaffinity");
+  const sortSources = MOVIE_SOURCES.filter((s) => !hiddenRatings.includes(s));
+  const activeSort = isAvailable(sort, sortSources) ? sort : "title";
+  const base = useMemo(
+    () => (movies.data ?? []).map((m) => ({ ...m, downloaded: m.hasFile, missing: m.monitored && !m.hasFile })),
+    [movies.data],
+  );
+  // FilmAffinity se pide en el orden en que se ve la lista (o por título al ordenar por nota).
+  const faItems = useMemo(
+    () => (tab === "library" && showFa ? filterSort(base, { query, filter, sort: fetchOrder(activeSort) }).map(movieItem) : []),
+    [base, tab, showFa, query, filter, activeSort],
+  );
+  const ratings = useFaRatings(faItems);
   const items = useMemo(
     () =>
       filterSort(
-        (movies.data ?? []).map((m) => ({ ...m, downloaded: m.hasFile, missing: m.monitored && !m.hasFile })),
-        { query, filter, sort },
+        base.map((m) => ({
+          ...m,
+          scores: visibleScores({ ...arrScores(m.ratings), filmaffinity: ratings[faKey(movieItem(m))]?.rating ?? undefined }, hiddenRatings),
+        })),
+        { query, filter, sort: activeSort },
       ),
-    [movies.data, query, filter, sort],
+    [base, ratings, hiddenRatings, query, filter, activeSort],
   );
-  const [{ hiddenRatings }] = usePrefs();
-  const showFa = !hiddenRatings.includes("filmaffinity");
-  const faItems = useMemo(() => (tab === "library" && showFa ? items.map(movieItem) : []), [items, tab, showFa]);
-  const ratings = useFaRatings(faItems);
   const existing = useMemo(() => new Set((movies.data ?? []).map((m) => m.tmdbId)), [movies.data]);
   const selected = movies.data?.find((m) => m.id === selectedId) ?? null;
 
@@ -136,7 +150,7 @@ export default function MoviesPage() {
         )
       ) : (
         <>
-          <LibraryToolbar query={query} onQuery={setQuery} filter={filter} onFilter={setFilter} sort={sort} onSort={setSort} />
+          <LibraryToolbar query={query} onQuery={setQuery} filter={filter} onFilter={setFilter} sort={activeSort} onSort={setSort} ratingSources={sortSources} />
           {movies.isLoading || movies.configured === undefined ? (
             <Loading />
           ) : movies.isError ? (
@@ -152,7 +166,7 @@ export default function MoviesPage() {
                   subtitle={String(m.year)}
                   poster={posterUrl("radarr", m)}
                   state={libState(m)}
-                  rating={showFa ? ratings[faKey(movieItem(m))]?.rating : undefined}
+                  scores={m.scores}
                   onClick={() => setSelectedId(m.id)}
                 />
               ))}
