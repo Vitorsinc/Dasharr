@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Search } from "lucide-react";
+import { Check, Plus, Search } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog } from "@/components/Dialog";
 import { Empty, Segmented, Spinner } from "@/components/ui";
@@ -45,6 +45,7 @@ export function AddMediaDialog<T>({
   onPick,
   manualHint,
   onAdd,
+  onQuickAdd,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
@@ -60,6 +61,8 @@ export function AddMediaDialog<T>({
   /** Texto bajo el selector cuando se elige búsqueda manual. */
   manualHint: string;
   onAdd: (r: T, o: AddOptions) => Promise<void>;
+  /** Añadido rápido desde la lista (sin cerrar el diálogo). Recibe el último perfil/carpeta usados y búsqueda automática. */
+  onQuickAdd?: (r: T, o: AddOptions) => Promise<void>;
 }) {
   const [term, setTerm] = useState("");
   const [results, setResults] = useState<T[] | null>(null);
@@ -69,6 +72,8 @@ export function AddMediaDialog<T>({
   const [root, setRoot] = useState("");
   const [searchMode, setSearchMode] = useState<AddSearchMode>("auto");
   const [busy, setBusy] = useState(false);
+  const [quickBusy, setQuickBusy] = useState<Set<number>>(new Set());
+  const [quickDone, setQuickDone] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     if (profileId === "" && profiles[0]) setProfileId(profiles[0].id);
@@ -87,6 +92,8 @@ export function AddMediaDialog<T>({
       setPicked(null);
       setResults(null);
       setTerm("");
+      setQuickBusy(new Set());
+      setQuickDone(new Set());
       requestId.current++;
       lastQuery.current = "";
     }
@@ -143,6 +150,25 @@ export function AddMediaDialog<T>({
     }
   }
 
+  async function quickAdd(r: T) {
+    const key = toItem(r).key;
+    if (!onQuickAdd || profileId === "" || !root || quickBusy.has(key)) return;
+    setQuickBusy((s) => new Set(s).add(key));
+    try {
+      await onQuickAdd(r, { qualityProfileId: profileId, rootFolderPath: root, search: true, searchMode: "auto" });
+      setQuickDone((s) => new Set(s).add(key));
+      toast.success(t.library.added(toItem(r).title));
+    } catch (err) {
+      toast.error(errorMessage(err));
+    } finally {
+      setQuickBusy((s) => {
+        const n = new Set(s);
+        n.delete(key);
+        return n;
+      });
+    }
+  }
+
   const p = picked ? toItem(picked) : null;
   return (
     <Dialog open={open} onOpenChange={onOpenChange} title={title} wide>
@@ -169,26 +195,42 @@ export function AddMediaDialog<T>({
           <div className="flex flex-col gap-2">
             {results?.map((r) => {
               const it = toItem(r);
+              const done = quickDone.has(it.key);
+              const exists = it.exists || done;
+              const loading = quickBusy.has(it.key);
               return (
-                <button
-                  key={it.key}
-                  disabled={it.exists}
-                  onClick={() => {
-                    onPick?.(r);
-                    setPicked(r);
-                  }}
-                  className="flex gap-3 rounded-lg p-2 text-left hover:bg-surface-2 disabled:opacity-50"
-                >
-                  <Poster src={it.poster} title={it.title} className="w-14 shrink-0" />
-                  <div className="min-w-0">
-                    <div className="font-medium">
-                      {it.title} {it.year ? <span className="text-muted">({it.year})</span> : null}
-                      {it.tag && <span className="chip ml-2 bg-accent/15 text-accent">{it.tag}</span>}
+                <div key={it.key} className="flex items-start gap-2 rounded-lg hover:bg-surface-2">
+                  <button
+                    disabled={exists}
+                    onClick={() => {
+                      onPick?.(r);
+                      setPicked(r);
+                    }}
+                    className="flex min-w-0 flex-1 gap-3 rounded-lg p-2 text-left disabled:opacity-50"
+                  >
+                    <Poster src={it.poster} title={it.title} className="w-14 shrink-0" />
+                    <div className="min-w-0">
+                      <div className="font-medium">
+                        {it.title} {it.year ? <span className="text-muted">({it.year})</span> : null}
+                        {it.tag && <span className="chip ml-2 bg-accent/15 text-accent">{it.tag}</span>}
+                      </div>
+                      {exists && <div className="text-xs text-success">{t.library.alreadyAdded}</div>}
+                      <p className="mt-1 line-clamp-2 text-xs text-muted">{it.overview}</p>
                     </div>
-                    {it.exists && <div className="text-xs text-success">{t.library.alreadyAdded}</div>}
-                    <p className="mt-1 line-clamp-2 text-xs text-muted">{it.overview}</p>
-                  </div>
-                </button>
+                  </button>
+                  {onQuickAdd && !it.exists && (
+                    <button
+                      type="button"
+                      className="btn-primary mr-2 mt-2 shrink-0 px-2.5 py-1.5 text-xs"
+                      disabled={done || loading || profileId === "" || !root}
+                      onClick={() => void quickAdd(r)}
+                      title={`${t.common.add} ${it.title}`}
+                    >
+                      {loading ? <Spinner className="h-3.5 w-3.5 text-current" /> : done ? <Check className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
+                      {done ? t.common.added : t.common.add}
+                    </button>
+                  )}
+                </div>
               );
             })}
           </div>

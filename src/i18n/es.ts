@@ -113,6 +113,9 @@ export const es = {
     ratings: "Notas",
     ratingsHint: "Qué notas se muestran en las fichas. FilmAffinity también sale sobre los pósters; si la quitas, Dasharr deja de consultarla.",
     seriesDefaultsHint: "Carpeta y perfil de calidad de Sonarr con los que se añade cada tipo. Puedes cambiarlos al añadir.",
+    movieDefaults: "Películas",
+    movieDefaultsHint: "Carpeta y perfil de calidad de Radarr con los que se añaden las películas. Puedes cambiarlos al añadir.",
+    movieDefaultsNeedRadarr: "Configura Radarr para elegirlos.",
     seriesDefaultsNeedSonarr: "Configura Sonarr para elegirlos.",
     tabs: {
       label: "Secciones de ajustes",
@@ -744,6 +747,7 @@ export const es = {
     delete: "Borrar",
     search: "Buscar",
     add: "Añadir",
+    added: "Añadido",
     close: "Cerrar",
     loading: "Cargando…",
     empty: "No hay nada que mostrar.",

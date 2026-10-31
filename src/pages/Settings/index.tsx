@@ -22,8 +22,8 @@ import { runUpdateCheck, startUpdate, useUpdateState } from "@/hooks/useUpdates"
 import { versionLabel } from "@/lib/version";
 import { errorMessage } from "@/lib/errors";
 import { settingsKey } from "@/hooks/useSettings";
-import { useSonarrMeta } from "@/hooks/useArr";
-import { defaultsFor, type SeriesKind } from "@/lib/anime";
+import { useRadarrMeta, useSonarrMeta } from "@/hooks/useArr";
+import { defaultsFor, movieDefaultsFor, type SeriesKind } from "@/lib/anime";
 import { LogsPanel } from "@/pages/Logs";
 import { cn } from "@/lib/cn";
 
@@ -155,6 +155,47 @@ function RatingsSettings() {
           <Toggle label={label(s)} checked={!prefs.hiddenRatings.includes(s)} onChange={(v) => toggle(s, v)} />
         </div>
       ))}
+    </section>
+  );
+}
+
+function MovieDefaults() {
+  const meta = useRadarrMeta();
+  const [prefs, setPrefs] = usePrefs();
+  const roots = meta.roots.data ?? [];
+  const profiles = meta.profiles.data ?? [];
+  if (meta.roots.configured === false)
+    return <section className="card p-4 text-sm text-muted">{t.settings.movieDefaultsNeedRadarr}</section>;
+  if (meta.roots.isLoading || meta.profiles.isLoading) return <Loading />;
+  if (!roots.length || !profiles.length) return null;
+  const d = movieDefaultsFor(roots, profiles, prefs.movieDefaults);
+  const set = (patch: { rootFolderPath?: string; qualityProfileId?: number }) => setPrefs({ movieDefaults: { ...d, ...patch } });
+  const name = t.nav.movies;
+  return (
+    <section className="card divide-y divide-border" aria-label={t.settings.movieDefaults}>
+      <div className="flex flex-wrap items-center gap-4 p-4">
+        <span className="w-20 text-sm font-medium">{name}</span>
+        <label className="flex-1">
+          <span className="label">{t.library.rootFolder}</span>
+          <select className="input" aria-label={`${t.library.rootFolder} ${name}`} value={d.rootFolderPath} onChange={(e) => set({ rootFolderPath: e.target.value })}>
+            {roots.map((r) => (
+              <option key={r.id} value={r.path}>
+                {r.path}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex-1">
+          <span className="label">{t.library.qualityProfile}</span>
+          <select className="input" aria-label={`${t.library.qualityProfile} ${name}`} value={d.qualityProfileId} onChange={(e) => set({ qualityProfileId: Number(e.target.value) })}>
+            {profiles.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
     </section>
   );
 }
@@ -376,6 +417,9 @@ const tabs: { id: string; label: string; icon: LucideIcon; wide?: boolean; rende
       <div className="flex flex-col gap-8">
         <Section title={t.settings.seriesDefaults} hint={t.settings.seriesDefaultsHint}>
           <SeriesDefaults />
+        </Section>
+        <Section title={t.settings.movieDefaults} hint={t.settings.movieDefaultsHint}>
+          <MovieDefaults />
         </Section>
         <Section title={t.settings.ratings} hint={t.settings.ratingsHint}>
           <RatingsSettings />

@@ -16,6 +16,8 @@ export interface Prefs {
   plexNotifications: boolean;
   /** Carpeta y perfil de Sonarr con los que se añaden series y anime. */
   seriesDefaults: Partial<Record<SeriesKind, LibraryDefaults>>;
+  /** Carpeta y perfil de Radarr con los que se añaden películas. */
+  movieDefaults: LibraryDefaults;
   /** Grupos del menú lateral que el usuario ha plegado. */
   sidebarCollapsed: string[];
   /** Notas que el usuario ha decidido no ver. */
@@ -34,6 +36,7 @@ const DEFAULTS: Prefs = {
   notifications: true,
   plexNotifications: true,
   seriesDefaults: {},
+  movieDefaults: {},
   sidebarCollapsed: [],
   hiddenRatings: [],
   releaseCountry: "ES",

@@ -22,6 +22,7 @@ import { useMovies, useRadarrMeta, useRadarrQueue, useRadarrWanted } from "@/hoo
 import { useFaRatings } from "@/hooks/useFilmAffinity";
 import { usePrefs } from "@/hooks/usePrefs";
 import { t } from "@/i18n/es";
+import { movieDefaultsFor } from "@/lib/anime";
 import { MovieDetail } from "./MovieDetail";
 import { UpcomingMovies } from "./Upcoming";
 
@@ -42,7 +43,8 @@ export default function MoviesPage() {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [manualFor, setManualFor] = useState<Movie | null>(null);
 
-  const [{ hiddenRatings }] = usePrefs();
+  const [{ hiddenRatings, movieDefaults }] = usePrefs();
+  const preset = movieDefaultsFor(meta.roots.data ?? [], meta.profiles.data ?? [], movieDefaults);
   const showFa = !hiddenRatings.includes("filmaffinity");
   const sortSources = MOVIE_SOURCES.filter((s) => !hiddenRatings.includes(s));
   const activeSort = isAvailable(sort, sortSources) ? sort : "title";
@@ -188,6 +190,7 @@ export default function MoviesPage() {
           poster: posterUrl("radarr", { images: m.images }),
           exists: existing.has(m.tmdbId),
         })}
+        preset={preset}
         profiles={meta.profiles.data ?? []}
         rootFolders={meta.roots.data ?? []}
         manualHint={t.library.addManualMovieHint}
@@ -195,6 +198,10 @@ export default function MoviesPage() {
           const added = await radarr.addMovie(m, { ...o, monitored: true });
           await qc.invalidateQueries({ queryKey: ["radarr"] });
           if (o.searchMode === "manual") setManualFor(added);
+        }}
+        onQuickAdd={async (m, o) => {
+          await radarr.addMovie(m, { ...o, monitored: true });
+          await qc.invalidateQueries({ queryKey: ["radarr"] });
         }}
       />
       <ReleaseSearchDialog
