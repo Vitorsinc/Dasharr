@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Check, Clapperboard, Tv } from "lucide-react";
 import type { CalItem } from "@/api/calendar";
+import { t } from "@/i18n/es";
 import { dayKey, sameDay, startOfDay } from "@/lib/dates";
 import { cn } from "@/lib/cn";
 
@@ -9,15 +10,18 @@ const weekdayShort = new Intl.DateTimeFormat("es-ES", { weekday: "short" });
 const longDate = new Intl.DateTimeFormat("es-ES", { weekday: "long", day: "numeric", month: "long" });
 const timeFmt = new Intl.DateTimeFormat("es-ES", { hour: "2-digit", minute: "2-digit" });
 
+export type WeekStyle = "agenda" | "posters" | "strip";
 type Props = { days: Date[]; byDay: Map<string, CalItem[]>; onOpen: (it: CalItem) => void };
+const tc = t.calendar;
 
 /** Hora de emisión en episodios; en películas, el tipo de estreno (no tienen hora). */
 function when(it: CalItem) {
-  if (it.source === "sonarr") return timeFmt.format(it.date);
-  return it.subtitle.split(" · ")[0];
+  if (it.source === "sonarr" || !it.release) return timeFmt.format(it.date);
+  return t.premieres.kind[it.release];
 }
+/** Bajo el título: «2x03 · Episodio» en series y el año en películas. */
 function sub(it: CalItem) {
-  return it.source === "sonarr" ? it.subtitle : it.subtitle.split(" · ")[1];
+  return it.source === "sonarr" ? it.subtitle : String(it.movie?.year ?? "");
 }
 function isPast(d: Date, today: Date) {
   return startOfDay(d) < startOfDay(today);
@@ -27,10 +31,10 @@ function Status({ it, today }: { it: CalItem; today: Date }) {
   if (it.hasFile)
     return (
       <span className="chip bg-success/15 text-success">
-        <Check className="h-3 w-3" /> Descargado
+        <Check className="h-3 w-3" /> {tc.downloaded}
       </span>
     );
-  if (it.date < today) return <span className="chip bg-warning/15 text-warning">Falta</span>;
+  if (it.date < today) return <span className="chip bg-warning/15 text-warning">{tc.missing}</span>;
   return null;
 }
 
@@ -40,7 +44,7 @@ function Img({ src, className }: { src?: string; className?: string }) {
   return <img src={src} alt="" loading="lazy" onError={() => setFailed(true)} className={cn("object-cover", className)} />;
 }
 
-/* ───────────── A · Agenda: una fila por día, con los estrenos en lista ───────────── */
+/** Agenda: una fila por día, con los estrenos en lista. */
 export function WeekAgenda({ days, byDay, onOpen }: Props) {
   const today = new Date();
   return (
@@ -50,18 +54,20 @@ export function WeekAgenda({ days, byDay, onOpen }: Props) {
         const isToday = sameDay(d, today);
         const past = isPast(d, today);
         return (
-          <section key={dayKey(d)} className={cn("relative grid grid-cols-[96px_1fr]", isToday && "bg-accent/[0.06]")}>
+          <section
+            key={dayKey(d)}
+            data-testid={`day-${dayKey(d)}`}
+            className={cn("relative grid grid-cols-[96px_1fr]", isToday && "bg-accent/[0.06]")}
+          >
             {isToday && <div className="absolute inset-y-0 left-0 w-1 bg-accent" />}
             <div className={cn("flex flex-col items-start px-5 py-3", past && "opacity-45")}>
               <span className={cn("text-xs capitalize", isToday ? "font-semibold text-accent" : "text-muted")}>
-                {isToday ? "Hoy" : weekdayLong.format(d)}
+                {isToday ? tc.today : weekdayLong.format(d)}
               </span>
-              <span className="font-display text-3xl font-extrabold leading-none tabular-nums [font-stretch:78%]">
-                {d.getDate()}
-              </span>
+              <span className="font-display text-3xl font-extrabold leading-none tabular-nums [font-stretch:78%]">{d.getDate()}</span>
             </div>
             {items.length === 0 ? (
-              <div className="flex items-center py-3 text-sm text-muted/70">Sin estrenos</div>
+              <div className="flex items-center py-3 text-sm text-muted/70">{tc.empty}</div>
             ) : (
               <ul className="divide-y divide-border/60 py-1 pr-3">
                 {items.map((it) => (
@@ -95,7 +101,7 @@ export function WeekAgenda({ days, byDay, onOpen }: Props) {
   );
 }
 
-/* ───────────── B · Pósters: siete columnas con carteles a la altura de su contenido ───────────── */
+/** Pósters: siete columnas con carteles, cada una tan alta como su contenido. */
 export function WeekPosters({ days, byDay, onOpen }: Props) {
   const today = new Date();
   return (
@@ -107,29 +113,25 @@ export function WeekPosters({ days, byDay, onOpen }: Props) {
         return (
           <div
             key={dayKey(d)}
+            data-testid={`day-${dayKey(d)}`}
             className={cn("flex flex-col gap-2 rounded-xl p-2", isToday ? "bg-accent/10 ring-1 ring-accent/40" : "bg-surface/60")}
           >
             <div className={cn("flex items-baseline justify-between px-1", past && "opacity-45")}>
               <span className={cn("text-sm capitalize", isToday ? "font-semibold text-accent" : "text-muted")}>
-                {isToday ? "Hoy" : weekdayShort.format(d).replace(".", "")}
+                {isToday ? tc.today : weekdayShort.format(d).replace(".", "")}
               </span>
-              <span
-                className={cn(
-                  "font-display text-2xl font-extrabold tabular-nums [font-stretch:78%]",
-                  isToday && "text-accent",
-                )}
-              >
+              <span className={cn("font-display text-2xl font-extrabold tabular-nums [font-stretch:78%]", isToday && "text-accent")}>
                 {d.getDate()}
               </span>
             </div>
-            {items.length === 0 && <div className="px-1 py-6 text-center text-xs text-muted/70">Sin estrenos</div>}
+            {items.length === 0 && <div className="px-1 py-6 text-center text-xs text-muted/70">{tc.empty}</div>}
             {items.map((it) => (
               <button
                 key={it.id}
                 onClick={() => onOpen(it)}
                 title={`${it.title} · ${it.subtitle}`}
                 className={cn(
-                  "group relative overflow-hidden rounded-lg text-left text-white",
+                  "dark group relative overflow-hidden rounded-lg text-left text-white",
                   past && !isToday && !it.hasFile && "opacity-80",
                 )}
               >
@@ -161,12 +163,13 @@ export function WeekPosters({ days, byDay, onOpen }: Props) {
   );
 }
 
-/* ───────────── C · Tira de días + detalle del día elegido ───────────── */
+/** Por día: tira con los siete días y, debajo, los estrenos del día elegido. */
 export function WeekStrip({ days, byDay, onOpen }: Props) {
   const today = new Date();
-  const initial = days.find((d) => sameDay(d, today)) ?? days[0];
-  const [sel, setSel] = useState(dayKey(initial));
-  const selDate = days.find((d) => dayKey(d) === sel) ?? days[0];
+  const [picked, setSel] = useState<string | null>(null);
+  // Al cambiar de semana, si el día elegido no está en ella, se abre hoy (o el lunes).
+  const selDate = days.find((d) => dayKey(d) === picked) ?? days.find((d) => sameDay(d, today)) ?? days[0];
+  const sel = dayKey(selDate);
   const items = byDay.get(sel) ?? [];
   return (
     <div className="space-y-5">
@@ -178,6 +181,8 @@ export function WeekStrip({ days, byDay, onOpen }: Props) {
           return (
             <button
               key={dayKey(d)}
+              data-testid={`day-${dayKey(d)}`}
+              aria-pressed={active}
               onClick={() => setSel(dayKey(d))}
               className={cn(
                 "flex flex-col gap-2 rounded-xl border p-3 text-left transition-colors",
@@ -187,7 +192,7 @@ export function WeekStrip({ days, byDay, onOpen }: Props) {
             >
               <div className="flex items-baseline justify-between">
                 <span className={cn("text-sm capitalize", isToday ? "font-semibold text-accent" : "text-muted")}>
-                  {isToday ? "Hoy" : weekdayShort.format(d).replace(".", "")}
+                  {isToday ? tc.today : weekdayShort.format(d).replace(".", "")}
                 </span>
                 <span className="font-display text-2xl font-extrabold tabular-nums [font-stretch:78%]">{d.getDate()}</span>
               </div>
@@ -195,7 +200,7 @@ export function WeekStrip({ days, byDay, onOpen }: Props) {
                 {its.slice(0, 4).map((it) => (
                   <Img key={it.id} src={it.poster} className="h-12 w-8 rounded border-2 border-surface shadow" />
                 ))}
-                {its.length === 0 && <span className="text-xs text-muted/70">Nada</span>}
+                {its.length === 0 && <span className="text-xs text-muted/70">{tc.none}</span>}
               </div>
               <div className="flex gap-2 text-xs text-muted">
                 {its.some((i) => i.source === "radarr") && (
@@ -217,19 +222,23 @@ export function WeekStrip({ days, byDay, onOpen }: Props) {
       </div>
       <div>
         <h2 className="mb-3 text-2xl first-letter:uppercase">
-          {sameDay(selDate, today) ? `Hoy, ${longDate.format(selDate).split(", ")[1]}` : longDate.format(selDate)}
+          {sameDay(selDate, today) ? `${tc.today}, ${longDate.format(selDate).split(", ")[1]}` : longDate.format(selDate)}
         </h2>
         {items.length === 0 ? (
-          <div className="card p-8 text-center text-muted">Nada programado este día.</div>
+          <div className="card p-8 text-center text-muted">{tc.nothingThisDay}</div>
         ) : (
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid gap-3 xl:grid-cols-2">
             {items.map((it) => (
               <button
                 key={it.id}
+                data-testid="day-item"
                 onClick={() => onOpen(it)}
-                className="group relative flex h-36 overflow-hidden rounded-xl bg-black text-left text-white"
+                className="dark group relative flex h-36 overflow-hidden rounded-xl bg-black text-left text-white"
               >
-                <Img src={it.backdrop} className="absolute inset-0 h-full w-full opacity-80 transition-transform duration-300 group-hover:scale-105" />
+                <Img
+                  src={it.backdrop}
+                  className="absolute inset-0 h-full w-full opacity-80 transition-transform duration-300 group-hover:scale-105"
+                />
                 <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/60 to-black/10" />
                 <div className="relative flex w-full gap-4 p-3">
                   <Img src={it.poster} className="h-full w-20 shrink-0 rounded-md shadow-lg" />
@@ -238,7 +247,7 @@ export function WeekStrip({ days, byDay, onOpen }: Props) {
                       <span className={cn("font-semibold tabular-nums", it.source === "radarr" ? "text-radarr" : "text-sonarr")}>
                         {when(it)}
                       </span>
-                      <span className="text-white/60">{it.source === "radarr" ? "Película" : "Episodio"}</span>
+                      <span className="text-white/60">{it.source === "radarr" ? tc.movie : tc.episode}</span>
                     </div>
                     <div className="min-w-0">
                       <div className="truncate font-display text-xl font-bold [font-stretch:78%]">{it.title}</div>
@@ -257,3 +266,9 @@ export function WeekStrip({ days, byDay, onOpen }: Props) {
     </div>
   );
 }
+
+export const WEEK_VIEWS: Record<WeekStyle, (p: Props) => JSX.Element> = {
+  agenda: WeekAgenda,
+  posters: WeekPosters,
+  strip: WeekStrip,
+};
