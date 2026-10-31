@@ -35,7 +35,7 @@ export const routes: RouteObject[] = [
           { path: "/historial", element: <HistoryPage /> },
           { path: "/plex", element: <PlexPage /> },
           { path: "/trackers", element: <TrackersPage /> },
-          { path: "/indexadores", element: <IndexersPage /> },
+          { path: "/indexadores/:tab?", element: <IndexersPage /> },
           { path: "/actividad/radarr/:tab?", element: <ActivityPage key="radarr" service="radarr" /> },
           { path: "/actividad/sonarr/:tab?", element: <ActivityPage key="sonarr" service="sonarr" /> },
           { path: "/gestion/radarr/:tab?", element: <ManagePage key="radarr" service="radarr" /> },
