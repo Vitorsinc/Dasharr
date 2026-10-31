@@ -1,6 +1,7 @@
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { mockBackend, renderApp } from "@/test/utils";
+import { setPrefs } from "@/hooks/usePrefs";
 import { sortResults, type SearchResult } from "@/api/prowlarr";
 
 const results = [
@@ -100,4 +101,28 @@ test("sin magnet, Dasharr descarga el .torrent de Prowlarr y lo sube como archiv
   await userEvent.click(await screen.findByRole("button", { name: "Enviar a qBittorrent: Dune 1080p" }));
   expect(fetched[0]).toEqual({ service: "prowlarr", url: "http://prowlarr/dl/2" });
   expect(qbitPosts[0].body.value.files).toEqual([{ field: "torrents", filename: "Dune 1080p.torrent", base64: "ZDQ6dGVzdGU=" }]);
+});
+
+test("el orden de los resultados se conserva al volver a la pantalla", async () => {
+  setPrefs({ sorts: {} });
+  mockBackend({
+    api: {
+      prowlarr: (req) => (req.path === "/api/v1/indexer" ? [{ id: 1, name: "A", enable: true, protocol: "torrent" }] : results),
+      qbittorrent: () => ({}),
+    },
+  });
+  const search = async () => {
+    const app = renderApp("/buscar");
+    await userEvent.type(await screen.findByRole("textbox", { name: "¿Qué quieres buscar?" }), "dune");
+    await userEvent.click(screen.getByRole("button", { name: "Buscar" }));
+    await screen.findByText("3 resultados");
+    return app;
+  };
+  const first = await search();
+  await userEvent.selectOptions(screen.getByRole("combobox", { name: "Ordenar resultados" }), "size");
+  first.unmount();
+  await search();
+  expect(screen.getByRole("combobox", { name: "Ordenar resultados" })).toHaveValue("size");
+  expect(screen.getAllByRole("row")[1]).toHaveTextContent("Dune 2160p");
+  setPrefs({ sorts: {} });
 });

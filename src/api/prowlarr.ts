@@ -130,6 +130,7 @@ export type SearchCategory = "all" | "movies" | "tv";
 const CATEGORY_IDS: Record<SearchCategory, number[]> = { all: [], movies: [2000], tv: [5000] };
 
 export type ResultSort = "seeders" | "size" | "age";
+export const RESULT_SORTS: readonly ResultSort[] = ["seeders", "size", "age"];
 
 export function sortResults(list: SearchResult[], by: ResultSort): SearchResult[] {
   const out = [...list];

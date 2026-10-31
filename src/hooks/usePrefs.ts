@@ -28,6 +28,8 @@ export interface Prefs {
   weekStyle: "agenda" | "posters" | "strip";
   /** Instalar sola la versión nueva al encontrarla (avisando antes unos segundos). */
   autoUpdate: boolean;
+  /** Último orden elegido en cada pantalla (clave de pantalla -> valor guardado por `usePersistedSort`). */
+  sorts: Record<string, unknown>;
 }
 
 const KEY = "dasharr.prefs";
@@ -42,6 +44,7 @@ const DEFAULTS: Prefs = {
   releaseCountry: "ES",
   weekStyle: "agenda",
   autoUpdate: true,
+  sorts: {},
 };
 const listeners = new Set<() => void>();
 let cache: Prefs | null = null;
@@ -49,7 +52,10 @@ let cache: Prefs | null = null;
 function read(): Prefs {
   if (cache) return cache;
   try {
-    cache = { ...DEFAULTS, ...JSON.parse(localStorage.getItem(KEY) ?? "{}") };
+    const stored = JSON.parse(localStorage.getItem(KEY) ?? "{}");
+    cache = { ...DEFAULTS, ...stored };
+    // Un valor corrupto no debe romper las pantallas que leen el orden.
+    if (!cache!.sorts || typeof cache!.sorts !== "object" || Array.isArray(cache!.sorts)) cache!.sorts = {};
   } catch {
     cache = DEFAULTS;
   }

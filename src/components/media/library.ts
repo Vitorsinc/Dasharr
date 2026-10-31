@@ -1,7 +1,12 @@
-import type { RatingSource } from "@/hooks/usePrefs";
+import { RATING_SOURCES, type RatingSource } from "@/hooks/usePrefs";
 
 export type LibFilter = "all" | "downloaded" | "missing" | "monitored";
 export type LibSort = "title" | "added" | "year" | `rating:${RatingSource}`;
+export function isLibSort(v: unknown): v is LibSort {
+  if (typeof v !== "string") return false;
+  if (v === "title" || v === "added" || v === "year") return true;
+  return v.startsWith("rating:") && (RATING_SOURCES as readonly string[]).includes(v.slice("rating:".length));
+}
 /** Notas de un elemento por fuente (Rotten Tomatoes y Metacritic en %, el resto sobre 10). */
 export type Scores = Partial<Record<RatingSource, number>>;
 export type LibState = "downloaded" | "missing" | "unmonitored" | "partial";
