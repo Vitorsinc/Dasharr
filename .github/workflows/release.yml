@@ -3,6 +3,13 @@ name: Release
 on:
   push:
     tags: ["v*"]
+  # También se puede lanzar a mano desde Actions (o por la API) indicando la versión;
+  # entonces crea la etiqueta vX.Y.Z sobre el commit elegido al publicar la Release.
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Versión a publicar, sin la v (por ejemplo 0.2.0)"
+        required: true
 
 permissions:
   contents: write
@@ -10,6 +17,8 @@ permissions:
 jobs:
   release:
     runs-on: windows-latest
+    env:
+      TAG: ${{ github.event_name == 'workflow_dispatch' && format('v{0}', inputs.version) || github.ref_name }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -23,15 +32,16 @@ jobs:
         id: notes
         shell: bash
         run: |
-          node scripts/release-notes.mjs "${{ github.ref_name }}" > notes.md
+          node scripts/release-notes.mjs "$TAG" > notes.md
           { echo "body<<EOF"; cat notes.md; echo "EOF"; } >> "$GITHUB_OUTPUT"
       - uses: tauri-apps/tauri-action@v0
         id: tauri
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tagName: ${{ github.ref_name }}
-          releaseName: Dasharr ${{ github.ref_name }}
+          tagName: ${{ env.TAG }}
+          releaseName: Dasharr ${{ env.TAG }}
+          releaseCommitish: ${{ github.sha }}
           releaseBody: ${{ steps.notes.outputs.body }}
           releaseDraft: false
           prerelease: false
@@ -42,4 +52,4 @@ jobs:
         run: |
           exe=$(ls src-tauri/target/release/bundle/nsis/*-setup.exe)
           sha256sum "$exe" | cut -d' ' -f1 > "$exe.sha256"
-          gh release upload "${{ github.ref_name }}" "$exe.sha256" --clobber
+          gh release upload "$TAG" "$exe.sha256" --clobber

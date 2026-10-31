@@ -7,6 +7,8 @@ y cada **parche** (0.2.**1**) solo corrige errores.
 Cómo publicar una versión: `npm run version:set -- X.Y.Z`, commit, y etiqueta `vX.Y.Z`.
 GitHub Actions comprueba que la etiqueta coincide con la versión, compila el instalador y
 crea la Release con las notas de esta página.
+También se puede lanzar a mano en Actions → Release → «Run workflow» indicando la versión
+(sin la `v`): crea la etiqueta sobre master y publica igual.
 
 ## [Sin publicar]
 
