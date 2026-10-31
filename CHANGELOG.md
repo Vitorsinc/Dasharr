@@ -20,6 +20,8 @@ También se puede lanzar a mano en Actions → Release → «Run workflow» indi
 - Radarr y Sonarr: nueva sección «Gestión» con los ajustes de biblioteca. Perfiles de calidad: crear (desde la plantilla del *arr), editar nombre, calidades permitidas y su orden de preferencia, si se mejora y hasta qué calidad, puntuación mínima y de corte, y la puntuación de cada formato personalizado; borrar. Formatos personalizados: lista con en cuántos perfiles puntúan, importar o editar como JSON (el de las guías TRaSH o el exportado de la web) y borrar. Etiquetas: crear, renombrar, borrar y ver dónde se usan. Carpetas raíz: añadir y quitar, con espacio libre y carpetas sin importar. Perfiles de retraso: crear, editar (protocolos, retrasos, preferido, etiquetas) y borrar.
 - Etiquetas en las fichas de películas y series (se activan y desactivan con un clic) y filtro por etiqueta en la biblioteca.
 - Edición masiva en Películas, Series y Anime: botón «Seleccionar» para elegir varias portadas (o todas las visibles con el filtro actual) y, a la vez, monitorizarlas o no, cambiar el perfil de calidad, añadir, quitar o sustituir etiquetas, cambiarlas de carpeta raíz moviendo los archivos (avisando antes) o borrarlas con o sin archivos.
+- Gestión → Listas: las listas de importación de Radarr/Sonarr (Trakt, TMDb, watchlist de Plex…) para activarlas, desactivarlas, borrarlas o sincronizarlas ya. Gestión → Exclusiones: lo que las listas no deben volver a añadir, con filtro y botón para quitar cada una.
+- Al borrar una película o serie (en su ficha o varias a la vez) se puede marcar «Añadir a las exclusiones» para que las listas no la vuelvan a añadir.
 
 ### Corregido
 - Las versiones publicadas a mano desde Actions ya no se muestran como compilación de prueba («· dev abc1234»).

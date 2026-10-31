@@ -423,3 +423,6 @@ Comprobado en el código de Radarr, Sonarr, Prowlarr, Bazarr y qBittorrent (deve
 | Carpetas raíz | `POST /api/v3/rootfolder { path }`, `DELETE /rootfolder/{id}` (no borra nada del disco) |
 | Perfiles de retraso | `GET/POST /api/v3/delayprofile`, `PUT/DELETE /delayprofile/{id}`; retrasos en minutos; el id 1 es el de por defecto (sin etiquetas, no se borra) |
 | Edición masiva | `PUT /api/v3/movie/editor { movieIds, monitored?, qualityProfileId?, rootFolderPath?, moveFiles?, tags?, applyTags: add|remove|replace }`; Sonarr igual en `/series/editor` con `seriesIds`. Borrar: `DELETE /movie/editor { movieIds, deleteFiles, addImportExclusion }` / `DELETE /series/editor { seriesIds, deleteFiles, addImportListExclusion }` (cuerpo JSON en un DELETE) |
+| Listas de importación | `GET /api/v3/importlist`, `PUT /importlist/{id}` con el recurso completo (activar: Radarr `enabled`, Sonarr `enableAutomaticAdd`), `DELETE /importlist/{id}`, comando `ImportListSync` |
+| Exclusiones | Radarr `GET /api/v3/exclusions` (`tmdbId`, `movieTitle`, `movieYear`) y `DELETE /exclusions/{id}`; Sonarr `GET /api/v3/importlistexclusion` (`tvdbId`, `title`) y `DELETE /importlistexclusion/{id}` |
+| Borrar con exclusión | Radarr `DELETE /movie/{id}?deleteFiles&addImportExclusion=true`; Sonarr `DELETE /series/{id}?deleteFiles&addImportListExclusion=true` |

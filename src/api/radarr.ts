@@ -71,8 +71,12 @@ export const radarr = {
     apiRequest<Movie>("radarr", { method: "PUT", path: `/api/v3/movie/${movie.id}`, json: { ...movie, monitored } }),
   setTags: (movie: Movie, tags: number[]) =>
     apiRequest<Movie>("radarr", { method: "PUT", path: `/api/v3/movie/${movie.id}`, json: { ...movie, tags } }),
-  deleteMovie: (id: number, deleteFiles: boolean) =>
-    apiRequest<unknown>("radarr", { method: "DELETE", path: `/api/v3/movie/${id}`, query: { deleteFiles, addImportExclusion: false } }),
+  deleteMovie: (id: number, o: DeleteOptions) =>
+    apiRequest<unknown>("radarr", {
+      method: "DELETE",
+      path: `/api/v3/movie/${id}`,
+      query: { deleteFiles: o.deleteFiles, addImportExclusion: o.addExclusion },
+    }),
   updateMovie: (movie: Movie, e: MovieEdit) =>
     apiRequest<Movie>("radarr", {
       method: "PUT",

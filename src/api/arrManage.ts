@@ -93,6 +93,51 @@ export interface DelayProfile {
   tags: number[];
 }
 
+/** Lista de importación (Trakt, TMDb, Plex watchlist…). El resto de campos se devuelve tal cual al guardar. */
+export interface ImportList {
+  id: number;
+  name: string;
+  implementation?: string;
+  implementationName?: string;
+  listType?: string;
+  /** Radarr: si la lista está activa. */
+  enabled?: boolean;
+  /** Radarr: si añade sola lo que encuentra. */
+  enableAuto?: boolean;
+  /** Sonarr: si la lista está activa (añade sola lo que encuentra). */
+  enableAutomaticAdd?: boolean;
+  [extra: string]: unknown;
+}
+
+/** Elemento que las listas no deben volver a añadir. Radarr: `tmdbId`, `movieTitle`; Sonarr: `tvdbId`, `title`. */
+export interface ImportExclusion {
+  id: number;
+  tmdbId?: number;
+  movieTitle?: string;
+  movieYear?: number;
+  tvdbId?: number;
+  title?: string;
+}
+
+/** Campo que activa o desactiva una lista: Radarr usa `enabled`; Sonarr, `enableAutomaticAdd`. */
+export function importListEnabledKey(service: ArrService): "enabled" | "enableAutomaticAdd" {
+  return service === "radarr" ? "enabled" : "enableAutomaticAdd";
+}
+
+export function isImportListEnabled(service: ArrService, list: ImportList): boolean {
+  return !!list[importListEnabledKey(service)];
+}
+
+/** Las exclusiones están en `/exclusions` en Radarr y en `/importlistexclusion` en Sonarr. */
+export function exclusionsPath(service: ArrService) {
+  return service === "radarr" ? "/api/v3/exclusions" : "/api/v3/importlistexclusion";
+}
+
+export function exclusionLabel(e: ImportExclusion): string {
+  const title = e.movieTitle ?? e.title ?? "?";
+  return e.movieYear ? `${title} (${e.movieYear})` : title;
+}
+
 /** El perfil de retraso por defecto (sin etiquetas, el último) no se puede borrar ni etiquetar. */
 export const DEFAULT_DELAY_PROFILE_ID = 1;
 
@@ -123,6 +168,20 @@ export function arrManage(service: ArrService) {
     getRootFolders: () => req<RootFolderFull[]>(service, { path: "/api/v3/rootfolder" }),
     addRootFolder: (path: string) => req<RootFolderFull>(service, { method: "POST", path: "/api/v3/rootfolder", json: { path } }),
     deleteRootFolder: (id: number) => req<unknown>(service, { method: "DELETE", path: `/api/v3/rootfolder/${id}` }),
+
+    getImportLists: () => req<ImportList[]>(service, { path: "/api/v3/importlist" }),
+    /** Se manda la lista completa tal como llegó, cambiando solo el campo de activación. */
+    setImportListEnabled: (list: ImportList, on: boolean) =>
+      req<ImportList>(service, {
+        method: "PUT",
+        path: `/api/v3/importlist/${list.id}`,
+        json: { ...list, [importListEnabledKey(service)]: on },
+      }),
+    deleteImportList: (id: number) => req<unknown>(service, { method: "DELETE", path: `/api/v3/importlist/${id}` }),
+    /** Consulta ahora todas las listas activas (comando `ImportListSync`). */
+    syncImportLists: () => req<unknown>(service, { method: "POST", path: "/api/v3/command", json: { name: "ImportListSync" } }),
+    getExclusions: () => req<ImportExclusion[]>(service, { path: exclusionsPath(service) }),
+    deleteExclusion: (id: number) => req<unknown>(service, { method: "DELETE", path: `${exclusionsPath(service)}/${id}` }),
 
     getDelayProfiles: () => req<DelayProfile[]>(service, { path: "/api/v3/delayprofile" }),
     createDelayProfile: (p: Omit<DelayProfile, "id">) => req<DelayProfile>(service, { method: "POST", path: "/api/v3/delayprofile", json: p }),

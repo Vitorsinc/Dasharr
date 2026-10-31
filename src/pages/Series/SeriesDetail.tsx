@@ -19,6 +19,7 @@ import { episodeStatus, sonarr, type Episode, type EpisodeFile, type MonitorChan
 import { ArrHistory } from "@/components/media/ArrHistory";
 import { EditMediaDialog } from "@/components/media/EditMediaDialog";
 import { MediaTags } from "@/components/media/TagPicker";
+import { DeleteMediaDialog } from "@/components/media/DeleteMediaDialog";
 import { RenameDialog } from "./RenameDialog";
 import { useEpisodeFiles, useEpisodes, useSonarrMeta } from "@/hooks/useArr";
 import { useMediaHistory } from "@/hooks/useTracearr";
@@ -312,13 +313,13 @@ export function SeriesDetail({ series, onClose }: { series: Series | null; onClo
         message={deleting ? t.seriesTools.deleteFileMessage(deleting.what) : ""}
         onConfirm={() => deleting && run(() => sonarr.deleteEpisodeFile(deleting.file.id), t.seriesTools.fileDeleted)}
       />
-      <ConfirmDialog
+      <DeleteMediaDialog
         open={confirm}
         onOpenChange={setConfirm}
         title={t.library.deleteSeries}
         message={t.library.deleteMessage(series.title)}
-        checkboxLabel={t.common.deleteFiles}
-        onConfirm={(deleteFiles) => run(() => sonarr.deleteSeries(series.id, deleteFiles).then(onClose))}
+        exclusionLabel={t.library.addExclusion}
+        onConfirm={(o) => run(() => sonarr.deleteSeries(series.id, o).then(onClose))}
       />
     </>
   );

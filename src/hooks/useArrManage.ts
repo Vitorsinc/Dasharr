@@ -20,6 +20,8 @@ export const useQualityProfiles = (service: ArrService) =>
 export const useCustomFormats = (service: ArrService) => useServiceQuery(service, ["customformats"], arrManage(service).getCustomFormats);
 export const useRootFolders = (service: ArrService) =>
   useServiceQuery(service, ["roots"], arrManage(service).getRootFolders, { staleTime: REFRESH.library });
+export const useImportLists = (service: ArrService) => useServiceQuery(service, ["importlists"], arrManage(service).getImportLists);
+export const useExclusions = (service: ArrService) => useServiceQuery(service, ["exclusions"], arrManage(service).getExclusions);
 export const useDelayProfiles = (service: ArrService) => useServiceQuery(service, ["delayprofiles"], arrManage(service).getDelayProfiles);
 
 /**

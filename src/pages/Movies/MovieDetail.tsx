@@ -3,7 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Pencil, Search, Trash2, User } from "lucide-react";
 import { MonitorIcon } from "@/components/media/MonitorToggle";
 import { toast } from "sonner";
-import { ConfirmDialog, Dialog } from "@/components/Dialog";
+import { Dialog } from "@/components/Dialog";
 import { ArrRatings } from "@/components/media/ArrRatings";
 import { FaInfo } from "@/components/media/FilmAffinity";
 import { Poster } from "@/components/media/PosterCard";
@@ -11,6 +11,7 @@ import { ReleaseSearchDialog } from "@/components/media/ReleaseSearchDialog";
 import { ArrHistory } from "@/components/media/ArrHistory";
 import { EditMediaDialog } from "@/components/media/EditMediaDialog";
 import { MediaTags } from "@/components/media/TagPicker";
+import { DeleteMediaDialog } from "@/components/media/DeleteMediaDialog";
 import { useRadarrMeta } from "@/hooks/useArr";
 import { useMovieReleases } from "@/hooks/useMovieReleases";
 import { RELEASE_KINDS } from "@/lib/releases";
@@ -157,13 +158,13 @@ export function MovieDetail({ movie, onClose }: { movie: Movie | null; onClose: 
           onClose={() => setEditing(false)}
         />
       )}
-      <ConfirmDialog
+      <DeleteMediaDialog
         open={confirm}
         onOpenChange={setConfirm}
         title={t.library.deleteMovie}
         message={t.library.deleteMessage(movie.title)}
-        checkboxLabel={t.common.deleteFiles}
-        onConfirm={(deleteFiles) => run(() => radarr.deleteMovie(movie.id, deleteFiles).then(onClose))}
+        exclusionLabel={t.library.addExclusion}
+        onConfirm={(o) => run(() => radarr.deleteMovie(movie.id, o).then(onClose))}
       />
     </>
   );

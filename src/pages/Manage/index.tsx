@@ -1,4 +1,4 @@
-import { FolderTree, Gauge, Hourglass, Sparkles, Tags as TagsIcon, type LucideIcon } from "lucide-react";
+import { Ban, FolderTree, Gauge, Hourglass, ListPlus, Sparkles, Tags as TagsIcon, type LucideIcon } from "lucide-react";
 import { Navigate, useParams } from "react-router-dom";
 import type { ReactNode } from "react";
 import { Page } from "@/components/Page";
@@ -12,6 +12,7 @@ import { QualityProfiles } from "./QualityProfiles";
 import { CustomFormats } from "./CustomFormats";
 import { RootFolders } from "./RootFolders";
 import { DelayProfiles } from "./DelayProfiles";
+import { Exclusions, ImportLists } from "./ImportLists";
 
 interface Tab {
   id: string;
@@ -26,9 +27,11 @@ const tabs: Tab[] = [
   { id: "etiquetas", label: t.manage.tabs.tags, icon: TagsIcon, render: (s) => <Tags key={s} service={s} /> },
   { id: "carpetas", label: t.manage.tabs.roots, icon: FolderTree, render: (s) => <RootFolders key={s} service={s} /> },
   { id: "retraso", label: t.manage.tabs.delay, icon: Hourglass, render: (s) => <DelayProfiles key={s} service={s} /> },
+  { id: "listas", label: t.manage.tabs.lists, icon: ListPlus, render: (s) => <ImportLists key={s} service={s} /> },
+  { id: "exclusiones", label: t.manage.tabs.exclusions, icon: Ban, render: (s) => <Exclusions key={s} service={s} /> },
 ];
 
-/** Ajustes de biblioteca de Radarr o Sonarr: perfiles, formatos, etiquetas, carpetas y retrasos. */
+/** Ajustes de biblioteca de Radarr o Sonarr: perfiles, formatos, etiquetas, carpetas, retrasos y listas de importación. */
 export default function ManagePage({ service }: { service: ArrService }) {
   const { tab = tabs[0].id } = useParams();
   const configured = useIsConfigured(service);

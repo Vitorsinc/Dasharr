@@ -136,11 +136,11 @@ export const sonarr = {
     apiRequest<Series>("sonarr", { method: "PUT", path: `/api/v3/series/${series.id}`, json: { ...series, seriesType } }),
   setEpisodesMonitored: (episodeIds: number[], monitored: boolean) =>
     apiRequest<unknown>("sonarr", { method: "PUT", path: "/api/v3/episode/monitor", json: { episodeIds, monitored } }),
-  deleteSeries: (id: number, deleteFiles: boolean) =>
+  deleteSeries: (id: number, o: DeleteOptions) =>
     apiRequest<unknown>("sonarr", {
       method: "DELETE",
       path: `/api/v3/series/${id}`,
-      query: { deleteFiles, addImportListExclusion: false },
+      query: { deleteFiles: o.deleteFiles, addImportListExclusion: o.addExclusion },
     }),
   editSeries: (seriesIds: number[], e: BulkEdit) =>
     apiRequest<unknown>("sonarr", { method: "PUT", path: "/api/v3/series/editor", json: { seriesIds, ...e } }),

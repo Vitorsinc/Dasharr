@@ -240,6 +240,7 @@ export default function SeriesPage({ kind = "series" }: { kind?: SeriesKind }) {
               visible={items.length}
               profiles={meta.profiles.data ?? []}
               rootFolders={meta.roots.data ?? []}
+              exclusionLabel={t.library.addExclusion}
               onSelectAll={() => setPicked(new Set(items.map((s) => s.id)))}
               onClear={() => setPicked(new Set())}
               onExit={exitSelection}
