@@ -10,6 +10,17 @@ vi.mock("@tauri-apps/api/event", () => ({ listen: vi.fn(async () => () => {}) })
 
 afterEach(() => cleanup());
 
+// En Node 18+ `Request` es el de undici, que exige su propio AbortSignal; react-router le pasa el de jsdom al
+// navegar y la navegación falla («Expected signal to be an instance of AbortSignal»). En tests da igual
+// cancelar, así que se descarta la señal ajena.
+const NodeRequest = globalThis.Request;
+globalThis.Request = class extends NodeRequest {
+  constructor(input: RequestInfo | URL, init?: RequestInit) {
+    const { signal: _signal, ...rest } = init ?? {};
+    super(input, rest);
+  }
+} as typeof Request;
+
 Object.defineProperty(window, "matchMedia", {
   writable: true,
   value: (query: string) => ({
