@@ -426,3 +426,4 @@ Comprobado en el código de Radarr, Sonarr, Prowlarr, Bazarr y qBittorrent (deve
 | Listas de importación | `GET /api/v3/importlist`, `PUT /importlist/{id}` con el recurso completo (activar: Radarr `enabled`, Sonarr `enableAutomaticAdd`), `DELETE /importlist/{id}`, comando `ImportListSync` |
 | Exclusiones | Radarr `GET /api/v3/exclusions` (`tmdbId`, `movieTitle`, `movieYear`) y `DELETE /exclusions/{id}`; Sonarr `GET /api/v3/importlistexclusion` (`tvdbId`, `title`) y `DELETE /importlistexclusion/{id}` |
 | Borrar con exclusión | Radarr `DELETE /movie/{id}?deleteFiles&addImportExclusion=true`; Sonarr `DELETE /series/{id}?deleteFiles&addImportListExclusion=true` |
+| Película: herramientas | comandos `RefreshMovie { movieIds }`, `RescanMovie { movieId }`; vista previa `GET /api/v3/rename?movieId=` (`movieFileId`, `existingPath`, `newPath`) y comando `RenameMovie { movieIds }`; `DELETE /api/v3/moviefile/{id}` |

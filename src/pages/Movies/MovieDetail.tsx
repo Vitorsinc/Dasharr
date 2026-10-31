@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Pencil, Search, Trash2, User } from "lucide-react";
+import { FileX, FolderSearch, Pencil, RefreshCw, Search, TextCursorInput, Trash2, User } from "lucide-react";
 import { MonitorIcon } from "@/components/media/MonitorToggle";
 import { toast } from "sonner";
-import { Dialog } from "@/components/Dialog";
+import { ConfirmDialog, Dialog } from "@/components/Dialog";
+import { RenameDialog } from "@/components/media/RenameDialog";
 import { ArrRatings } from "@/components/media/ArrRatings";
 import { FaInfo } from "@/components/media/FilmAffinity";
 import { Poster } from "@/components/media/PosterCard";
@@ -54,6 +55,8 @@ export function MovieDetail({ movie, onClose }: { movie: Movie | null; onClose: 
   const [confirm, setConfirm] = useState(false);
   const [manual, setManual] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [renaming, setRenaming] = useState(false);
+  const [deletingFile, setDeletingFile] = useState(false);
   const [availability, setAvailability] = useState<MinimumAvailability>("released");
   const meta = useRadarrMeta();
   if (!movie) return null;
@@ -84,7 +87,19 @@ export function MovieDetail({ movie, onClose }: { movie: Movie | null; onClose: 
               <ReleaseInfo movie={movie} />
             </div>
             {movie.movieFile?.relativePath && (
-              <Info label={t.library.file} value={<span className="break-all font-mono text-xs">{movie.movieFile.relativePath}</span>} />
+              <div className="flex items-end gap-2">
+                <Info label={t.library.file} value={<span className="break-all font-mono text-xs">{movie.movieFile.relativePath}</span>} />
+                {movie.movieFile.id != null && (
+                  <button
+                    className="btn-ghost shrink-0 p-1 text-muted hover:text-danger"
+                    title={t.seriesTools.deleteFile}
+                    aria-label={t.seriesTools.deleteFile}
+                    onClick={() => setDeletingFile(true)}
+                  >
+                    <FileX className="h-3.5 w-3.5" aria-hidden />
+                  </button>
+                )}
+              </div>
             )}
             {movie.genres?.length ? (
               <div className="flex flex-wrap gap-1.5">
@@ -123,6 +138,27 @@ export function MovieDetail({ movie, onClose }: { movie: Movie | null; onClose: 
                 <Trash2 className="h-4 w-4" /> {t.common.delete}
               </button>
             </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                className="btn-ghost px-2 py-1 text-xs"
+                title={t.movieTools.refreshHint}
+                onClick={() => run(() => radarr.refreshMovie(movie.id), t.movieTools.refreshStarted)}
+              >
+                <RefreshCw className="h-3.5 w-3.5" aria-hidden /> {t.seriesTools.refresh}
+              </button>
+              <button
+                className="btn-ghost px-2 py-1 text-xs"
+                title={t.movieTools.rescanHint}
+                onClick={() => run(() => radarr.rescanMovie(movie.id), t.seriesTools.rescanStarted)}
+              >
+                <FolderSearch className="h-3.5 w-3.5" aria-hidden /> {t.seriesTools.rescan}
+              </button>
+              {movie.hasFile && (
+                <button className="btn-ghost px-2 py-1 text-xs" title={t.movieTools.renameHint} onClick={() => setRenaming(true)}>
+                  <TextCursorInput className="h-3.5 w-3.5" aria-hidden /> {t.seriesTools.rename}
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </Dialog>
@@ -158,6 +194,25 @@ export function MovieDetail({ movie, onClose }: { movie: Movie | null; onClose: 
           onClose={() => setEditing(false)}
         />
       )}
+      {renaming && (
+        <RenameDialog
+          service="radarr"
+          title={t.seriesTools.renameTitle(movie.title)}
+          queryKey={["movie", movie.id]}
+          load={async () =>
+            (await radarr.getRenamePreview(movie.id)).map((r) => ({ fileId: r.movieFileId, existingPath: r.existingPath, newPath: r.newPath }))
+          }
+          onRename={() => radarr.renameMovie(movie.id)}
+          onClose={() => setRenaming(false)}
+        />
+      )}
+      <ConfirmDialog
+        open={deletingFile}
+        onOpenChange={setDeletingFile}
+        title={t.movieTools.deleteFileTitle}
+        message={t.movieTools.deleteFileMessage(movie.title)}
+        onConfirm={() => movie.movieFile?.id != null && run(() => radarr.deleteMovieFile(movie.movieFile!.id!), t.seriesTools.fileDeleted)}
+      />
       <DeleteMediaDialog
         open={confirm}
         onOpenChange={setConfirm}

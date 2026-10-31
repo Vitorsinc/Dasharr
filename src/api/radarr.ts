@@ -26,8 +26,16 @@ export interface Movie {
   physicalRelease?: string;
   images?: ArrImage[];
   tags?: number[];
-  movieFile?: { relativePath?: string; size?: number; quality?: { quality?: { name?: string } } };
+  movieFile?: { id?: number; relativePath?: string; size?: number; quality?: { quality?: { name?: string } } };
   ratings?: Partial<Record<"imdb" | "tmdb" | "metacritic" | "rottenTomatoes" | "trakt", ArrRating>>;
+}
+
+/** Vista previa de `GET /rename?movieId=`: archivos cuyo nombre no sigue el formato de Radarr. */
+export interface MovieRenamePreview {
+  movieId: number;
+  movieFileId: number;
+  existingPath: string;
+  newPath: string;
 }
 
 export type MinimumAvailability = "announced" | "inCinemas" | "released";
@@ -92,6 +100,14 @@ export const radarr = {
       path: "/api/v3/movie/editor",
       json: { movieIds, deleteFiles: o.deleteFiles, addImportExclusion: o.addExclusion },
     }),
+  /** Actualiza los datos de la película (fechas, imágenes, notas) desde TMDb y revisa el disco. */
+  refreshMovie: (movieId: number) => common.command({ name: "RefreshMovie", movieIds: [movieId] }),
+  /** Vuelve a leer la carpeta de la película para detectar archivos añadidos o borrados a mano. */
+  rescanMovie: (movieId: number) => common.command({ name: "RescanMovie", movieId }),
+  getRenamePreview: (movieId: number) => apiRequest<MovieRenamePreview[]>("radarr", { path: "/api/v3/rename", query: { movieId } }),
+  renameMovie: (movieId: number) => common.command({ name: "RenameMovie", movieIds: [movieId] }),
+  /** Borra el archivo del disco; la película sigue en la biblioteca (y si está monitorizada, se vuelve a buscar). */
+  deleteMovieFile: (movieFileId: number) => apiRequest<unknown>("radarr", { method: "DELETE", path: `/api/v3/moviefile/${movieFileId}` }),
   search: (movieIds: number[]) => common.command({ name: "MoviesSearch", movieIds }),
   getWanted: async (kind: WantedKind) => (await common.getWanted<Movie>(kind)).records ?? [],
   /** Busca todas las monitorizadas que faltan (o que no llegan a la calidad objetivo), como el botón de Radarr. */

@@ -613,6 +613,15 @@ export const es = {
     deleteFileMessage: (what: string) => `Se borrará del disco el archivo de ${what}. El episodio seguirá en la biblioteca.`,
     fileDeleted: "Archivo borrado",
   },
+  movieTools: {
+    refreshHint: "Actualiza la información de la película (fechas, imágenes, notas) y revisa el disco",
+    refreshStarted: "Actualizando la película",
+    rescanHint: "Vuelve a leer la carpeta para detectar archivos añadidos o borrados a mano",
+    renameHint: "Renombra el archivo según el formato de nombres de Radarr",
+    deleteFileTitle: "Borrar archivo de la película",
+    deleteFileMessage: (title: string) =>
+      `Se borrará del disco el archivo de ${title}. La película seguirá en la biblioteca y, si está monitorizada, Radarr la volverá a buscar.`,
+  },
   indexers: {
     testAll: "Probar todos",
     test: "Probar",

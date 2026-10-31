@@ -22,6 +22,7 @@ También se puede lanzar a mano en Actions → Release → «Run workflow» indi
 - Edición masiva en Películas, Series y Anime: botón «Seleccionar» para elegir varias portadas (o todas las visibles con el filtro actual) y, a la vez, monitorizarlas o no, cambiar el perfil de calidad, añadir, quitar o sustituir etiquetas, cambiarlas de carpeta raíz moviendo los archivos (avisando antes) o borrarlas con o sin archivos.
 - Gestión → Listas: las listas de importación de Radarr/Sonarr (Trakt, TMDb, watchlist de Plex…) para activarlas, desactivarlas, borrarlas o sincronizarlas ya. Gestión → Exclusiones: lo que las listas no deben volver a añadir, con filtro y botón para quitar cada una.
 - Al borrar una película o serie (en su ficha o varias a la vez) se puede marcar «Añadir a las exclusiones» para que las listas no la vuelvan a añadir.
+- Fichas de película: botones para actualizar la información, reescanear la carpeta y renombrar el archivo (con vista previa), y borrar solo el archivo (con confirmación), como ya tenían las series.
 
 ### Corregido
 - Las versiones publicadas a mano desde Actions ya no se muestran como compilación de prueba («· dev abc1234»).
