@@ -95,11 +95,13 @@ export const radarr = {
   editMovies: (movieIds: number[], e: BulkEdit) =>
     apiRequest<unknown>("radarr", { method: "PUT", path: "/api/v3/movie/editor", json: { movieIds, ...e } }),
   deleteMovies: (movieIds: number[], o: DeleteOptions) =>
-    apiRequest<unknown>("radarr", {
-      method: "DELETE",
-      path: "/api/v3/movie/editor",
-      json: { movieIds, deleteFiles: o.deleteFiles, addImportExclusion: o.addExclusion },
-    }),
+    movieIds.length === 0
+      ? Promise.reject(new Error("No hay películas seleccionadas"))
+      : apiRequest<unknown>("radarr", {
+          method: "DELETE",
+          path: "/api/v3/movie/editor",
+          json: { movieIds, deleteFiles: o.deleteFiles, addImportExclusion: o.addExclusion },
+        }),
   /** Actualiza los datos de la película (fechas, imágenes, notas) desde TMDb y revisa el disco. */
   refreshMovie: (movieId: number) => common.command({ name: "RefreshMovie", movieIds: [movieId] }),
   /** Vuelve a leer la carpeta de la película para detectar archivos añadidos o borrados a mano. */

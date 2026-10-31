@@ -1,5 +1,5 @@
 import { apiRequest } from "@/lib/tauri";
-import { waitForCommand, type ArrService, type CommandStatus, type HistoryRecord, type Paged } from "./arr";
+import { commandSucceeded, waitForCommand, type ArrService, type CommandStatus, type HistoryRecord, type Paged } from "./arr";
 
 /** Release bloqueada: el *arr no la vuelve a descargar. Radarr trae `movie`; Sonarr, `series` y los episodios. */
 export interface BlocklistItem {
@@ -60,8 +60,14 @@ export function arrActivity(service: ArrService) {
      * se espera (como mucho 30 s) a que termine para que la lista recargada ya salga vacía.
      */
     clearBlocklist: async () => {
-      const c = await apiRequest<CommandStatus | null>(service, { method: "POST", path: "/api/v3/command", json: { name: "ClearBlocklist" } });
-      if (c?.id != null) await waitForCommand(service, c.id, { intervalMs: 1000, timeoutMs: 30_000 });
+      const c = await apiRequest<CommandStatus | null>(service, {
+        method: "POST",
+        path: "/api/v3/command",
+        json: { name: "ClearBlocklist" },
+      });
+      if (c?.id == null) return;
+      const done = await waitForCommand(service, c.id, { intervalMs: 1000, timeoutMs: 30_000 });
+      if (!commandSucceeded(done)) throw new Error(done.message || "No se pudo vaciar la blocklist");
     },
     /**
      * Marca como fallida una descarga del historial (un «grabbed»): el *arr bloquea esa release y, si

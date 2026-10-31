@@ -145,11 +145,13 @@ export const sonarr = {
   editSeries: (seriesIds: number[], e: BulkEdit) =>
     apiRequest<unknown>("sonarr", { method: "PUT", path: "/api/v3/series/editor", json: { seriesIds, ...e } }),
   deleteSeriesBulk: (seriesIds: number[], o: DeleteOptions) =>
-    apiRequest<unknown>("sonarr", {
-      method: "DELETE",
-      path: "/api/v3/series/editor",
-      json: { seriesIds, deleteFiles: o.deleteFiles, addImportListExclusion: o.addExclusion },
-    }),
+    seriesIds.length === 0
+      ? Promise.reject(new Error("No hay series seleccionadas"))
+      : apiRequest<unknown>("sonarr", {
+          method: "DELETE",
+          path: "/api/v3/series/editor",
+          json: { seriesIds, deleteFiles: o.deleteFiles, addImportListExclusion: o.addExclusion },
+        }),
   updateSeries: async (series: Series, e: SeriesEdit) => {
     await apiRequest<Series>("sonarr", {
       method: "PUT",

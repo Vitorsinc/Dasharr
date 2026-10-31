@@ -10,7 +10,8 @@ export function visibleFields(fields: ProviderField[], showAdvanced: boolean): P
     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 }
 
-export const hasAdvanced = (fields: ProviderField[]) => fields.some((f) => f.advanced && f.hidden !== "hidden");
+export const hasAdvanced = (fields: ProviderField[]) =>
+  fields.some((f) => f.advanced && f.hidden !== "hidden" && !(f.hidden === "hiddenIfNotSet" && isEmpty(f.value)));
 
 export function setFieldValue(fields: ProviderField[], name: string, value: unknown): ProviderField[] {
   return fields.map((f) => (f.name === name ? { ...f, value } : f));
@@ -27,5 +28,5 @@ export function parseTagList(text: string): string[] {
 /** Valor de una opción de un desplegable: numérico si las opciones lo son. */
 export function optionValue(f: ProviderField, raw: string): number | string {
   const sample = f.selectOptions?.[0]?.value;
-  return typeof sample === "number" ? Number(raw) : raw;
+  return typeof sample === "number" && raw !== "" ? Number(raw) : raw;
 }
