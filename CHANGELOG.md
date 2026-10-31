@@ -12,6 +12,12 @@ También se puede lanzar a mano en Actions → Release → «Run workflow» indi
 
 ## [Sin publicar]
 
+### Añadido
+- Actualizaciones automáticas: Dasharr mira si hay versión nueva al abrirse y cada 6 horas, avisa y la instala sola tras 30 segundos (con «Instalar ahora» o «Más tarde»). Se puede desactivar en Ajustes → Sistema, donde también se ven las novedades de la versión nueva y se instala con un clic. El menú lateral muestra «Actualizar a vX» mientras haya una pendiente.
+
+### Corregido
+- Las versiones publicadas a mano desde Actions ya no se muestran como compilación de prueba («· dev abc1234»).
+
 ## [0.1.0] - 2026-10-31
 
 ### Añadido

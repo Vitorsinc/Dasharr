@@ -2,6 +2,8 @@ import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { mockBackend, renderApp, view } from "@/test/utils";
 import type { ServiceKind, ServiceSettingsView } from "@/lib/types";
+import { resetUpdateState } from "@/hooks/useUpdates";
+import { getPrefs, setPrefs } from "@/hooks/usePrefs";
 
 const settings = {
   radarr: view({ local: "http://192.168.1.50:7878", external: "https://radarr.x.com" }),
@@ -105,4 +107,37 @@ test("buscar actualizaciones avisa si ya está al día", async () => {
   renderApp("/ajustes/sistema");
   await userEvent.click(await screen.findByRole("button", { name: "Buscar actualizaciones" }));
   expect(await screen.findByText("Tienes la última versión")).toBeInTheDocument();
+});
+
+const update = {
+  version: "0.2.0",
+  notes: "### Añadido\n- Algo nuevo",
+  installerUrl: "https://github.com/Vitorsinc/Dasharr/releases/download/v0.2.0/Dasharr_0.2.0_x64-setup.exe",
+  checksumUrl: null,
+};
+
+test("buscar actualizaciones muestra la versión nueva, sus novedades y la instala con un clic", async () => {
+  resetUpdateState();
+  const mock = mockBackend({ commands: { check_update: () => update, install_update: () => new Promise(() => {}) } });
+  renderApp("/ajustes/sistema");
+  await userEvent.click(await screen.findByRole("button", { name: "Buscar actualizaciones" }));
+  expect(await screen.findByText("Nueva versión disponible: v0.2.0")).toBeInTheDocument();
+  expect(screen.getByText("Novedades")).toBeInTheDocument();
+  // El menú lateral también avisa.
+  expect(screen.getByRole("link", { name: "Actualizar a v0.2.0" })).toHaveAttribute("href", "/ajustes/sistema");
+  await userEvent.click(screen.getByRole("button", { name: "Instalar ahora" }));
+  expect(mock).toHaveBeenCalledWith("install_update", { installerUrl: update.installerUrl, checksumUrl: null });
+  resetUpdateState();
+});
+
+test("la instalación automática se puede desactivar", async () => {
+  resetUpdateState();
+  mockBackend();
+  renderApp("/ajustes/sistema");
+  const toggle = await screen.findByRole("switch", { name: "Instalar las actualizaciones automáticamente" });
+  expect(toggle).toHaveAttribute("aria-checked", "true");
+  await userEvent.click(toggle);
+  expect(toggle).toHaveAttribute("aria-checked", "false");
+  expect(getPrefs().autoUpdate).toBe(false);
+  setPrefs({ autoUpdate: true });
 });

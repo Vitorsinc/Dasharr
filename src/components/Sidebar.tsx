@@ -1,5 +1,6 @@
 import { NavLink, useLocation } from "react-router-dom";
 import {
+  ArrowUpCircle,
   CalendarDays,
   Captions,
   ChevronDown,
@@ -19,6 +20,7 @@ import { t } from "@/i18n/es";
 import { cn } from "@/lib/cn";
 import { versionLabel } from "@/lib/version";
 import { usePrefs } from "@/hooks/usePrefs";
+import { useUpdateState } from "@/hooks/useUpdates";
 import { DiskIndicator } from "./DiskIndicator";
 import { Torii } from "./icons/Torii";
 import type { ServiceKind } from "@/lib/types";
@@ -161,6 +163,21 @@ function Logo() {
   );
 }
 
+/** Aparece solo cuando hay una versión nueva; lleva a Ajustes → Sistema para instalarla. */
+function UpdateItem() {
+  const { available } = useUpdateState();
+  if (!available) return null;
+  return (
+    <NavLink
+      to="/ajustes/sistema"
+      className="flex items-center gap-3 rounded-lg px-3 py-1.5 text-sm font-medium text-accent transition-colors hover:bg-surface-2/60"
+    >
+      <ArrowUpCircle className="h-[18px] w-[18px]" aria-hidden />
+      <span>{t.updates.sidebar(available.version)}</span>
+    </NavLink>
+  );
+}
+
 export function Sidebar() {
   return (
     <nav className="flex w-56 shrink-0 flex-col border-r border-border bg-surface px-3 py-4">
@@ -180,6 +197,7 @@ export function Sidebar() {
       </div>
       <div className="flex flex-col gap-0.5 border-t border-border pt-2">
         <DiskIndicator />
+        <UpdateItem />
         <Item to="/ajustes" label={t.nav.settings} icon={Settings} />
       </div>
       <div className="mt-2 px-3 text-xs text-muted" title={t.app.version}>
