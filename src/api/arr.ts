@@ -107,6 +107,26 @@ export interface HistoryRecord {
   seriesId?: number;
   episodeId?: number;
   episode?: { seasonNumber: number; episodeNumber: number; title: string };
+  /** Solo en el historial global, con `includeMovie` / `includeSeries`. */
+  movie?: { id: number; title: string; year?: number };
+  series?: { id: number; title: string };
+}
+
+/** Cambios en lote (`PUT /movie/editor`, `/series/editor`): solo se aplica lo que viene definido. */
+export interface BulkEdit {
+  monitored?: boolean;
+  qualityProfileId?: number;
+  rootFolderPath?: string;
+  /** Con carpeta raíz nueva: si el *arr mueve los archivos o solo cambia la ruta. */
+  moveFiles?: boolean;
+  tags?: number[];
+  applyTags?: "add" | "remove" | "replace";
+}
+
+export interface DeleteOptions {
+  deleteFiles: boolean;
+  /** Añadir a las exclusiones de las listas de importación para que no se vuelva a añadir sola. */
+  addExclusion: boolean;
 }
 
 export interface HealthItem {
@@ -212,6 +232,12 @@ export type SortDir = "asc" | "desc";
 export interface ReleaseSort {
   key: ReleaseSortKey;
   dir: SortDir;
+}
+
+const RELEASE_SORT_KEYS: readonly string[] = ["default", "title", "indexer", "quality", "size", "seeders", "age", "score"];
+export function isReleaseSort(v: unknown): v is ReleaseSort {
+  const s = v as ReleaseSort | null;
+  return !!s && typeof s === "object" && RELEASE_SORT_KEYS.includes(s.key) && (s.dir === "asc" || s.dir === "desc");
 }
 
 /** Sentido con el que empieza cada columna al pulsarla, como en Radarr/Sonarr. */

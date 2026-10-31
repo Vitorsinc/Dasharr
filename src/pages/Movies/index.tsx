@@ -9,7 +9,9 @@ import { LibraryToolbar } from "@/components/media/LibraryToolbar";
 import { PosterCard, PosterGrid } from "@/components/media/PosterCard";
 import { QueueList } from "@/components/media/QueueList";
 import { ReleaseSearchDialog } from "@/components/media/ReleaseSearchDialog";
-import { filterSort, libState, type LibFilter, type LibSort } from "@/components/media/library";
+import { usePersistedSort } from "@/hooks/usePersistedSort";
+import { fetchOrder, filterSort, isAvailable, isLibSort, libState, MOVIE_SOURCES, type LibFilter, type LibSort } from "@/components/media/library";
+import { arrScores, visibleScores } from "@/components/media/RatingBadges";
 import { posterUrl, type WantedKind } from "@/api/arr";
 import { WantedList } from "@/components/media/WantedList";
 import { toast } from "sonner";
@@ -19,8 +21,11 @@ import { faKey, movieItem } from "@/api/filmaffinity";
 import { movieReleaseDate, radarr, type Movie } from "@/api/radarr";
 import { useMovies, useRadarrMeta, useRadarrQueue, useRadarrWanted } from "@/hooks/useArr";
 import { useFaRatings } from "@/hooks/useFilmAffinity";
+import { useRun, useTags } from "@/hooks/useArrManage";
+import { BulkEditBar } from "@/components/media/BulkEditBar";
 import { usePrefs } from "@/hooks/usePrefs";
 import { t } from "@/i18n/es";
+import { movieDefaultsFor } from "@/lib/anime";
 import { MovieDetail } from "./MovieDetail";
 import { UpcomingMovies } from "./Upcoming";
 
@@ -36,23 +41,54 @@ export default function MoviesPage() {
   const wanted = useRadarrWanted(wantedKind, tab === "wanted");
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<LibFilter>("all");
-  const [sort, setSort] = useState<LibSort>("title");
+  const [sort, setSort] = usePersistedSort<LibSort>("movies", "title", isLibSort);
+  const [tag, setTag] = useState<number | null>(null);
+  const tags = useTags("radarr");
+  const [selecting, setSelecting] = useState(false);
+  const [picked, setPicked] = useState<Set<number>>(new Set());
+  const run = useRun("radarr");
+  const togglePick = (id: number) =>
+    setPicked((s) => {
+      const n = new Set(s);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
+  const exitSelection = () => {
+    setSelecting(false);
+    setPicked(new Set());
+  };
+  const activeTag = tags.data?.some((x) => x.id === tag) ? tag : null;
   const [adding, setAdding] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [manualFor, setManualFor] = useState<Movie | null>(null);
 
+  const [{ hiddenRatings, movieDefaults }] = usePrefs();
+  const preset = movieDefaultsFor(meta.roots.data ?? [], meta.profiles.data ?? [], movieDefaults);
+  const showFa = !hiddenRatings.includes("filmaffinity");
+  const sortSources = MOVIE_SOURCES.filter((s) => !hiddenRatings.includes(s));
+  const activeSort = isAvailable(sort, sortSources) ? sort : "title";
+  const base = useMemo(
+    () => (movies.data ?? []).map((m) => ({ ...m, downloaded: m.hasFile, missing: m.monitored && !m.hasFile })),
+    [movies.data],
+  );
+  // FilmAffinity se pide en el orden en que se ve la lista (o por título al ordenar por nota).
+  const faItems = useMemo(
+    () => (tab === "library" && showFa ? filterSort(base, { query, filter, tag: activeTag, sort: fetchOrder(activeSort) }).map(movieItem) : []),
+    [base, tab, showFa, query, filter, activeTag, activeSort],
+  );
+  const ratings = useFaRatings(faItems);
   const items = useMemo(
     () =>
       filterSort(
-        (movies.data ?? []).map((m) => ({ ...m, downloaded: m.hasFile, missing: m.monitored && !m.hasFile })),
-        { query, filter, sort },
+        base.map((m) => ({
+          ...m,
+          scores: visibleScores({ ...arrScores(m.ratings), filmaffinity: ratings[faKey(movieItem(m))]?.rating ?? undefined }, hiddenRatings),
+        })),
+        { query, filter, tag: activeTag, sort: activeSort },
       ),
-    [movies.data, query, filter, sort],
+    [base, ratings, hiddenRatings, query, filter, activeTag, activeSort],
   );
-  const [{ hiddenRatings }] = usePrefs();
-  const showFa = !hiddenRatings.includes("filmaffinity");
-  const faItems = useMemo(() => (tab === "library" && showFa ? items.map(movieItem) : []), [items, tab, showFa]);
-  const ratings = useFaRatings(faItems);
   const existing = useMemo(() => new Set((movies.data ?? []).map((m) => m.tmdbId)), [movies.data]);
   const selected = movies.data?.find((m) => m.id === selectedId) ?? null;
 
@@ -136,7 +172,20 @@ export default function MoviesPage() {
         )
       ) : (
         <>
-          <LibraryToolbar query={query} onQuery={setQuery} filter={filter} onFilter={setFilter} sort={sort} onSort={setSort} />
+          <LibraryToolbar
+            query={query}
+            onQuery={setQuery}
+            filter={filter}
+            onFilter={setFilter}
+            sort={activeSort}
+            onSort={setSort}
+            ratingSources={sortSources}
+            tags={tags.data ?? []}
+            tag={activeTag}
+            onTag={setTag}
+            selecting={selecting}
+            onSelecting={(v) => (v ? setSelecting(true) : exitSelection())}
+          />
           {movies.isLoading || movies.configured === undefined ? (
             <Loading />
           ) : movies.isError ? (
@@ -152,11 +201,31 @@ export default function MoviesPage() {
                   subtitle={String(m.year)}
                   poster={posterUrl("radarr", m)}
                   state={libState(m)}
-                  rating={showFa ? ratings[faKey(movieItem(m))]?.rating : undefined}
-                  onClick={() => setSelectedId(m.id)}
+                  scores={m.scores}
+                  selected={selecting ? picked.has(m.id) : undefined}
+                  onClick={() => (selecting ? togglePick(m.id) : setSelectedId(m.id))}
                 />
               ))}
             </PosterGrid>
+          )}
+          {selecting && (
+            <BulkEditBar
+              service="radarr"
+              count={picked.size}
+              visible={items.length}
+              profiles={meta.profiles.data ?? []}
+              rootFolders={meta.roots.data ?? []}
+              exclusionLabel={t.library.addExclusion}
+              onSelectAll={() => setPicked(new Set(items.map((m) => m.id)))}
+              onClear={() => setPicked(new Set())}
+              onExit={exitSelection}
+              onApply={(e) => run(() => radarr.editMovies([...picked], e), t.bulk.applied(picked.size))}
+              onDelete={async (o) => {
+                const ok = await run(() => radarr.deleteMovies([...picked], o), t.bulk.deleted(picked.size));
+                if (ok) setPicked(new Set());
+                return ok;
+              }}
+            />
           )}
         </>
       )}
@@ -174,6 +243,7 @@ export default function MoviesPage() {
           poster: posterUrl("radarr", { images: m.images }),
           exists: existing.has(m.tmdbId),
         })}
+        preset={preset}
         profiles={meta.profiles.data ?? []}
         rootFolders={meta.roots.data ?? []}
         manualHint={t.library.addManualMovieHint}
@@ -181,6 +251,10 @@ export default function MoviesPage() {
           const added = await radarr.addMovie(m, { ...o, monitored: true });
           await qc.invalidateQueries({ queryKey: ["radarr"] });
           if (o.searchMode === "manual") setManualFor(added);
+        }}
+        onQuickAdd={async (m, o) => {
+          await radarr.addMovie(m, { ...o, monitored: true });
+          await qc.invalidateQueries({ queryKey: ["radarr"] });
         }}
       />
       <ReleaseSearchDialog

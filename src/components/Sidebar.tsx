@@ -1,5 +1,7 @@
 import { NavLink, useLocation } from "react-router-dom";
 import {
+  Activity,
+  ArrowUpCircle,
   CalendarDays,
   Captions,
   ChevronDown,
@@ -12,6 +14,7 @@ import {
   Radar,
   Search,
   Settings,
+  SlidersHorizontal,
   Tv,
   type LucideIcon,
 } from "lucide-react";
@@ -19,6 +22,7 @@ import { t } from "@/i18n/es";
 import { cn } from "@/lib/cn";
 import { versionLabel } from "@/lib/version";
 import { usePrefs } from "@/hooks/usePrefs";
+import { useUpdateState } from "@/hooks/useUpdates";
 import { DiskIndicator } from "./DiskIndicator";
 import { Torii } from "./icons/Torii";
 import type { ServiceKind } from "@/lib/types";
@@ -34,6 +38,8 @@ interface NavItem {
   label: string;
   icon: LucideIcon;
   end?: boolean;
+  /** Nombre para lectores de pantalla cuando la etiqueta se repite en varios grupos («Actividad · Radarr»). */
+  ariaLabel?: string;
 }
 
 /** Páginas que mezclan varios servicios: van arriba, sin grupo. */
@@ -44,13 +50,23 @@ const general: NavItem[] = [
 
 /** El resto, agrupado por el servicio del que salen los datos. */
 const groups: { service: ServiceKind; logo: string; items: NavItem[] }[] = [
-  { service: "radarr", logo: radarrLogo, items: [{ to: "/peliculas", label: t.nav.movies, icon: Clapperboard }] },
+  {
+    service: "radarr",
+    logo: radarrLogo,
+    items: [
+      { to: "/peliculas", label: t.nav.movies, icon: Clapperboard },
+      { to: "/actividad/radarr", label: t.activity.nav, icon: Activity, ariaLabel: `${t.activity.nav} · ${t.services.radarr}` },
+      { to: "/gestion/radarr", label: t.manage.nav, icon: SlidersHorizontal, ariaLabel: `${t.manage.nav} · ${t.services.radarr}` },
+    ],
+  },
   {
     service: "sonarr",
     logo: sonarrLogo,
     items: [
       { to: "/series", label: t.nav.series, icon: Tv },
       { to: "/anime", label: t.nav.anime, icon: Torii },
+      { to: "/actividad/sonarr", label: t.activity.nav, icon: Activity, ariaLabel: `${t.activity.nav} · ${t.services.sonarr}` },
+      { to: "/gestion/sonarr", label: t.manage.nav, icon: SlidersHorizontal, ariaLabel: `${t.manage.nav} · ${t.services.sonarr}` },
     ],
   },
   { service: "qbittorrent", logo: qbittorrentLogo, items: [{ to: "/descargas", label: t.nav.downloads, icon: Download }] },
@@ -75,11 +91,12 @@ const groups: { service: ServiceKind; logo: string; items: NavItem[] }[] = [
   },
 ];
 
-function Item({ to, label, icon: Icon, end }: NavItem) {
+function Item({ to, label, icon: Icon, end, ariaLabel }: NavItem) {
   return (
     <NavLink
       to={to}
       end={end}
+      aria-label={ariaLabel}
       className={({ isActive }) =>
         cn(
           "flex items-center gap-3 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
@@ -161,6 +178,21 @@ function Logo() {
   );
 }
 
+/** Aparece solo cuando hay una versión nueva; lleva a Ajustes → Sistema para instalarla. */
+function UpdateItem() {
+  const { available } = useUpdateState();
+  if (!available) return null;
+  return (
+    <NavLink
+      to="/ajustes/sistema"
+      className="flex items-center gap-3 rounded-lg px-3 py-1.5 text-sm font-medium text-accent transition-colors hover:bg-surface-2/60"
+    >
+      <ArrowUpCircle className="h-[18px] w-[18px]" aria-hidden />
+      <span>{t.updates.sidebar(available.version)}</span>
+    </NavLink>
+  );
+}
+
 export function Sidebar() {
   return (
     <nav className="flex w-56 shrink-0 flex-col border-r border-border bg-surface px-3 py-4">
@@ -180,6 +212,7 @@ export function Sidebar() {
       </div>
       <div className="flex flex-col gap-0.5 border-t border-border pt-2">
         <DiskIndicator />
+        <UpdateItem />
         <Item to="/ajustes" label={t.nav.settings} icon={Settings} />
       </div>
       <div className="mt-2 px-3 text-xs text-muted" title={t.app.version}>

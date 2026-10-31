@@ -5,7 +5,8 @@ import { Page } from "@/components/Page";
 import { ErrorPanel, NotConfigured } from "@/components/ErrorPanel";
 import { Empty, Loading, Segmented, Spinner } from "@/components/ui";
 import { t } from "@/i18n/es";
-import { prowlarr, sendToQbit, sortResults, torrentLink, type ResultSort, type SearchCategory, type SearchResult } from "@/api/prowlarr";
+import { usePersistedSort, oneOf } from "@/hooks/usePersistedSort";
+import { prowlarr, RESULT_SORTS, sendToQbit, sortResults, torrentLink, type ResultSort, type SearchCategory, type SearchResult } from "@/api/prowlarr";
 import { useServiceQuery, REFRESH } from "@/hooks/useServiceQuery";
 import { useCategories } from "@/hooks/useTorrents";
 import { errorMessage } from "@/lib/errors";
@@ -19,7 +20,7 @@ export default function SearchPage() {
   const [category, setCategory] = useState<SearchCategory>("all");
   const [indexerId, setIndexerId] = useState<number | "">("");
   const [qbCategory, setQbCategory] = useState("");
-  const [sort, setSort] = useState<ResultSort>("seeders");
+  const [sort, setSort] = usePersistedSort<ResultSort>("search", "seeders", oneOf(RESULT_SORTS));
   const [results, setResults] = useState<SearchResult[] | null>(null);
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState<unknown>(null);

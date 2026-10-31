@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Bell, Cpu, Library, Palette, ScrollText, Server, Upload, type LucideIcon } from "lucide-react";
-import { Link, Navigate, useParams } from "react-router-dom";
+import { Navigate, useParams } from "react-router-dom";
+import { TabNav } from "@/components/TabNav";
 import { toast } from "sonner";
 import { disable, enable, isEnabled } from "@tauri-apps/plugin-autostart";
 import { Page } from "@/components/Page";
@@ -14,16 +15,16 @@ import { faClearQueue } from "@/api/filmaffinity";
 import { RATING_SOURCES, usePrefs, type RatingSource, type Theme } from "@/hooks/usePrefs";
 import { ServiceForm } from "./ServiceForm";
 import { parseConfigFile } from "@/lib/importConfig";
-import { checkUpdate, openExternal, saveService } from "@/lib/tauri";
+import { openExternal, saveService } from "@/lib/tauri";
 import { tmdbSaveKey } from "@/api/tmdb";
 import { useTmdbHasKey } from "@/hooks/useMovieReleases";
 import { COUNTRIES } from "@/lib/countries";
-import { notifyUpdate } from "@/hooks/useUpdates";
+import { runUpdateCheck, startUpdate, useUpdateState } from "@/hooks/useUpdates";
 import { versionLabel } from "@/lib/version";
 import { errorMessage } from "@/lib/errors";
 import { settingsKey } from "@/hooks/useSettings";
-import { useSonarrMeta } from "@/hooks/useArr";
-import { defaultsFor, type SeriesKind } from "@/lib/anime";
+import { useRadarrMeta, useSonarrMeta } from "@/hooks/useArr";
+import { defaultsFor, movieDefaultsFor, type SeriesKind } from "@/lib/anime";
 import { LogsPanel } from "@/pages/Logs";
 import { cn } from "@/lib/cn";
 
@@ -155,6 +156,47 @@ function RatingsSettings() {
           <Toggle label={label(s)} checked={!prefs.hiddenRatings.includes(s)} onChange={(v) => toggle(s, v)} />
         </div>
       ))}
+    </section>
+  );
+}
+
+function MovieDefaults() {
+  const meta = useRadarrMeta();
+  const [prefs, setPrefs] = usePrefs();
+  const roots = meta.roots.data ?? [];
+  const profiles = meta.profiles.data ?? [];
+  if (meta.roots.configured === false)
+    return <section className="card p-4 text-sm text-muted">{t.settings.movieDefaultsNeedRadarr}</section>;
+  if (meta.roots.isLoading || meta.profiles.isLoading) return <Loading />;
+  if (!roots.length || !profiles.length) return null;
+  const d = movieDefaultsFor(roots, profiles, prefs.movieDefaults);
+  const set = (patch: { rootFolderPath?: string; qualityProfileId?: number }) => setPrefs({ movieDefaults: { ...d, ...patch } });
+  const name = t.nav.movies;
+  return (
+    <section className="card divide-y divide-border" aria-label={t.settings.movieDefaults}>
+      <div className="flex flex-wrap items-center gap-4 p-4">
+        <span className="w-20 text-sm font-medium">{name}</span>
+        <label className="flex-1">
+          <span className="label">{t.library.rootFolder}</span>
+          <select className="input" aria-label={`${t.library.rootFolder} ${name}`} value={d.rootFolderPath} onChange={(e) => set({ rootFolderPath: e.target.value })}>
+            {roots.map((r) => (
+              <option key={r.id} value={r.path}>
+                {r.path}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex-1">
+          <span className="label">{t.library.qualityProfile}</span>
+          <select className="input" aria-label={`${t.library.qualityProfile} ${name}`} value={d.qualityProfileId} onChange={(e) => set({ qualityProfileId: Number(e.target.value) })}>
+            {profiles.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
     </section>
   );
 }
@@ -296,29 +338,42 @@ function MovieReleasesSettings() {
 }
 
 function Updates() {
-  const [state, setState] = useState<"idle" | "checking" | "latest">("idle");
-  async function check() {
-    setState("checking");
-    try {
-      const u = await checkUpdate();
-      if (u) {
-        setState("idle");
-        notifyUpdate(u);
-      } else setState("latest");
-    } catch (e) {
-      setState("idle");
-      toast.error(errorMessage(e));
-    }
-  }
+  const [prefs, setPrefs] = usePrefs();
+  const { available, checking, installing, upToDate } = useUpdateState();
   return (
-    <section className="card flex items-center justify-between gap-4 p-4">
-      <div className="text-sm">
-        Dasharr {versionLabel()}
-        {state === "latest" && <span className="ml-3 text-muted">{t.updates.upToDate}</span>}
+    <section className="card divide-y divide-border" aria-label={t.updates.title}>
+      <div className="flex items-center justify-between gap-4 p-4">
+        <div className="text-sm">
+          Dasharr {versionLabel()}
+          {upToDate && <span className="ml-3 text-muted">{t.updates.upToDate}</span>}
+        </div>
+        <button className="btn-outline" onClick={() => void runUpdateCheck({ manual: true })} disabled={checking || installing}>
+          {checking ? t.updates.checking : t.updates.check}
+        </button>
       </div>
-      <button className="btn-outline" onClick={check} disabled={state === "checking"}>
-        {state === "checking" ? t.updates.checking : t.updates.check}
-      </button>
+      {available && (
+        <div className="flex flex-col gap-3 p-4">
+          <div className="flex items-center justify-between gap-4">
+            <span className="text-sm font-medium text-accent">{t.updates.newVersion(available.version)}</span>
+            <button className="btn-primary" onClick={() => void startUpdate(available)} disabled={installing}>
+              {installing ? t.updates.installing(available.version) : t.updates.installNow}
+            </button>
+          </div>
+          {available.notes.trim() && (
+            <details className="text-sm">
+              <summary className="cursor-pointer text-muted hover:text-fg">{t.updates.notes}</summary>
+              <pre className="mt-2 max-h-64 overflow-y-auto whitespace-pre-wrap font-sans text-muted">{available.notes.trim()}</pre>
+            </details>
+          )}
+        </div>
+      )}
+      <div className="flex items-center justify-between gap-4 p-4">
+        <div className="flex flex-col gap-1">
+          <span className="text-sm">{t.updates.auto}</span>
+          <span className="text-xs text-muted">{t.updates.autoHint}</span>
+        </div>
+        <Toggle label={t.updates.auto} checked={prefs.autoUpdate} onChange={(v) => setPrefs({ autoUpdate: v })} />
+      </div>
     </section>
   );
 }
@@ -363,6 +418,9 @@ const tabs: { id: string; label: string; icon: LucideIcon; wide?: boolean; rende
       <div className="flex flex-col gap-8">
         <Section title={t.settings.seriesDefaults} hint={t.settings.seriesDefaultsHint}>
           <SeriesDefaults />
+        </Section>
+        <Section title={t.settings.movieDefaults} hint={t.settings.movieDefaultsHint}>
+          <MovieDefaults />
         </Section>
         <Section title={t.settings.ratings} hint={t.settings.ratingsHint}>
           <RatingsSettings />
@@ -413,22 +471,7 @@ export default function SettingsPage() {
   if (!current) return <Navigate to="/ajustes" replace />;
   return (
     <Page title={t.nav.settings}>
-      <nav className="-mt-2 flex flex-wrap gap-1 border-b border-border" aria-label={t.settings.tabs.label}>
-        {tabs.map(({ id, label, icon: Icon }) => (
-          <Link
-            key={id}
-            to={id === tabs[0].id ? "/ajustes" : `/ajustes/${id}`}
-            aria-current={id === current.id ? "page" : undefined}
-            className={cn(
-              "-mb-px flex items-center gap-2 border-b-2 px-3 py-2 text-sm font-medium transition-colors",
-              id === current.id ? "border-accent text-fg" : "border-transparent text-muted hover:text-fg",
-            )}
-          >
-            <Icon className="h-4 w-4" aria-hidden />
-            {label}
-          </Link>
-        ))}
-      </nav>
+      <TabNav tabs={tabs} current={current.id} base="/ajustes" label={t.settings.tabs.label} />
       <div className={cn("flex flex-col gap-4", !current.wide && "max-w-4xl")}>{current.render()}</div>
     </Page>
   );

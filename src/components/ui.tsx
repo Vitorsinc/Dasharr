@@ -1,5 +1,5 @@
-import type { ReactNode } from "react";
-import { Loader2 } from "lucide-react";
+import { useEffect, useState, type InputHTMLAttributes, type ReactNode } from "react";
+import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { t } from "@/i18n/es";
 
@@ -75,6 +75,33 @@ export function Segmented<T extends string>({
   );
 }
 
+/** Anterior / siguiente para las listas paginadas del *arr. No se ve si todo cabe en una página. */
+export function Pager({
+  page,
+  pageSize,
+  total,
+  onPage,
+}: {
+  page: number;
+  pageSize: number;
+  total: number;
+  onPage: (p: number) => void;
+}) {
+  const pages = Math.max(1, Math.ceil(total / pageSize));
+  if (pages <= 1) return null;
+  return (
+    <nav className="flex items-center justify-end gap-2 text-sm" aria-label={t.common.pagination}>
+      <button className="btn-outline px-2.5 py-1.5" disabled={page <= 1} onClick={() => onPage(page - 1)} aria-label={t.common.prevPage}>
+        <ChevronLeft className="h-4 w-4" aria-hidden />
+      </button>
+      <span className="tabular-nums text-muted">{t.common.pageOf(page, pages)}</span>
+      <button className="btn-outline px-2.5 py-1.5" disabled={page >= pages} onClick={() => onPage(page + 1)} aria-label={t.common.nextPage}>
+        <ChevronRight className="h-4 w-4" aria-hidden />
+      </button>
+    </nav>
+  );
+}
+
 export function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {
   return (
     <button
@@ -95,5 +122,32 @@ export function Toggle({ checked, onChange, label }: { checked: boolean; onChang
         )}
       />
     </button>
+  );
+}
+
+/**
+ * Campo numérico entero que deja escribir libremente (vacío, «-» al empezar un negativo) y solo avisa
+ * con números válidos.
+ */
+export function NumberInput({
+  value,
+  onValue,
+  ...rest
+}: { value: number; onValue: (n: number) => void } & Omit<InputHTMLAttributes<HTMLInputElement>, "value" | "onChange" | "type">) {
+  const [text, setText] = useState(String(value));
+  useEffect(() => {
+    setText((cur) => (cur.trim() !== "" && Number(cur) === value ? cur : String(value)));
+  }, [value]);
+  return (
+    <input
+      {...rest}
+      type="number"
+      value={text}
+      onChange={(e) => {
+        setText(e.target.value);
+        const n = Number(e.target.value);
+        if (e.target.value.trim() !== "" && Number.isFinite(n)) onValue(Math.round(n));
+      }}
+    />
   );
 }

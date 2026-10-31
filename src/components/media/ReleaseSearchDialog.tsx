@@ -5,11 +5,13 @@ import { toast } from "sonner";
 import { ConfirmDialog, Dialog } from "@/components/Dialog";
 import { ErrorPanel } from "@/components/ErrorPanel";
 import { Empty, Spinner } from "@/components/ui";
+import { usePersistedSort } from "@/hooks/usePersistedSort";
 import { SubtitleBadge } from "./SubtitleBadge";
 import {
   filterReleases,
   getReleases,
   grabRelease,
+  isReleaseSort,
   releaseSortDefaultDir,
   sortReleases,
   type ArrService,
@@ -23,6 +25,8 @@ import { errorMessage } from "@/lib/errors";
 import { isApiError } from "@/lib/types";
 import { formatBytes } from "@/lib/format";
 import { cn } from "@/lib/cn";
+
+const DEFAULT_RELEASE_SORT: ReleaseSort = { key: "default", dir: "asc" };
 
 function age(r: Release) {
   const h = r.ageHours ?? (r.age != null ? r.age * 24 : undefined);
@@ -80,7 +84,7 @@ export function ReleaseSearchDialog({
     staleTime: 60_000,
     retry: false,
   });
-  const [sort, setSort] = useState<ReleaseSort>({ key: "default", dir: "asc" });
+  const [sort, setSort] = usePersistedSort<ReleaseSort>(`releases.${service}`, DEFAULT_RELEASE_SORT, isReleaseSort);
   const [filter, setFilter] = useState("");
   const [showRejected, setShowRejected] = useState(true);
   const [grabbing, setGrabbing] = useState<string | null>(null);
@@ -134,7 +138,7 @@ export function ReleaseSearchDialog({
               </label>
               {list.length !== releases.data.length && <span>{t.releases.filtered(list.length)}</span>}
               {sort.key !== "default" && (
-                <button type="button" className="btn-ghost px-2 py-1 text-xs" onClick={() => setSort({ key: "default", dir: "asc" })}>
+                <button type="button" className="btn-ghost px-2 py-1 text-xs" onClick={() => setSort(DEFAULT_RELEASE_SORT)}>
                   <X className="h-3.5 w-3.5" /> {t.releases.sortReset}
                 </button>
               )}

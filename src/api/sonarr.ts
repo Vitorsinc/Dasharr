@@ -1,5 +1,5 @@
 import { apiRequest } from "@/lib/tauri";
-import { arrCommon, type ArrImage, type ArrRating, type HistoryRecord, type WantedKind } from "./arr";
+import { arrCommon, type ArrImage, type ArrRating, type BulkEdit, type DeleteOptions, type HistoryRecord, type WantedKind } from "./arr";
 
 export interface SeasonStats {
   episodeFileCount: number;
@@ -31,6 +31,7 @@ export interface Series {
   images?: ArrImage[];
   seasons?: Season[];
   genres?: string[];
+  tags?: number[];
   ratings?: ArrRating;
   seriesType?: SeriesType;
   originalLanguage?: { id: number; name: string };
@@ -129,16 +130,28 @@ export const sonarr = {
     }),
   setMonitored: (series: Series, monitored: boolean) =>
     apiRequest<Series>("sonarr", { method: "PUT", path: `/api/v3/series/${series.id}`, json: { ...series, monitored } }),
+  setTags: (series: Series, tags: number[]) =>
+    apiRequest<Series>("sonarr", { method: "PUT", path: `/api/v3/series/${series.id}`, json: { ...series, tags } }),
   setSeriesType: (series: Series, seriesType: SeriesType) =>
     apiRequest<Series>("sonarr", { method: "PUT", path: `/api/v3/series/${series.id}`, json: { ...series, seriesType } }),
   setEpisodesMonitored: (episodeIds: number[], monitored: boolean) =>
     apiRequest<unknown>("sonarr", { method: "PUT", path: "/api/v3/episode/monitor", json: { episodeIds, monitored } }),
-  deleteSeries: (id: number, deleteFiles: boolean) =>
+  deleteSeries: (id: number, o: DeleteOptions) =>
     apiRequest<unknown>("sonarr", {
       method: "DELETE",
       path: `/api/v3/series/${id}`,
-      query: { deleteFiles, addImportListExclusion: false },
+      query: { deleteFiles: o.deleteFiles, addImportListExclusion: o.addExclusion },
     }),
+  editSeries: (seriesIds: number[], e: BulkEdit) =>
+    apiRequest<unknown>("sonarr", { method: "PUT", path: "/api/v3/series/editor", json: { seriesIds, ...e } }),
+  deleteSeriesBulk: (seriesIds: number[], o: DeleteOptions) =>
+    seriesIds.length === 0
+      ? Promise.reject(new Error("No hay series seleccionadas"))
+      : apiRequest<unknown>("sonarr", {
+          method: "DELETE",
+          path: "/api/v3/series/editor",
+          json: { seriesIds, deleteFiles: o.deleteFiles, addImportListExclusion: o.addExclusion },
+        }),
   updateSeries: async (series: Series, e: SeriesEdit) => {
     await apiRequest<Series>("sonarr", {
       method: "PUT",

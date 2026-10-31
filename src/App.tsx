@@ -14,6 +14,8 @@ import HistoryPage from "@/pages/History";
 import PlexPage from "@/pages/Plex";
 import TrackersPage from "@/pages/Trackers";
 import IndexersPage from "@/pages/Indexers";
+import ActivityPage from "@/pages/Activity";
+import ManagePage from "@/pages/Manage";
 
 export const routes: RouteObject[] = [
   {
@@ -33,7 +35,11 @@ export const routes: RouteObject[] = [
           { path: "/historial", element: <HistoryPage /> },
           { path: "/plex", element: <PlexPage /> },
           { path: "/trackers", element: <TrackersPage /> },
-          { path: "/indexadores", element: <IndexersPage /> },
+          { path: "/indexadores/:tab?", element: <IndexersPage /> },
+          { path: "/actividad/radarr/:tab?", element: <ActivityPage key="radarr" service="radarr" /> },
+          { path: "/actividad/sonarr/:tab?", element: <ActivityPage key="sonarr" service="sonarr" /> },
+          { path: "/gestion/radarr/:tab?", element: <ManagePage key="radarr" service="radarr" /> },
+          { path: "/gestion/sonarr/:tab?", element: <ManagePage key="sonarr" service="sonarr" /> },
           { path: "/registro", element: <Navigate to="/ajustes/registro" replace /> },
           { path: "/ajustes/:tab?", element: <SettingsPage /> },
         ],

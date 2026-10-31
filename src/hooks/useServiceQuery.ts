@@ -1,4 +1,4 @@
-import { useQuery, type Query, type UseQueryResult } from "@tanstack/react-query";
+import { keepPreviousData, useQuery, type Query, type UseQueryResult } from "@tanstack/react-query";
 import type { ServiceKind } from "@/lib/types";
 import { useIsConfigured } from "./useSettings";
 
@@ -14,7 +14,13 @@ export function useServiceQuery<T>(
   service: ServiceKind,
   key: unknown[],
   fn: () => Promise<T>,
-  opts: { refetchInterval?: number | ((q: Query<T, Error, T, unknown[]>) => number | false); enabled?: boolean; staleTime?: number } = {},
+  opts: {
+    refetchInterval?: number | ((q: Query<T, Error, T, unknown[]>) => number | false);
+    enabled?: boolean;
+    staleTime?: number;
+    /** Listas paginadas: sigue enseñando la página anterior mientras llega la nueva. */
+    keepPrevious?: boolean;
+  } = {},
 ): UseQueryResult<T> & { configured: boolean | undefined } {
   const configured = useIsConfigured(service);
   const q = useQuery({
@@ -23,6 +29,7 @@ export function useServiceQuery<T>(
     enabled: configured === true && (opts.enabled ?? true),
     refetchInterval: opts.refetchInterval,
     staleTime: opts.staleTime,
+    placeholderData: opts.keepPrevious ? keepPreviousData : undefined,
   });
   return Object.assign(q, { configured });
 }

@@ -2,3 +2,8 @@
 export function versionLabel(version = __APP_VERSION__, build = __APP_BUILD__) {
   return build ? `v${version} · dev ${build}` : `v${version}`;
 }
+
+/** Compilación de prueba (no publicada como versión): no se sustituye sola por la versión publicada. */
+export function isDevBuild(build = __APP_BUILD__) {
+  return build !== "";
+}

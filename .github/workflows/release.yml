@@ -19,6 +19,8 @@ jobs:
     runs-on: windows-latest
     env:
       TAG: ${{ github.event_name == 'workflow_dispatch' && format('v{0}', inputs.version) || github.ref_name }}
+      # Marca la compilación como versión publicada aunque se lance a mano (sin etiqueta): sin "· dev abc1234".
+      DASHARR_RELEASE: "1"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
