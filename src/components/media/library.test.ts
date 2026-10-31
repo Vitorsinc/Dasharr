@@ -29,3 +29,9 @@ test("ordenar por nota: de mayor a menor y sin nota al final", () => {
   expect(ids(filterSort(rated, { query: "", filter: "all", sort: "rating:imdb" }))).toEqual([2, 1, 3]);
   expect(ids(filterSort(rated, { query: "", filter: "all", sort: "rating:filmaffinity" }))).toEqual([2, 3, 1]);
 });
+
+test("filtro por etiqueta", () => {
+  const tagged = items.map((i) => ({ ...i, tags: i.id === 3 ? [9] : i.id === 1 ? [9, 4] : [] }));
+  expect(ids(filterSort(tagged, { query: "", filter: "all", sort: "title", tag: 9 }))).toEqual([3, 1]);
+  expect(ids(filterSort(tagged, { query: "", filter: "all", sort: "title", tag: null }))).toEqual([2, 3, 1]);
+});

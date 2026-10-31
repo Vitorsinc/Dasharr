@@ -18,6 +18,7 @@ import { seriesItem } from "@/api/filmaffinity";
 import { episodeStatus, sonarr, type Episode, type EpisodeFile, type MonitorChange, type Series, type SeriesType } from "@/api/sonarr";
 import { ArrHistory } from "@/components/media/ArrHistory";
 import { EditMediaDialog } from "@/components/media/EditMediaDialog";
+import { MediaTags } from "@/components/media/TagPicker";
 import { RenameDialog } from "./RenameDialog";
 import { useEpisodeFiles, useEpisodes, useSonarrMeta } from "@/hooks/useArr";
 import { useMediaHistory } from "@/hooks/useTracearr";
@@ -205,6 +206,7 @@ export function SeriesDetail({ series, onClose }: { series: Series | null; onClo
               </label>
               {series.overview && <p className="line-clamp-5 text-sm leading-relaxed text-muted">{series.overview}</p>}
               <PlexBadge kind="show" ids={{ tvdbId: series.tvdbId, tmdbId: series.tmdbId, imdbId: series.imdbId }} />
+              <MediaTags service="sonarr" value={series.tags ?? []} onChange={(tags) => run(() => sonarr.setTags(series, tags), t.manage.tags.saved)} />
               <div className="flex flex-wrap gap-x-8 gap-y-3">
                 <FaInfo item={seriesItem(series)} />
                 <ArrRatings ratings={{ tvdb: series.ratings }} />

@@ -17,6 +17,8 @@ También se puede lanzar a mano en Actions → Release → «Run workflow» indi
 - Las portadas de Películas, Series y Anime muestran las notas activadas en Ajustes → Notas (FilmAffinity, IMDb, TMDb, Rotten Tomatoes, Metacritic, Trakt, TVDB) en un panel lateral, una por fila y alineadas.
 - Ordenar la biblioteca por cualquiera de esas notas, de mayor a menor; lo que aún no tiene nota va al final.
 - Radarr y Sonarr: nueva sección «Actividad» en el menú de cada uno con la lista de releases bloqueadas (blocklist): quitar una, varias seleccionadas o vaciarla entera, siempre con confirmación. En el historial de descargas de cada ficha, «Marcar como fallida» en las descargas enviadas para que la bloquee y busque otra.
+- Radarr y Sonarr: nueva sección «Gestión» con los ajustes de biblioteca. Perfiles de calidad: crear (desde la plantilla del *arr), editar nombre, calidades permitidas y su orden de preferencia, si se mejora y hasta qué calidad, puntuación mínima y de corte, y la puntuación de cada formato personalizado; borrar. Formatos personalizados: lista con en cuántos perfiles puntúan, importar o editar como JSON (el de las guías TRaSH o el exportado de la web) y borrar. Etiquetas: crear, renombrar, borrar y ver dónde se usan. Carpetas raíz: añadir y quitar, con espacio libre y carpetas sin importar. Perfiles de retraso: crear, editar (protocolos, retrasos, preferido, etiquetas) y borrar.
+- Etiquetas en las fichas de películas y series (se activan y desactivan con un clic) y filtro por etiqueta en la biblioteca.
 
 ### Corregido
 - Las versiones publicadas a mano desde Actions ya no se muestran como compilación de prueba («· dev abc1234»).

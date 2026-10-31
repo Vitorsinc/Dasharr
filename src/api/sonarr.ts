@@ -31,6 +31,7 @@ export interface Series {
   images?: ArrImage[];
   seasons?: Season[];
   genres?: string[];
+  tags?: number[];
   ratings?: ArrRating;
   seriesType?: SeriesType;
   originalLanguage?: { id: number; name: string };
@@ -129,6 +130,8 @@ export const sonarr = {
     }),
   setMonitored: (series: Series, monitored: boolean) =>
     apiRequest<Series>("sonarr", { method: "PUT", path: `/api/v3/series/${series.id}`, json: { ...series, monitored } }),
+  setTags: (series: Series, tags: number[]) =>
+    apiRequest<Series>("sonarr", { method: "PUT", path: `/api/v3/series/${series.id}`, json: { ...series, tags } }),
   setSeriesType: (series: Series, seriesType: SeriesType) =>
     apiRequest<Series>("sonarr", { method: "PUT", path: `/api/v3/series/${series.id}`, json: { ...series, seriesType } }),
   setEpisodesMonitored: (episodeIds: number[], monitored: boolean) =>

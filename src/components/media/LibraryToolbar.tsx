@@ -2,6 +2,7 @@ import { Search } from "lucide-react";
 import { Segmented } from "@/components/ui";
 import { t } from "@/i18n/es";
 import type { RatingSource } from "@/hooks/usePrefs";
+import type { Tag } from "@/api/arrManage";
 import type { LibFilter, LibSort } from "./library";
 import { ratingName } from "./RatingBadges";
 
@@ -14,6 +15,9 @@ export function LibraryToolbar({
   onSort,
   series,
   ratingSources = [],
+  tags = [],
+  tag = null,
+  onTag,
 }: {
   query: string;
   onQuery: (v: string) => void;
@@ -24,6 +28,10 @@ export function LibraryToolbar({
   series?: boolean;
   /** Notas visibles por las que se puede ordenar. */
   ratingSources?: RatingSource[];
+  /** Etiquetas del *arr para filtrar; sin etiquetas no se ve el filtro. */
+  tags?: Tag[];
+  tag?: number | null;
+  onTag?: (id: number | null) => void;
 }) {
   return (
     <div className="flex flex-wrap items-center gap-3">
@@ -48,6 +56,23 @@ export function LibraryToolbar({
           { value: "monitored", label: t.library.monitored },
         ]}
       />
+      {tags.length > 0 && onTag && (
+        <select
+          className="input w-auto"
+          aria-label={t.manage.tags.filter}
+          value={tag ?? ""}
+          onChange={(e) => onTag(e.target.value ? Number(e.target.value) : null)}
+        >
+          <option value="">{t.manage.tags.allTags}</option>
+          {[...tags]
+            .sort((a, b) => a.label.localeCompare(b.label))
+            .map((x) => (
+              <option key={x.id} value={x.id}>
+                {x.label}
+              </option>
+            ))}
+        </select>
+      )}
       <label className="ml-auto flex items-center gap-2 text-sm text-muted">
         {t.library.sortBy}
         <select className="input w-auto" value={sort} onChange={(e) => onSort(e.target.value as LibSort)}>

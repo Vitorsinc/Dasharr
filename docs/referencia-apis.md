@@ -417,3 +417,8 @@ Comprobado en el código de Radarr, Sonarr, Prowlarr, Bazarr y qBittorrent (deve
 |---|---|
 | Blocklist | `GET /api/v3/blocklist?page&pageSize&sortKey=date&sortDirection=descending` → `{ totalRecords, records }` (Radarr trae `movie`, Sonarr `series`); `DELETE /api/v3/blocklist/{id}`; `DELETE /api/v3/blocklist/bulk` con `{ ids }`; vaciar = comando `ClearBlocklist` |
 | Marcar como fallida | `POST /api/v3/history/failed/{id}` (id de una línea `grabbed` del historial) |
+| Etiquetas | `GET/POST /api/v3/tag`, `PUT/DELETE /api/v3/tag/{id}`, uso en `GET /api/v3/tag/detail` (`movieIds`/`seriesIds`, `delayProfileIds`…). Asignar: `PUT /movie|series/{id}` con `tags` |
+| Perfiles de calidad | `GET /api/v3/qualityprofile`, plantilla `GET /qualityprofile/schema`, `POST`, `PUT/DELETE /qualityprofile/{id}`. `items` va de peor a mejor; `cutoff` es el id de la calidad o del grupo (debe estar permitido); `formatItems[{ format, name, score }]`, `minFormatScore`, `cutoffFormatScore` |
+| Formatos personalizados | `GET/POST /api/v3/customformat`, `PUT/DELETE /customformat/{id}`. La API quiere `specifications[].fields` como lista `[{ name, value }]`; las guías TRaSH lo dan como objeto y Dasharr lo convierte |
+| Carpetas raíz | `POST /api/v3/rootfolder { path }`, `DELETE /rootfolder/{id}` (no borra nada del disco) |
+| Perfiles de retraso | `GET/POST /api/v3/delayprofile`, `PUT/DELETE /delayprofile/{id}`; retrasos en minutos; el id 1 es el de por defecto (sin etiquetas, no se borra) |

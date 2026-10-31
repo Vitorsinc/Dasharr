@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useEffect, useState, type InputHTMLAttributes, type ReactNode } from "react";
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { t } from "@/i18n/es";
@@ -122,5 +122,32 @@ export function Toggle({ checked, onChange, label }: { checked: boolean; onChang
         )}
       />
     </button>
+  );
+}
+
+/**
+ * Campo numérico entero que deja escribir libremente (vacío, «-» al empezar un negativo) y solo avisa
+ * con números válidos.
+ */
+export function NumberInput({
+  value,
+  onValue,
+  ...rest
+}: { value: number; onValue: (n: number) => void } & Omit<InputHTMLAttributes<HTMLInputElement>, "value" | "onChange" | "type">) {
+  const [text, setText] = useState(String(value));
+  useEffect(() => {
+    setText((cur) => (cur.trim() !== "" && Number(cur) === value ? cur : String(value)));
+  }, [value]);
+  return (
+    <input
+      {...rest}
+      type="number"
+      value={text}
+      onChange={(e) => {
+        setText(e.target.value);
+        const n = Number(e.target.value);
+        if (e.target.value.trim() !== "" && Number.isFinite(n)) onValue(Math.round(n));
+      }}
+    />
   );
 }

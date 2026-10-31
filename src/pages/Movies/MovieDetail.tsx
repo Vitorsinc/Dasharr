@@ -10,6 +10,7 @@ import { Poster } from "@/components/media/PosterCard";
 import { ReleaseSearchDialog } from "@/components/media/ReleaseSearchDialog";
 import { ArrHistory } from "@/components/media/ArrHistory";
 import { EditMediaDialog } from "@/components/media/EditMediaDialog";
+import { MediaTags } from "@/components/media/TagPicker";
 import { useRadarrMeta } from "@/hooks/useArr";
 import { useMovieReleases } from "@/hooks/useMovieReleases";
 import { RELEASE_KINDS } from "@/lib/releases";
@@ -93,6 +94,7 @@ export function MovieDetail({ movie, onClose }: { movie: Movie | null; onClose: 
                 ))}
               </div>
             ) : null}
+            <MediaTags service="radarr" value={movie.tags ?? []} onChange={(tags) => run(() => radarr.setTags(movie, tags), t.manage.tags.saved)} />
             <MovieWatchHistory refs={movieRefs(movie)} />
             <PlexBadge kind="movie" ids={{ tmdbId: movie.tmdbId, imdbId: movie.imdbId }} />
             <ArrHistory service="radarr" id={movie.id} load={() => radarr.getHistory(movie.id)} />

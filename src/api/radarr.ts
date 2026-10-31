@@ -25,6 +25,7 @@ export interface Movie {
   digitalRelease?: string;
   physicalRelease?: string;
   images?: ArrImage[];
+  tags?: number[];
   movieFile?: { relativePath?: string; size?: number; quality?: { quality?: { name?: string } } };
   ratings?: Partial<Record<"imdb" | "tmdb" | "metacritic" | "rottenTomatoes" | "trakt", ArrRating>>;
 }
@@ -68,6 +69,8 @@ export const radarr = {
     }),
   setMonitored: (movie: Movie, monitored: boolean) =>
     apiRequest<Movie>("radarr", { method: "PUT", path: `/api/v3/movie/${movie.id}`, json: { ...movie, monitored } }),
+  setTags: (movie: Movie, tags: number[]) =>
+    apiRequest<Movie>("radarr", { method: "PUT", path: `/api/v3/movie/${movie.id}`, json: { ...movie, tags } }),
   deleteMovie: (id: number, deleteFiles: boolean) =>
     apiRequest<unknown>("radarr", { method: "DELETE", path: `/api/v3/movie/${id}`, query: { deleteFiles, addImportExclusion: false } }),
   updateMovie: (movie: Movie, e: MovieEdit) =>

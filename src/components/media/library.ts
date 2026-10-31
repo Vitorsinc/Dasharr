@@ -14,15 +14,20 @@ export interface LibItem {
   downloaded: boolean;
   missing: boolean;
   scores?: Scores;
+  tags?: number[];
 }
 
 const collator = new Intl.Collator("es", { sensitivity: "base", numeric: true });
 const normalize = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
-export function filterSort<T extends LibItem>(items: T[], o: { query: string; filter: LibFilter; sort: LibSort }): T[] {
+export function filterSort<T extends LibItem>(
+  items: T[],
+  o: { query: string; filter: LibFilter; sort: LibSort; /** Solo las que llevan esta etiqueta. */ tag?: number | null },
+): T[] {
   const q = normalize(o.query.trim());
   const out = items.filter((i) => {
     if (q && !normalize(i.title).includes(q)) return false;
+    if (o.tag != null && !i.tags?.includes(o.tag)) return false;
     switch (o.filter) {
       case "downloaded":
         return i.downloaded;

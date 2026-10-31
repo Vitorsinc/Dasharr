@@ -1,5 +1,5 @@
 import { apiRequest, fetchTorrent } from "@/lib/tauri";
-import { isApiError } from "@/lib/types";
+import { validationMessage } from "@/lib/errors";
 import type { HealthItem } from "./arr";
 import { qbit } from "./qbit";
 
@@ -21,15 +21,8 @@ export interface IndexerStatus {
   initialFailure?: string;
 }
 
-/**
- * Texto de una prueba fallida: Prowlarr responde 400 con la lista de fallos de validación
- * (`[{ "errorMessage": "…" }]`). El cuerpo puede llegar recortado, así que se buscan los mensajes con una expresión.
- */
-export function testFailure(e: unknown): string | undefined {
-  if (!isApiError(e) || e.kind !== "Http" || !e.message) return undefined;
-  const found = [...e.message.matchAll(/"errorMessage"\s*:\s*"((?:[^"\\]|\\.)*)"/g)].map((m) => m[1].replace(/\\"/g, '"'));
-  return found.length ? [...new Set(found)].join(" · ") : undefined;
-}
+/** Texto de una prueba fallida: Prowlarr responde 400 con la lista de fallos de validación. */
+export const testFailure = validationMessage;
 
 export interface SearchResult {
   guid: string;
