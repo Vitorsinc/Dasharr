@@ -250,6 +250,18 @@ export default function SeriesPage({ kind = "series" }: { kind?: SeriesKind }) {
           await qc.invalidateQueries({ queryKey: ["sonarr"] });
           if (o.searchMode === "manual") setSelectedId(added.id);
         }}
+        onQuickAdd={async (s, o) => {
+          const type: SeriesType = kind === "anime" || looksLikeAnime(s) ? "anime" : s.seriesType === "daily" ? "daily" : "standard";
+          const d = defaultsFor(type === "anime" ? "anime" : "series", meta.roots.data ?? [], meta.profiles.data ?? [], seriesDefaults[type === "anime" ? "anime" : "series"]);
+          await sonarr.addSeries(s, {
+            ...o,
+            qualityProfileId: d.qualityProfileId ?? o.qualityProfileId,
+            rootFolderPath: d.rootFolderPath ?? o.rootFolderPath,
+            monitor,
+            seriesType: type,
+          });
+          await qc.invalidateQueries({ queryKey: ["sonarr"] });
+        }}
       />
     </Page>
   );

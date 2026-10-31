@@ -65,3 +65,16 @@ export function defaultsFor(
   const profile = profiles.find((p) => p.id === saved?.qualityProfileId) ?? profiles.find((p) => want(p.name)) ?? profiles[0];
   return { rootFolderPath: root?.path, qualityProfileId: profile?.id };
 }
+
+/** Carpeta y perfil de Radarr para añadir películas: lo guardado en Ajustes o, si no está, el primero disponible. */
+export function movieDefaultsFor(
+  roots: RootFolder[],
+  profiles: QualityProfile[],
+  saved?: { rootFolderPath?: string; qualityProfileId?: number },
+) {
+  const rs = Array.isArray(roots) ? roots : [];
+  const ps = Array.isArray(profiles) ? profiles : [];
+  const root = rs.find((r) => r.path === saved?.rootFolderPath) ?? rs[0];
+  const profile = ps.find((p) => p.id === saved?.qualityProfileId) ?? ps[0];
+  return { rootFolderPath: root?.path, qualityProfileId: profile?.id };
+}
