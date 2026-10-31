@@ -350,6 +350,20 @@ export const es = {
     title: (service: string) => `Actividad de ${service}`,
     tabsLabel: "Secciones de actividad",
     blocklist: "Bloqueadas",
+    history: "Historial",
+  },
+  globalHistory: {
+    hint: "Todo lo que Radarr/Sonarr ha enviado a descargar, importado, fallado, borrado o renombrado.",
+    filter: "Tipo de evento",
+    filters: {
+      all: "Todo",
+      grabbed: "Enviadas",
+      imported: "Importadas",
+      failed: "Fallidas",
+      deleted: "Borradas",
+      renamed: "Renombradas",
+    } as Record<string, string>,
+    empty: "No hay nada en el historial con este filtro.",
   },
   blocklist: {
     hint: "Releases que Radarr/Sonarr no volverá a descargar (por fallar o porque las bloqueaste al quitarlas de la cola). Quítalas de aquí para permitirlas otra vez.",

@@ -12,7 +12,7 @@ import { cn } from "@/lib/cn";
 import { errorMessage } from "@/lib/errors";
 import { formatDateTime } from "@/lib/format";
 
-const tone: Record<string, string> = {
+export const historyTone: Record<string, string> = {
   grabbed: "text-accent",
   downloadFolderImported: "text-success",
   seriesFolderImported: "text-success",
@@ -116,7 +116,7 @@ export function ArrHistory({ service, id, load }: { service: ArrService; id: num
                 return (
                   <li key={r.id} className="px-4 py-2 text-sm">
                     <div className="flex items-baseline gap-3">
-                      <span className={cn("w-36 shrink-0 font-medium", tone[r.eventType])}>{historyEventLabel(r)}</span>
+                      <span className={cn("w-36 shrink-0 font-medium", historyTone[r.eventType])}>{historyEventLabel(r)}</span>
                       {r.episode && (
                         <span className="shrink-0 tabular-nums text-muted">
                           {r.episode.seasonNumber}x{pad(r.episode.episodeNumber)}

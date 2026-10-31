@@ -24,6 +24,7 @@ También se puede lanzar a mano en Actions → Release → «Run workflow» indi
 - Al borrar una película o serie (en su ficha o varias a la vez) se puede marcar «Añadir a las exclusiones» para que las listas no la vuelvan a añadir.
 - Fichas de película: botones para actualizar la información, reescanear la carpeta y renombrar el archivo (con vista previa), y borrar solo el archivo (con confirmación), como ya tenían las series.
 - Indexadores (Prowlarr) en pestañas. Indexadores: añadir uno nuevo eligiéndolo de la lista de Prowlarr y rellenando su formulario (los campos que pide cada indexador, con opciones avanzadas aparte), probarlo antes de guardar, editarlo y borrarlo; si Prowlarr lo rechaza se ve el motivo. Estadísticas: búsquedas, RSS, descargas, fallos y tiempo de respuesta de cada indexador, con totales. Historial: búsquedas, descargas, RSS e inicios de sesión, filtrable y por páginas. Aplicaciones: a qué Radarr/Sonarr manda los indexadores y botón para sincronizarlos ya.
+- Radarr y Sonarr → Actividad → Historial: el historial de descargas de todo el servicio (enviadas, importadas, fallidas, borradas, renombradas), por páginas y filtrable por tipo, con «Marcar como fallida» en las enviadas. Es distinto del Historial de Plex/Tracearr, que sigue mostrando lo que se ha visto.
 
 ### Corregido
 - Las versiones publicadas a mano desde Actions ya no se muestran como compilación de prueba («· dev abc1234»).

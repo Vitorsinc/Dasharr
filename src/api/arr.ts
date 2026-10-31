@@ -107,6 +107,9 @@ export interface HistoryRecord {
   seriesId?: number;
   episodeId?: number;
   episode?: { seasonNumber: number; episodeNumber: number; title: string };
+  /** Solo en el historial global, con `includeMovie` / `includeSeries`. */
+  movie?: { id: number; title: string; year?: number };
+  series?: { id: number; title: string };
 }
 
 /** Cambios en lote (`PUT /movie/editor`, `/series/editor`): solo se aplica lo que viene definido. */
