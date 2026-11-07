@@ -12,6 +12,8 @@ También se puede lanzar a mano en Actions → Release → «Run workflow» indi
 
 ## [Sin publicar]
 
+## [0.3.1] - 2026-11-07
+
 ### Añadido
 - Ajustes → Contenido → «Lo que has visto»: eliges cuál de los usuarios de Plex eres tú.
 - Películas, Series y Anime marcan lo que ya has visto (✓ en el póster) y lo que has empezado (barra de progreso), con un filtro «Ya vistas / Empezadas / Sin ver».
