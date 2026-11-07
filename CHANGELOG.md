@@ -12,6 +12,14 @@ También se puede lanzar a mano en Actions → Release → «Run workflow» indi
 
 ## [Sin publicar]
 
+### Añadido
+- Seerr (sucesor de Overseerr/Jellyseerr) como servicio nuevo, con dirección local/externa y API key en Ajustes.
+- Seerr → Solicitudes: pendientes, aprobadas, en proceso, disponibles y fallidas, con aprobar, rechazar, reintentar y borrar; filtro por tipo y por usuario.
+- Seerr → Descubrir: buscar y explorar tendencias, populares y estrenos, y pedir películas o temporadas sueltas, en 4K, con perfil, carpeta y en nombre de otro usuario.
+- Incidencias de Seerr (resolver, reabrir, comentar, borrar) y usuarios con sus cupos.
+- Inicio enseña las solicitudes pendientes de Seerr para aprobarlas o rechazarlas de un vistazo.
+- La ficha de cada película, serie o anime dice quién la pidió en Seerr, cuándo y qué temporadas.
+
 ## [0.2.1] - 2026-10-31
 
 ### Cambiado

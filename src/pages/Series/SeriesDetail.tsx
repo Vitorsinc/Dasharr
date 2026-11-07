@@ -14,6 +14,7 @@ import { MonitorIcon, MonitorToggle } from "@/components/media/MonitorToggle";
 import { Loading, ProgressBar } from "@/components/ui";
 import { posterUrl, type ReleaseQuery } from "@/api/arr";
 import { PlexBadge } from "@/components/plex/PlexBadge";
+import { RequestedBy } from "@/components/seerr/RequestedBy";
 import { seriesItem } from "@/api/filmaffinity";
 import { episodeStatus, sonarr, type Episode, type EpisodeFile, type MonitorChange, type Series, type SeriesType } from "@/api/sonarr";
 import { ArrHistory } from "@/components/media/ArrHistory";
@@ -207,6 +208,7 @@ export function SeriesDetail({ series, onClose }: { series: Series | null; onClo
               </label>
               {series.overview && <p className="line-clamp-5 text-sm leading-relaxed text-muted">{series.overview}</p>}
               <PlexBadge kind="show" ids={{ tvdbId: series.tvdbId, tmdbId: series.tmdbId, imdbId: series.imdbId }} />
+              <RequestedBy type="tv" tmdbId={series.tmdbId} />
               <MediaTags service="sonarr" value={series.tags ?? []} onChange={(tags) => run(() => sonarr.setTags(series, tags), t.manage.tags.saved)} />
               <div className="flex flex-wrap gap-x-8 gap-y-3">
                 <FaInfo item={seriesItem(series)} />

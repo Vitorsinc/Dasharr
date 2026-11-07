@@ -11,10 +11,11 @@ pub enum ServiceKind {
     Qbittorrent,
     Tracearr,
     Plex,
+    Seerr,
 }
 
 impl ServiceKind {
-    pub const ALL: [ServiceKind; 7] = [
+    pub const ALL: [ServiceKind; 8] = [
         ServiceKind::Radarr,
         ServiceKind::Sonarr,
         ServiceKind::Prowlarr,
@@ -22,6 +23,7 @@ impl ServiceKind {
         ServiceKind::Qbittorrent,
         ServiceKind::Tracearr,
         ServiceKind::Plex,
+        ServiceKind::Seerr,
     ];
 
     pub fn as_str(self) -> &'static str {
@@ -33,6 +35,7 @@ impl ServiceKind {
             ServiceKind::Qbittorrent => "qbittorrent",
             ServiceKind::Tracearr => "tracearr",
             ServiceKind::Plex => "plex",
+            ServiceKind::Seerr => "seerr",
         }
     }
 
@@ -49,6 +52,8 @@ impl ServiceKind {
             ServiceKind::Tracearr => "/health",
             // No necesita token.
             ServiceKind::Plex => "/identity",
+            // Público: responde sin API key.
+            ServiceKind::Seerr => "/api/v1/status",
         }
     }
 }

@@ -396,3 +396,40 @@ async fn plex_pin_login_and_servers() {
     assert_eq!(servers[0].token, "srv-token");
     assert_eq!(servers[0].local_url.as_deref(), Some("http://10.0.0.2:32400"));
 }
+
+/// Seerr rechaza el «+» de los espacios (express-openapi-validator): tienen que ir como %20.
+struct RawQuery(&'static str);
+impl wiremock::Match for RawQuery {
+    fn matches(&self, request: &wiremock::Request) -> bool {
+        request.url.query() == Some(self.0)
+    }
+}
+
+#[tokio::test]
+async fn seerr_sends_api_key_and_pct20_spaces() {
+    let s = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/api/v1/search"))
+        .and(header("X-Api-Key", "sk"))
+        .and(RawQuery("query=the%20matrix%2B&page=1"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({"results": []})))
+        .mount(&s)
+        .await;
+    let c = ServiceClient::new(ServiceKind::Seerr, cfg(&s.uri()), key("sk"));
+    let mut req = ApiRequest::get("/api/v1/search");
+    req.query.push(("query".into(), "the matrix+".into()));
+    req.query.push(("page".into(), "1".into()));
+    assert_eq!(c.request(req).await.unwrap().status, 200);
+}
+
+#[tokio::test]
+async fn seerr_test_checks_key_then_reads_version() {
+    let s = MockServer::start().await;
+    Mock::given(path("/api/v1/auth/me")).and(header("X-Api-Key", "sk")).respond_with(ResponseTemplate::new(200).set_body_json(json!({"id": 1}))).mount(&s).await;
+    Mock::given(path("/api/v1/auth/me")).respond_with(ResponseTemplate::new(403).set_body_json(json!({"message": "Forbidden"}))).mount(&s).await;
+    Mock::given(path("/api/v1/status")).respond_with(ResponseTemplate::new(200).set_body_json(json!({"version": "3.0.1"}))).mount(&s).await;
+    let ok = ServiceClient::new(ServiceKind::Seerr, cfg(&s.uri()), key("sk"));
+    assert_eq!(ok.test().await.unwrap(), "3.0.1");
+    let bad = ServiceClient::new(ServiceKind::Seerr, cfg(&s.uri()), key("nope"));
+    assert!(matches!(bad.test().await, Err(ApiError::Unauthorized)));
+}
