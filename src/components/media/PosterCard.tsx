@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { CheckCircle2, Circle, Film } from "lucide-react";
+import { Check, CheckCircle2, Circle, Film } from "lucide-react";
+import type { MyWatch } from "@/api/tracearr";
 import { cn } from "@/lib/cn";
 import { t } from "@/i18n/es";
 import type { LibState, Scores } from "./library";
@@ -36,6 +37,7 @@ export function PosterCard({
   scores,
   onClick,
   selected,
+  watch,
 }: {
   title: string;
   subtitle?: string;
@@ -46,6 +48,8 @@ export function PosterCard({
   onClick?: () => void;
   /** En modo selección: si está elegida (el botón pasa a ser un interruptor con aria-pressed). */
   selected?: boolean;
+  /** Lo que has visto tú (según Tracearr): marca de visto o barra de progreso. */
+  watch?: MyWatch;
 }) {
   const s = state ? stateStyle[state] : null;
   const selecting = selected !== undefined;
@@ -63,6 +67,7 @@ export function PosterCard({
           </span>
         )}
         <RatingBadges scores={scores} />
+        {watch && !selecting && <WatchMark watch={watch} />}
         {selecting && (
           <span
             className={cn(
@@ -86,6 +91,40 @@ export function PosterCard({
         {subtitle && <div className="truncate text-xs text-muted">{subtitle}</div>}
       </div>
     </button>
+  );
+}
+
+/** Proporción vista: episodios en series, media en una película empezada. */
+export function watchProgress(w: MyWatch): number {
+  if (w.state === "watched") return 1;
+  if (w.episodeCount) return Math.min(1, (w.episodesWatched ?? 0) / w.episodeCount);
+  return 0.5;
+}
+
+export function watchLabel(w: MyWatch): string {
+  if (w.episodeCount) return t.myWatch.episodes(w.episodesWatched ?? 0, w.episodeCount);
+  return w.state === "watched" ? t.myWatch.watched : t.myWatch.started;
+}
+
+/** Esquina con ✓ si lo has visto entero; si lo has empezado, barra fina en el borde inferior del póster. */
+function WatchMark({ watch }: { watch: MyWatch }) {
+  const label = watchLabel(watch);
+  // `dark`: el ámbar de Plex del tema oscuro se lee bien sobre cualquier póster, también con el tema claro.
+  if (watch.state === "watched")
+    return (
+      <span
+        className="dark absolute left-2 top-2 grid h-6 w-6 place-items-center rounded-full bg-plex text-[rgb(14_18_24)] shadow-md ring-2 ring-black/30"
+        title={label}
+        aria-label={label}
+        role="img"
+      >
+        <Check className="h-4 w-4" strokeWidth={3} aria-hidden />
+      </span>
+    );
+  return (
+    <span className="dark absolute inset-x-0 bottom-0 h-1 overflow-hidden rounded-b-lg bg-black/60" title={label} aria-label={label} role="img">
+      <span className="block h-full bg-plex" style={{ width: `${Math.max(6, watchProgress(watch) * 100)}%` }} />
+    </span>
   );
 }
 
