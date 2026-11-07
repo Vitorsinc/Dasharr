@@ -9,6 +9,7 @@ import { RenameDialog } from "@/components/media/RenameDialog";
 import { ArrRatings } from "@/components/media/ArrRatings";
 import { FaInfo } from "@/components/media/FilmAffinity";
 import { Poster } from "@/components/media/PosterCard";
+import { FactSection } from "@/components/media/DetailFacts";
 import { ReleaseSearchDialog } from "@/components/media/ReleaseSearchDialog";
 import { ArrHistory } from "@/components/media/ArrHistory";
 import { EditMediaDialog } from "@/components/media/EditMediaDialog";
@@ -21,6 +22,8 @@ import { posterUrl } from "@/api/arr";
 import { movieRefs } from "@/api/tracearr";
 import { MovieWatchHistory } from "@/components/watch/WatchHistory";
 import { PlexBadge } from "@/components/plex/PlexBadge";
+import { MyWatchChip } from "@/components/watch/MyWatch";
+import { useMyWatchedMovies } from "@/hooks/useMyWatched";
 import { RequestedBy } from "@/components/seerr/RequestedBy";
 import { movieItem } from "@/api/filmaffinity";
 import { radarr, type MinimumAvailability, type Movie } from "@/api/radarr";
@@ -61,6 +64,7 @@ export function MovieDetail({ movie, onClose }: { movie: Movie | null; onClose: 
   const [deletingFile, setDeletingFile] = useState(false);
   const [availability, setAvailability] = useState<MinimumAvailability>("released");
   const meta = useRadarrMeta();
+  const myWatched = useMyWatchedMovies();
   if (!movie) return null;
   const run = async (fn: () => Promise<unknown>, ok?: string) => {
     try {
@@ -76,16 +80,29 @@ export function MovieDetail({ movie, onClose }: { movie: Movie | null; onClose: 
     <>
       <Dialog open onOpenChange={(o) => !o && onClose()} title={`${movie.title} (${movie.year})`} wide>
         <div className="flex gap-6">
-          <Poster src={posterUrl("radarr", movie)} title={movie.title} className="w-48 shrink-0" />
+          <aside className="flex w-48 shrink-0 flex-col gap-5">
+            <Poster src={posterUrl("radarr", movie)} title={movie.title} className="w-full" />
+            <FactSection title={t.detail.ratings}>
+              <FaInfo item={movieItem(movie)} list />
+              <ArrRatings ratings={movie.ratings} list />
+            </FactSection>
+            {movie.genres?.length ? (
+              <div className="flex flex-wrap gap-1.5">
+                {movie.genres.map((g) => (
+                  <span key={g} className="chip bg-surface-2 text-muted">
+                    {g}
+                  </span>
+                ))}
+              </div>
+            ) : null}
+          </aside>
           <div className="flex min-w-0 flex-1 flex-col gap-5">
             {movie.overview && <p className="text-sm leading-relaxed text-muted">{movie.overview}</p>}
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-              <FaInfo item={movieItem(movie)} />
-              <ArrRatings ratings={movie.ratings} />
+            <div className="grid grid-cols-4 gap-x-4 gap-y-3">
               <Info label={t.library.status} value={status} />
               <Info label={t.library.quality} value={movie.movieFile?.quality?.quality?.name} />
               <Info label={t.library.size} value={movie.sizeOnDisk ? formatBytes(movie.sizeOnDisk) : undefined} />
-              <Info label="Duración" value={movie.runtime ? t.library.runtime(movie.runtime) : undefined} />
+              <Info label={t.detail.runtime} value={movie.runtime ? t.library.runtime(movie.runtime) : undefined} />
               <ReleaseInfo movie={movie} />
             </div>
             {movie.movieFile?.relativePath && (
@@ -103,15 +120,6 @@ export function MovieDetail({ movie, onClose }: { movie: Movie | null; onClose: 
                 )}
               </div>
             )}
-            {movie.genres?.length ? (
-              <div className="flex flex-wrap gap-1.5">
-                {movie.genres.map((g) => (
-                  <span key={g} className="chip bg-surface-2 text-muted">
-                    {g}
-                  </span>
-                ))}
-              </div>
-            ) : null}
             {movie.collection?.tmdbId ? (
               <Link
                 to={`/colecciones?c=${movie.collection.tmdbId}`}
@@ -123,6 +131,7 @@ export function MovieDetail({ movie, onClose }: { movie: Movie | null; onClose: 
               </Link>
             ) : null}
             <MediaTags service="radarr" value={movie.tags ?? []} onChange={(tags) => run(() => radarr.setTags(movie, tags), t.manage.tags.saved)} />
+            <MyWatchChip watch={myWatched?.get({ tmdbId: movie.tmdbId, imdbId: movie.imdbId })} />
             <MovieWatchHistory refs={movieRefs(movie)} />
             <RequestedBy type="movie" tmdbId={movie.tmdbId} />
             <PlexBadge kind="movie" ids={{ tmdbId: movie.tmdbId, imdbId: movie.imdbId }} />

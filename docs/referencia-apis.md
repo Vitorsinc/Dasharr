@@ -226,7 +226,8 @@ Código: `apps/server/src/routes/publicV2/` (rutas) y `services/library/mediaDet
 | `GET /media/{ref}/history?pageSize=100&cursor=` | Reproducciones de una película, o de **toda** una serie (temporadas y episodios). |
 | `GET /history?user_id=&media_type=movie\|episode&watched=true&cursor=` | Historial general del menú Historial. |
 | `GET /streams` | Lo que se está viendo ahora (`state`: `playing`/`paused`, `progress_ms`). |
-| `GET /users` | Personas, para el filtro por usuario (`identity_name` o `username`). |
+| `GET /users` | Personas, para el filtro por usuario y para elegir quién eres tú (`identity_name` o `username`). |
+| `GET /watched-media` | Lo que ha visto una persona, para marcar el catálogo (ver abajo). |
 
 `{ref}` puede ser un uuid de Tracearr o una referencia por proveedor `tipo:proveedor:id`
 (`services/library/mediaRef.ts`), con tipo `movie`, `show` o `episode` y proveedor `tmdb`, `tvdb`
@@ -249,9 +250,24 @@ TVDB en Plex solo se encuentra por los otros.
 - `poster_url` y `user.avatar_url` apuntan a `/api/v1/images/proxy?server=…&url=…`, que **no pide
   clave**. Dasharr los carga con `dasharr-img://tracearr/...`; por eso `ServiceClient::bytes` separa
   la consulta (`?…`) de la ruta.
-- `/media/{ref}/watchers` da un resumen por cuenta (reproducciones, tiempo, última vez) y
-  `/watched-media?media_type=movie|show|episode` el conjunto de títulos vistos, pensado para marcar
-  en bloque una biblioteca de Radarr/Sonarr por ID. Dasharr no los usa todavía.
+- `/media/{ref}/watchers` da un resumen por cuenta (reproducciones, tiempo, última vez). Dasharr no lo usa.
+
+### Lo que has visto tú (`/watched-media`, Tracearr 2.6+)
+
+`GET /watched-media?media_type=movie|show|episode&user_id=<persona>&min_state=partial&pageSize=1000`
+da el conjunto de títulos que esa persona ha visto (`watched_state: "watched"`) o empezado (`"partial"`).
+Lo que no ha visto nunca **no aparece**. Dasharr lo cruza por TMDB/TVDB/IMDb con Radarr y Sonarr para
+marcar los pósters (`src/hooks/useMyWatched.ts`). La persona se elige en Ajustes → Contenido entre las de
+`/users` (pref `watchUserId`).
+
+- Películas: `tmdb_id`/`imdb_id`. Vista = alguna reproducción pasó el umbral de Tracearr (85 % por defecto).
+- Series (`show`): `episodes_watched` / `episode_count` (episodios que hay en el servidor, no en Sonarr).
+  Vista = todos los episodios del servidor vistos.
+- Episodios: la serie va en `show_tvdb_id`/`show_tmdb_id`/`show_imdb_id` (`tvdb_id` es el del episodio) y el
+  número en `season_number`/`episode_number`. Solo se piden al abrir una ficha.
+- Hasta 1000 filas por página; hay que seguir `meta.nextCursor` hasta `null` (una página puede venir corta).
+  Tracearr guarda el resultado 60 s por combinación de filtros.
+- Tracearr anterior a 2.6 responde 404: Ajustes avisa de que hay que actualizarlo.
 - La API v1 (`/api/v1/public`, paginación por páginas) sigue existiendo, pero v2 la sustituye.
 ## 10. Plex
 

@@ -6,6 +6,7 @@ import { ConfirmDialog, Dialog } from "@/components/Dialog";
 import { ArrRatings } from "@/components/media/ArrRatings";
 import { FaInfo } from "@/components/media/FilmAffinity";
 import { Poster } from "@/components/media/PosterCard";
+import { FactSection } from "@/components/media/DetailFacts";
 import { ReleaseSearchDialog } from "@/components/media/ReleaseSearchDialog";
 import { SearchChoice } from "@/components/media/SearchChoice";
 import { EpisodeMark } from "@/components/media/EpisodeMark";
@@ -24,7 +25,9 @@ import { DeleteMediaDialog } from "@/components/media/DeleteMediaDialog";
 import { RenameDialog } from "./RenameDialog";
 import { useEpisodeFiles, useEpisodes, useSonarrMeta } from "@/hooks/useArr";
 import { useMediaHistory } from "@/hooks/useTracearr";
-import { episodeKey, playsByEpisode, showRefs, type Play } from "@/api/tracearr";
+import { episodeKey, playsByEpisode, showRefs, type MyWatch, type Play } from "@/api/tracearr";
+import { EpisodeWatchMark, MyWatchChip } from "@/components/watch/MyWatch";
+import { useMyWatchedEpisodes, useMyWatchedShows } from "@/hooks/useMyWatched";
 import { EpisodeViewersButton, PlayList, SeriesWatchSummary } from "@/components/watch/WatchHistory";
 import { t } from "@/i18n/es";
 import { errorMessage } from "@/lib/errors";
@@ -39,6 +42,7 @@ function SeasonBlock({
   run,
   onManual,
   watch,
+  mine,
   files,
   onDeleteFile,
 }: {
@@ -49,6 +53,8 @@ function SeasonBlock({
   onDeleteFile: (file: EpisodeFile, what: string) => void;
   /** Reproducciones de Tracearr por episodio (`"1x3"`); undefined sin Tracearr. */
   watch?: Map<string, Play[]>;
+  /** Episodios que has visto tú (`"1x3"`); undefined si no has elegido tu usuario de Plex. */
+  mine?: Map<string, MyWatch>;
   run: (fn: () => Promise<unknown>, ok?: string) => void;
   onManual: (q: ReleaseQuery, what: string) => void;
 }) {
@@ -56,6 +62,7 @@ function SeasonBlock({
   const [openEp, setOpenEp] = useState<number | null>(null);
   const have = episodes.filter((e) => e.hasFile).length;
   const aired = episodes.filter((e) => episodeStatus(e) !== "unaired").length;
+  const seen = mine ? episodes.filter((e) => mine.get(episodeKey(e.seasonNumber, e.episodeNumber))?.state === "watched").length : 0;
   const seasonMonitored = series.seasons?.find((x) => x.seasonNumber === season)?.monitored ?? episodes.some((e) => e.monitored);
   return (
     <div className="card overflow-hidden">
@@ -69,6 +76,11 @@ function SeasonBlock({
           <ChevronDown className={cn("h-4 w-4 transition-transform", open && "rotate-180")} />
           <span className="font-medium">{t.library.season(season)}</span>
           <span className="text-xs text-muted">{t.library.episodes(have, episodes.length)}</span>
+          {seen > 0 && (
+            <span className="chip bg-plex/15 text-plex" title={t.myWatch.episodes(seen, episodes.length)}>
+              {t.myWatch.seasonSeen(seen, episodes.length)}
+            </span>
+          )}
         </button>
         <div className="w-28">
           <ProgressBar value={aired ? have / aired : 0} tone={have >= aired && aired > 0 ? "success" : "accent"} />
@@ -95,6 +107,7 @@ function SeasonBlock({
                     onToggle={() => run(() => sonarr.setEpisodesMonitored([e.id], !e.monitored))}
                   />
                   <EpisodeMark status={st} number={e.episodeNumber} />
+                  {mine && <EpisodeWatchMark watch={mine.get(episodeKey(e.seasonNumber, e.episodeNumber))} />}
                   <span className="min-w-0 flex-1 truncate">{e.title}</span>
                   {file && (
                     <span className="flex shrink-0 items-center gap-1 text-xs text-muted" title={file.relativePath}>
@@ -157,6 +170,12 @@ export function SeriesDetail({ series, onClose }: { series: Series | null; onClo
   const [deleting, setDeleting] = useState<{ file: EpisodeFile; what: string } | null>(null);
   const watchQ = useMediaHistory(series ? showRefs(series) : []);
   const watch = useMemo(() => (watchQ.data && !watchQ.data.notFound ? playsByEpisode(watchQ.data.plays) : undefined), [watchQ.data]);
+  const myShows = useMyWatchedShows();
+  const myEpisodes = useMyWatchedEpisodes(!!series);
+  const ids = series ? { tvdbId: series.tvdbId, tmdbId: series.tmdbId, imdbId: series.imdbId } : undefined;
+  const myShow = ids ? myShows?.get(ids) : undefined;
+  // Con tu usuario elegido, una serie que no has empezado da un mapa vacío (todo sin ver), no "sin datos".
+  const mine = myEpisodes && ids ? (myEpisodes.forShow(ids) ?? new Map<string, MyWatch>()) : undefined;
   const seasons = useMemo(() => {
     const map = new Map<number, Episode[]>();
     for (const e of episodes.data ?? []) map.set(e.seasonNumber, [...(map.get(e.seasonNumber) ?? []), e]);
@@ -180,13 +199,30 @@ export function SeriesDetail({ series, onClose }: { series: Series | null; onClo
       <Dialog open onOpenChange={(o) => !o && onClose()} title={series.title} wide>
         <div className="flex flex-col gap-6">
           <div className="flex gap-6">
-            <Poster src={posterUrl("sonarr", series)} title={series.title} className="w-40 shrink-0" />
+            <aside className="flex w-48 shrink-0 flex-col gap-5">
+              <Poster src={posterUrl("sonarr", series)} title={series.title} className="w-full" />
+              <FactSection title={t.detail.ratings}>
+                <FaInfo item={seriesItem(series)} list />
+                <ArrRatings ratings={{ tvdb: series.ratings }} list />
+              </FactSection>
+              {series.genres?.length ? (
+                <div className="flex flex-wrap gap-1.5">
+                  {series.genres.map((g) => (
+                    <span key={g} className="chip bg-surface-2 text-muted">
+                      {g}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+            </aside>
             <div className="flex min-w-0 flex-1 flex-col gap-4">
               <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted">
                 <span>{series.year}</span>
                 {series.network && <span>{series.network}</span>}
+                {series.status && <span>{t.detail.seriesStatus[series.status] ?? series.status}</span>}
                 {st && <span>{t.library.episodes(st.episodeFileCount, st.episodeCount)}</span>}
                 {st?.sizeOnDisk ? <span>{formatBytes(st.sizeOnDisk)}</span> : null}
+                {series.runtime ? <span>{t.library.runtime(series.runtime)}</span> : null}
                 <span>{series.monitored ? t.library.monitoredLabel : t.library.unmonitoredLabel}</span>
               </div>
               <label className="flex items-center gap-2 text-sm">
@@ -206,14 +242,11 @@ export function SeriesDetail({ series, onClose }: { series: Series | null; onClo
                   ))}
                 </select>
               </label>
-              {series.overview && <p className="line-clamp-5 text-sm leading-relaxed text-muted">{series.overview}</p>}
+              <MyWatchChip watch={myShow} />
+              {series.overview && <p className="text-sm leading-relaxed text-muted">{series.overview}</p>}
               <PlexBadge kind="show" ids={{ tvdbId: series.tvdbId, tmdbId: series.tmdbId, imdbId: series.imdbId }} />
               <RequestedBy type="tv" tmdbId={series.tmdbId} />
               <MediaTags service="sonarr" value={series.tags ?? []} onChange={(tags) => run(() => sonarr.setTags(series, tags), t.manage.tags.saved)} />
-              <div className="flex flex-wrap gap-x-8 gap-y-3">
-                <FaInfo item={seriesItem(series)} />
-                <ArrRatings ratings={{ tvdb: series.ratings }} />
-              </div>
               <div className="mt-auto flex flex-wrap gap-2">
                 <button className="btn-primary" onClick={() => run(() => sonarr.searchSeries(series.id), t.library.searchStarted)}>
                   <Search className="h-4 w-4" /> {t.library.searchNow}
@@ -271,6 +304,7 @@ export function SeriesDetail({ series, onClose }: { series: Series | null; onClo
                   episodes={eps}
                   run={run}
                   watch={watch}
+                  mine={mine}
                   files={files}
                   onDeleteFile={(file, what) => setDeleting({ file, what })}
                   onManual={(query, what) => setManual({ query, what })}

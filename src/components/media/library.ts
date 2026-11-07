@@ -9,6 +9,14 @@ export function isLibSort(v: unknown): v is LibSort {
 }
 /** Notas de un elemento por fuente (Rotten Tomatoes y Metacritic en %, el resto sobre 10). */
 export type Scores = Partial<Record<RatingSource, number>>;
+/** Filtro por lo que has visto tú (Tracearr). */
+export type WatchFilter = "all" | "seen" | "started" | "unseen";
+export function matchesWatch(state: "watched" | "partial" | undefined, f: WatchFilter): boolean {
+  if (f === "seen") return state === "watched";
+  if (f === "started") return state === "partial";
+  if (f === "unseen") return state === undefined;
+  return true;
+}
 export type LibState = "downloaded" | "missing" | "unmonitored" | "partial";
 
 export interface LibItem {

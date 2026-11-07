@@ -3,7 +3,8 @@ import type { FaItem } from "@/api/filmaffinity";
 import { useFaRating } from "@/hooks/useFilmAffinity";
 import { usePrefs } from "@/hooks/usePrefs";
 import { cn } from "@/lib/cn";
-import { formatCount, formatRating } from "@/lib/format";
+import { formatCount, formatCountShort, formatRating } from "@/lib/format";
+import { Fact } from "./DetailFacts";
 import { t } from "@/i18n/es";
 
 export function tone(rating: number) {
@@ -12,8 +13,8 @@ export function tone(rating: number) {
   return "text-danger";
 }
 
-/** Nota y enlace en la ficha de una película o serie. */
-export function FaInfo({ item }: { item: FaItem }) {
+/** Nota y enlace en la ficha de una película o serie. `list`: en una línea, para la columna del póster. */
+export function FaInfo({ item, list }: { item: FaItem; list?: boolean }) {
   const [{ hiddenRatings }] = usePrefs();
   const hidden = hiddenRatings.includes("filmaffinity");
   const q = useFaRating(hidden ? null : item);
@@ -31,10 +32,15 @@ export function FaInfo({ item }: { item: FaItem }) {
         ) : (
           <span className="text-muted">{t.filmaffinity.noRating}</span>
         )}
-        {m.votes ? <span className="text-xs text-muted">{t.filmaffinity.votes(formatCount(m.votes))}</span> : null}
+        {m.votes ? (
+          <span className="text-xs text-muted" title={list ? t.filmaffinity.votes(formatCount(m.votes)) : undefined}>
+            {list ? formatCountShort(m.votes) : t.filmaffinity.votes(formatCount(m.votes))}
+          </span>
+        ) : null}
         <ExternalLink className="h-3.5 w-3.5 text-muted" aria-hidden />
       </a>
     );
+  if (list) return <Fact label={t.filmaffinity.label} value={value} />;
   return (
     <div>
       <div className="text-xs text-muted">{t.filmaffinity.label}</div>
