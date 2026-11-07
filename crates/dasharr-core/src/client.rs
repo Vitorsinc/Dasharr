@@ -169,10 +169,15 @@ impl ServiceClient {
     }
 
     async fn send_once(&self, base: &str, req: &ApiRequest, sid: Option<&str>) -> Result<reqwest::Response, ApiError> {
-        let url = join_url(base, &req.path)?;
+        let mut url = join_url(base, &req.path)?;
         let method = Method::from_bytes(req.method.to_uppercase().as_bytes()).unwrap_or(Method::GET);
+        // Seerr valida la consulta con express-openapi-validator, que rechaza el «+» de los espacios
+        // («must be url encoded»): se codifican como %20.
+        if self.kind == ServiceKind::Seerr && !req.query.is_empty() {
+            url.set_query(Some(&encode_query_pct20(&req.query)));
+        }
         let mut b = self.with_proxy_auth(self.http.request(method, url), base);
-        if !req.query.is_empty() {
+        if !req.query.is_empty() && self.kind != ServiceKind::Seerr {
             b = b.query(&req.query);
         }
         b = match self.kind {
@@ -180,6 +185,7 @@ impl ServiceClient {
                 b.header("X-Api-Key", self.secrets.api_key.clone().unwrap_or_default())
             }
             ServiceKind::Bazarr => b.header("X-API-KEY", self.secrets.api_key.clone().unwrap_or_default()),
+            ServiceKind::Seerr => b.header("X-Api-Key", self.secrets.api_key.clone().unwrap_or_default()),
             ServiceKind::Tracearr => b.bearer_auth(self.secrets.api_key.as_deref().unwrap_or_default()),
             ServiceKind::Plex => crate::plex::identify(b, self.secrets.client_id.as_deref())
                 .header("X-Plex-Token", self.secrets.api_key.clone().unwrap_or_default()),
@@ -378,9 +384,20 @@ impl ServiceClient {
             ServiceKind::Tracearr => ("/api/v2/public/servers", "/tracearr_version"),
             // `/identity` responde sin token: la raíz sí lo exige.
             ServiceKind::Plex => ("/", "/MediaContainer/version"),
+            ServiceKind::Seerr => {
+                // `/status` es público: `/auth/me` comprueba antes la API key.
+                self.request(ApiRequest::get("/api/v1/auth/me")).await?;
+                ("/api/v1/status", "/version")
+            }
         };
         let body = self.request(ApiRequest::get(path)).await?.body;
         let v = if pointer.is_empty() { Some(&body) } else { body.pointer(pointer) };
         Ok(v.and_then(Value::as_str).unwrap_or("?").to_string())
     }
+}
+
+/// Consulta `clave=valor&…` con los espacios como %20 en lugar de «+».
+fn encode_query_pct20(pairs: &[(String, String)]) -> String {
+    let enc = |s: &str| url::form_urlencoded::byte_serialize(s.as_bytes()).collect::<String>().replace('+', "%20");
+    pairs.iter().map(|(k, v)| format!("{}={}", enc(k), enc(v))).collect::<Vec<_>>().join("&")
 }

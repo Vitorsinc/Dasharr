@@ -6,10 +6,13 @@ import {
   Captions,
   ChevronDown,
   Clapperboard,
+  Compass,
   Download,
   Gauge,
   History,
   Home,
+  Inbox,
+  Library,
   MonitorPlay,
   Radar,
   Search,
@@ -31,6 +34,7 @@ import prowlarrLogo from "@/assets/services/prowlarr.svg";
 import bazarrLogo from "@/assets/services/bazarr.svg";
 import qbittorrentLogo from "@/assets/services/qbittorrent.svg";
 import plexLogo from "@/assets/services/plex.svg";
+import seerrLogo from "@/assets/services/seerr.svg";
 
 interface NavItem {
   to: string;
@@ -54,6 +58,7 @@ const groups: { service: ServiceKind; logo: string; items: NavItem[] }[] = [
     logo: radarrLogo,
     items: [
       { to: "/peliculas", label: t.nav.movies, icon: Clapperboard },
+      { to: "/colecciones", label: t.nav.collections, icon: Library },
       { to: "/actividad/radarr", label: t.activity.nav, icon: Activity, ariaLabel: `${t.activity.nav} · ${t.services.radarr}` },
     ],
   },
@@ -84,6 +89,14 @@ const groups: { service: ServiceKind; logo: string; items: NavItem[] }[] = [
     items: [
       { to: "/plex", label: t.nav.plexServer, icon: MonitorPlay },
       { to: "/historial", label: t.nav.history, icon: History },
+    ],
+  },
+  {
+    service: "seerr",
+    logo: seerrLogo,
+    items: [
+      { to: "/solicitudes", label: t.nav.requests, icon: Inbox },
+      { to: "/descubrir", label: t.nav.discover, icon: Compass },
     ],
   },
 ];

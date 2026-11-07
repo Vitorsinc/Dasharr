@@ -87,32 +87,37 @@ export function Blocklist({ service }: { service: ArrService }) {
           <ul className="card divide-y divide-border" aria-label={t.activity.blocklist}>
             {records.map((r) => {
               const what = blocklistTitle(r, titles);
+              const meta = [r.quality?.quality?.name, r.indexer, r.protocol !== "unknown" ? r.protocol : undefined]
+                .filter(Boolean)
+                .join(" · ");
               return (
-                <li key={r.id} className="flex items-start gap-3 px-4 py-3 text-sm">
+                <li key={r.id} className="flex items-center gap-3 px-4 py-1.5 text-sm">
                   <input
                     type="checkbox"
-                    className="mt-1 h-4 w-4"
+                    className="h-4 w-4 shrink-0"
                     checked={selected.has(r.id)}
                     onChange={() => toggle(r.id)}
                     aria-label={t.common.select(r.sourceTitle)}
                   />
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate font-medium" title={what}>
-                      {what}
-                    </div>
-                    <div className="truncate font-mono text-xs text-muted" title={r.sourceTitle}>
-                      {r.sourceTitle}
-                    </div>
-                    <div className="mt-0.5 flex flex-wrap gap-x-3 text-xs text-muted">
-                      {r.quality?.quality?.name && <span>{r.quality.quality.name}</span>}
-                      {r.indexer && <span>{r.indexer}</span>}
-                      {r.protocol && r.protocol !== "unknown" && <span>{r.protocol}</span>}
-                      <span>{formatDateTime(r.date)}</span>
-                    </div>
-                    {r.message && <div className="mt-0.5 line-clamp-2 text-xs text-warning">{r.message}</div>}
-                  </div>
+                  <span className="w-56 shrink-0 truncate font-medium" title={what}>
+                    {what}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate font-mono text-xs text-muted" title={r.sourceTitle}>
+                    {r.sourceTitle}
+                  </span>
+                  {r.message && (
+                    <span className="max-w-[14rem] shrink truncate text-xs text-warning" title={r.message}>
+                      {r.message}
+                    </span>
+                  )}
+                  {meta && (
+                    <span className="max-w-[12rem] shrink-0 truncate text-xs text-muted" title={meta}>
+                      {meta}
+                    </span>
+                  )}
+                  <span className="shrink-0 text-xs tabular-nums text-muted">{formatDateTime(r.date)}</span>
                   <button
-                    className="btn-ghost p-1.5 text-muted hover:text-danger"
+                    className="btn-ghost shrink-0 p-1 text-muted hover:text-danger"
                     title={t.blocklist.remove}
                     aria-label={`${t.blocklist.remove}: ${r.sourceTitle}`}
                     onClick={() => setPending({ kind: "one", item: r })}

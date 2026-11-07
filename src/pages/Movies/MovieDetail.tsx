@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { FileX, FolderSearch, Pencil, RefreshCw, Search, TextCursorInput, Trash2, User } from "lucide-react";
+import { Link } from "react-router-dom";
+import { FileX, FolderSearch, Library, Pencil, RefreshCw, Search, TextCursorInput, Trash2, User } from "lucide-react";
 import { MonitorIcon } from "@/components/media/MonitorToggle";
 import { toast } from "sonner";
 import { ConfirmDialog, Dialog } from "@/components/Dialog";
@@ -20,6 +21,7 @@ import { posterUrl } from "@/api/arr";
 import { movieRefs } from "@/api/tracearr";
 import { MovieWatchHistory } from "@/components/watch/WatchHistory";
 import { PlexBadge } from "@/components/plex/PlexBadge";
+import { RequestedBy } from "@/components/seerr/RequestedBy";
 import { movieItem } from "@/api/filmaffinity";
 import { radarr, type MinimumAvailability, type Movie } from "@/api/radarr";
 import { t } from "@/i18n/es";
@@ -110,8 +112,19 @@ export function MovieDetail({ movie, onClose }: { movie: Movie | null; onClose: 
                 ))}
               </div>
             ) : null}
+            {movie.collection?.tmdbId ? (
+              <Link
+                to={`/colecciones?c=${movie.collection.tmdbId}`}
+                onClick={onClose}
+                className="flex w-fit items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-sm transition-colors hover:border-accent hover:text-accent"
+              >
+                <Library className="h-4 w-4 text-accent" aria-hidden />
+                <span className="text-muted">{t.collections.partOf}:</span> {movie.collection.title ?? movie.collection.tmdbId}
+              </Link>
+            ) : null}
             <MediaTags service="radarr" value={movie.tags ?? []} onChange={(tags) => run(() => radarr.setTags(movie, tags), t.manage.tags.saved)} />
             <MovieWatchHistory refs={movieRefs(movie)} />
+            <RequestedBy type="movie" tmdbId={movie.tmdbId} />
             <PlexBadge kind="movie" ids={{ tmdbId: movie.tmdbId, imdbId: movie.imdbId }} />
             <ArrHistory service="radarr" id={movie.id} load={() => radarr.getHistory(movie.id)} />
             <div className="mt-auto flex flex-wrap gap-2">

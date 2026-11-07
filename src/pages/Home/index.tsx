@@ -27,6 +27,7 @@ import { NowWatching } from "@/components/NowWatching";
 import { HealthList } from "@/components/HealthList";
 import { HEALTH_SERVICES } from "@/api/health";
 import { RecentlyAdded } from "@/components/plex/RecentlyAdded";
+import { PendingRequests } from "@/components/seerr/PendingRequests";
 import radarrLogo from "@/assets/services/radarr.svg";
 import sonarrLogo from "@/assets/services/sonarr.svg";
 import prowlarrLogo from "@/assets/services/prowlarr.svg";
@@ -34,6 +35,7 @@ import bazarrLogo from "@/assets/services/bazarr.svg";
 import qbittorrentLogo from "@/assets/services/qbittorrent.svg";
 import tracearrLogo from "@/assets/services/tracearr.svg";
 import plexLogo from "@/assets/services/plex.svg";
+import seerrLogo from "@/assets/services/seerr.svg";
 
 const servicePage: Record<ServiceKind, string> = {
   radarr: "/peliculas",
@@ -43,6 +45,7 @@ const servicePage: Record<ServiceKind, string> = {
   qbittorrent: "/descargas",
   tracearr: "/historial",
   plex: "/plex",
+  seerr: "/solicitudes",
 };
 
 const serviceLogo: Record<ServiceKind, string> = {
@@ -53,6 +56,7 @@ const serviceLogo: Record<ServiceKind, string> = {
   qbittorrent: qbittorrentLogo,
   tracearr: tracearrLogo,
   plex: plexLogo,
+  seerr: seerrLogo,
 };
 
 /** Botón en la esquina de la tarjeta que abre la web del servicio en el navegador (externa, si no local). */
@@ -225,12 +229,13 @@ export default function HomePage() {
   const { data: routes } = useConnectionStates();
   return (
     <Page title={t.nav.home}>
-      <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 min-[1400px]:grid-cols-7" aria-label={t.home.services}>
+      <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 min-[1400px]:grid-cols-8" aria-label={t.home.services}>
         {SERVICE_KINDS.map((s) => (
           <ServiceCard key={s} service={s} route={routes?.[s]} />
         ))}
       </section>
       <HealthList services={HEALTH_SERVICES} hideWhenOk />
+      <PendingRequests />
       <NowWatching title={t.home.nowPlaying} hideWhenEmpty />
       <ActiveDownloads />
       <Upcoming />

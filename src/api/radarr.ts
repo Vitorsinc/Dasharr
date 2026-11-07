@@ -28,6 +28,57 @@ export interface Movie {
   tags?: number[];
   movieFile?: { id?: number; relativePath?: string; size?: number; quality?: { quality?: { name?: string } } };
   ratings?: Partial<Record<"imdb" | "tmdb" | "metacritic" | "rottenTomatoes" | "trakt", ArrRating>>;
+  /** Colección de TMDb a la que pertenece (sagas como «Dune» o «El Señor de los Anillos»). */
+  collection?: { title?: string; tmdbId: number };
+}
+
+/** Película de una colección (`GET /collection`): puede no estar en la biblioteca. */
+export interface CollectionMovie {
+  tmdbId: number;
+  imdbId?: string;
+  title: string;
+  sortTitle?: string;
+  year: number;
+  overview?: string;
+  runtime?: number;
+  status?: string;
+  images?: ArrImage[];
+  genres?: string[];
+  ratings?: Movie["ratings"];
+  /** Ya está en la biblioteca de Radarr. */
+  isExisting: boolean;
+  /** Está en las exclusiones: Radarr no la añadirá aunque la colección esté monitorizada. */
+  isExcluded: boolean;
+}
+
+/**
+ * Colección de Radarr. Monitorizada = Radarr añade solo las películas que faltan con su perfil,
+ * carpeta y disponibilidad mínima (y las busca si `searchOnAdd`).
+ */
+export interface Collection {
+  id: number;
+  title: string;
+  sortTitle?: string;
+  tmdbId: number;
+  overview?: string;
+  images?: ArrImage[];
+  monitored: boolean;
+  rootFolderPath?: string;
+  qualityProfileId: number;
+  searchOnAdd: boolean;
+  minimumAvailability: MinimumAvailability;
+  movies: CollectionMovie[];
+  /** Las que no están en la biblioteca ni excluidas. */
+  missingMovies: number;
+  tags?: number[];
+}
+
+export interface CollectionEdit {
+  monitored: boolean;
+  qualityProfileId: number;
+  rootFolderPath: string;
+  minimumAvailability: MinimumAvailability;
+  searchOnAdd: boolean;
 }
 
 /** Vista previa de `GET /rename?movieId=`: archivos cuyo nombre no sigue el formato de Radarr. */
@@ -118,6 +169,31 @@ export const radarr = {
     apiRequest<HistoryRecord[]>("radarr", { path: "/api/v3/history/movie", query: { movieId } }).then((l) =>
       [...l].sort((a, b) => b.date.localeCompare(a.date)),
     ),
+  getCollections: () => apiRequest<Collection[]>("radarr", { path: "/api/v3/collection" }),
+  updateCollection: (c: Collection, e: Partial<CollectionEdit>) =>
+    apiRequest<Collection>("radarr", { method: "PUT", path: `/api/v3/collection/${c.id}`, json: { ...c, ...e } }),
+  /** Monitoriza (o deja de monitorizar) todas las películas de la colección que ya están en la biblioteca. */
+  setCollectionMoviesMonitored: (collectionId: number, monitored: boolean) =>
+    apiRequest<unknown>("radarr", { method: "PUT", path: "/api/v3/collection", json: { collectionIds: [collectionId], monitorMovies: monitored } }),
+  /** Sincroniza la colección con TMDb y, si está monitorizada, añade ya las películas que faltan. */
+  refreshCollection: (collectionId: number) => common.command({ name: "RefreshCollections", collectionIds: [collectionId] }),
+  /** Añade una película de la colección con los ajustes de la colección. */
+  addCollectionMovie: (m: CollectionMovie, o: { qualityProfileId: number; rootFolderPath: string; minimumAvailability: MinimumAvailability; search: boolean }) =>
+    apiRequest<Movie>("radarr", {
+      method: "POST",
+      path: "/api/v3/movie",
+      json: {
+        title: m.title,
+        tmdbId: m.tmdbId,
+        year: m.year,
+        images: m.images ?? [],
+        qualityProfileId: o.qualityProfileId,
+        rootFolderPath: o.rootFolderPath,
+        minimumAvailability: o.minimumAvailability,
+        monitored: true,
+        addOptions: { searchForMovie: o.search, addMethod: "collection" },
+      },
+    }),
   getCalendar: (start: Date, end: Date) =>
     apiRequest<Movie[]>("radarr", {
       path: "/api/v3/calendar",

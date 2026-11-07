@@ -431,3 +431,32 @@ Comprobado en el código de Radarr, Sonarr, Prowlarr, Bazarr y qBittorrent (deve
 | Prowlarr: estadísticas e historial | `GET /api/v1/indexerstats` → `{ indexers: [{ indexerId, indexerName, numberOfQueries, numberOfGrabs, numberOfFailed*, averageResponseTime }] }`; `GET /api/v1/history?page&pageSize&sortKey=date&sortDirection=descending&eventType=` (1 grab, 2 búsqueda, 3 RSS, 4 auth, 5 info) |
 | Prowlarr: aplicaciones | `GET /api/v1/applications` (`syncLevel`: disabled, addOnly, fullSync); sincronizar con el comando `ApplicationIndexerSync` |
 | Historial global | `GET /api/v3/history?page&pageSize&sortKey=date&sortDirection=descending&eventType=` (+ Radarr `includeMovie=true`; Sonarr `includeSeries=true&includeEpisode=true`). `eventType` numérico: Radarr 1 grab, 3 importada, 7 importada de carpeta, 4 fallida, 6 borrada, 8 renombrada; Sonarr 1 grab, 3 importada, 2 importada de carpeta, 4 fallida, 5 borrada, 6 renombrada. Las versiones con `int? eventType` solo usan el primero |
+
+## 14. Seerr: solicitudes
+
+Seerr (seerr-team/seerr, sucesor de Overseerr y Jellyseerr). Puerto por defecto 5055. Todo va bajo `/api/v1`.
+
+- Autenticación: cabecera `X-Api-Key` (Ajustes → General). Con la API key se actúa como el usuario 1 (admin). `GET /status` es público, por eso «Probar conexión» llama antes a `GET /auth/me`.
+- Valida cada petición con express-openapi-validator: un parámetro de consulta no documentado da 400, y un «+» en lugar de espacio da «must be url encoded». Dasharr codifica las consultas de Seerr con `%20`.
+- Solicitudes: `GET /request?take&skip&filter=(all|pending|approved|processing|available|failed…)&sort=(added|modified)&mediaType&requestedBy`, `GET /request/count`, `POST /request/{id}/approve|decline`, `POST /request/{id}/retry`, `DELETE /request/{id}`, `POST /request` con `{mediaType, mediaId (TMDB), tvdbId, seasons: number[]|"all", is4k, serverId, profileId, rootFolder, userId}`.
+- Las solicitudes no traen título ni póster: se piden con `GET /movie/{tmdbId}` o `GET /tv/{tmdbId}` (`language=es`), que además traen `mediaInfo.requests` (quién pidió qué) y `mediaInfo.seasons`.
+- Estados: solicitud 1 pendiente, 2 aprobada, 3 rechazada, 4 fallida, 5 completada. Contenido 1 desconocido, 2 pendiente, 3 en proceso, 4 parcial, 5 disponible, 6 bloqueado, 7 borrado.
+- Descubrir: `GET /search?query&page`, `/discover/trending`, `/discover/movies`, `/discover/tv`, `/discover/movies/upcoming`, `/discover/tv/upcoming`. Pósters: `https://image.tmdb.org/t/p/w342{posterPath}`.
+- Servidores para opciones avanzadas: `GET /service/radarr|sonarr` y `/service/radarr|sonarr/{id}` (perfiles y carpetas).
+- Usuarios y cupos: `GET /user?sort=requests`, `GET /user/{id}/quota`. Incidencias: `GET /issue?filter=open|resolved|all`, `POST /issue/{id}/resolved|open`, `POST /issue/{id}/comment`, `DELETE /issue/{id}`.
+
+## 15. Radarr: colecciones
+
+Verificado con el código de Radarr (`src/Radarr.Api.V3/Collections`, rama develop, 07/11/2026).
+
+| Qué | Llamada |
+|---|---|
+| Listar (con sus películas) | `GET /api/v3/collection` (opcional `?tmdbId=`) |
+| Guardar ajustes de una | `PUT /api/v3/collection/{id}` con el recurso entero (`monitored`, `qualityProfileId`, `rootFolderPath`, `minimumAvailability`, `searchOnAdd`, `tags`); las `movies` se ignoran |
+| Monitorizar las películas de la colección | `PUT /api/v3/collection` con `{ collectionIds, monitorMovies }` |
+| Añadir ya las que faltan de una monitorizada | comando `RefreshCollections` con `collectionIds` |
+| Añadir una película suelta | `POST /api/v3/movie` con `title`, `tmdbId`, `year`, perfil, carpeta, `minimumAvailability` y `addOptions: { searchForMovie, addMethod: "collection" }` |
+
+- Cada película trae `isExisting` (ya en la biblioteca) e `isExcluded` (en exclusiones). `missingMovies` cuenta solo las que no existen ni están excluidas.
+- Las imágenes de la colección y de sus películas solo traen `remoteUrl` de TMDb: no usar `/mediacover/{id}` (ese id es de película, no de colección).
+- `GET /movie` trae `collection: { title, tmdbId }` en cada película.
