@@ -23,6 +23,9 @@ También se puede lanzar a mano en Actions → Release → «Run workflow» indi
 - En cada colección: qué películas tienes (descargadas o no), cuáles faltan y cuáles están excluidas; añadir una o todas las que faltan, monitorizar la colección para que Radarr las añada solo, y elegir perfil, carpeta, disponibilidad mínima y si busca al añadir.
 - La ficha de una película enlaza con su colección.
 
+### Cambiado
+- Actividad (Historial y Bloqueadas): cada entrada ocupa una sola línea, más compacta.
+
 ## [0.2.1] - 2026-10-31
 
 ### Cambiado

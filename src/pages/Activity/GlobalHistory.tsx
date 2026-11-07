@@ -47,21 +47,23 @@ export function GlobalHistory({ service }: { service: ArrService }) {
             {records.map((r) => {
               const detail = historyDetail(r);
               return (
-                <li key={r.id} className="flex items-start gap-3 px-4 py-2.5 text-sm">
-                  <span className={cn("w-36 shrink-0 font-medium", historyTone[r.eventType])}>{historyEventLabel(r)}</span>
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate font-medium">{historyItemTitle(r, titles)}</div>
-                    <div className="truncate font-mono text-xs text-muted" title={r.sourceTitle}>
-                      {r.sourceTitle}
-                    </div>
-                    {detail && (
-                      <div className="truncate text-xs text-muted" title={detail}>
-                        {detail}
-                      </div>
-                    )}
-                  </div>
-                  <span className="shrink-0 text-xs text-muted">{formatDateTime(r.date)}</span>
-                  <MarkFailedButton service={service} record={r} />
+                <li key={r.id} className="flex items-center gap-3 px-4 py-1.5 text-sm">
+                  <span className={cn("w-36 shrink-0 truncate font-medium", historyTone[r.eventType])}>{historyEventLabel(r)}</span>
+                  <span className="w-48 shrink-0 truncate font-medium" title={historyItemTitle(r, titles)}>
+                    {historyItemTitle(r, titles)}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate font-mono text-xs text-muted" title={r.sourceTitle}>
+                    {r.sourceTitle}
+                  </span>
+                  {detail && (
+                    <span className="max-w-[16rem] shrink truncate text-xs text-muted" title={detail}>
+                      {detail}
+                    </span>
+                  )}
+                  <span className="shrink-0 text-xs tabular-nums text-muted">{formatDateTime(r.date)}</span>
+                  <span className="flex w-6 shrink-0 justify-end">
+                    <MarkFailedButton service={service} record={r} />
+                  </span>
                 </li>
               );
             })}
