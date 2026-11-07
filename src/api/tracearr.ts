@@ -205,3 +205,122 @@ export function playsByEpisode(plays: Play[]): Map<string, Play[]> {
   }
   return map;
 }
+
+/** Fila de `GET /watched-media`: un título visto (o empezado) por la persona elegida. */
+export interface WatchedMedia {
+  media_type: string;
+  title: string;
+  imdb_id: string | null;
+  tmdb_id: number | null;
+  tvdb_id: number | null;
+  show_title: string | null;
+  show_imdb_id: string | null;
+  show_tmdb_id: number | null;
+  show_tvdb_id: number | null;
+  season_number: number | null;
+  episode_number: number | null;
+  watched_state: "watched" | "partial";
+  plays: number;
+  last_watched_day: string;
+  episodes_watched: number | null;
+  episode_count: number | null;
+}
+
+export type WatchedKind = "movie" | "show" | "episode";
+
+/** Páginas de 1000 que se leen como máximo (las series con muchos episodios caben de sobra). */
+const MAX_WATCHED_PAGES = 30;
+
+/**
+ * Todo lo que una persona ha visto o empezado, de un tipo. Lo que no ha visto nunca no aparece.
+ * Necesita Tracearr 2.6 o superior.
+ */
+export async function watchedMedia(kind: WatchedKind, userId: string): Promise<WatchedMedia[]> {
+  const all: WatchedMedia[] = [];
+  let cursor: string | null | undefined;
+  let pages = 0;
+  do {
+    const page = await apiRequest<CursorPage<WatchedMedia>>("tracearr", {
+      path: `${BASE}/watched-media`,
+      query: { media_type: kind, user_id: userId, min_state: "partial", pageSize: 1000, cursor: cursor ?? undefined },
+    });
+    all.push(...(page.data ?? []));
+    cursor = page.meta?.nextCursor;
+    pages++;
+  } while (cursor && pages < MAX_WATCHED_PAGES);
+  return all;
+}
+
+/** Estado de visto de un título para la persona elegida. */
+export interface MyWatch {
+  state: "watched" | "partial";
+  plays: number;
+  last: string;
+  /** Solo series: episodios vistos y episodios que hay en el servidor. */
+  episodesWatched?: number;
+  episodeCount?: number;
+}
+
+export interface WatchedIndex {
+  get(ids: { tmdbId?: number; tvdbId?: number; imdbId?: string }): MyWatch | undefined;
+  size: number;
+}
+
+const idKeys = (ids: { tmdbId?: number | null; tvdbId?: number | null; imdbId?: string | null }) =>
+  [ids.tvdbId && `tvdb:${ids.tvdbId}`, ids.tmdbId && `tmdb:${ids.tmdbId}`, ids.imdbId && `imdb:${ids.imdbId}`].filter(Boolean) as string[];
+
+const toWatch = (r: WatchedMedia): MyWatch => ({
+  state: r.watched_state,
+  plays: r.plays,
+  last: r.last_watched_day,
+  episodesWatched: r.episodes_watched ?? undefined,
+  episodeCount: r.episode_count ?? undefined,
+});
+
+/** Índice por TMDB/TVDB/IMDb para cruzarlo con Radarr o Sonarr. */
+export function indexWatched(rows: WatchedMedia[]): WatchedIndex {
+  const map = new Map<string, MyWatch>();
+  for (const r of rows) {
+    const w = toWatch(r);
+    for (const k of idKeys({ tmdbId: r.tmdb_id, tvdbId: r.tvdb_id, imdbId: r.imdb_id })) if (!map.has(k)) map.set(k, w);
+  }
+  return {
+    get: (ids) => {
+      for (const k of idKeys(ids)) {
+        const hit = map.get(k);
+        if (hit) return hit;
+      }
+      return undefined;
+    },
+    size: rows.length,
+  };
+}
+
+/** Episodios vistos de cada serie: clave de serie (`tvdb:81189`…) → `"1x3"` → estado. */
+export interface EpisodeWatchIndex {
+  forShow(ids: { tmdbId?: number; tvdbId?: number; imdbId?: string }): Map<string, MyWatch> | undefined;
+}
+
+export function indexWatchedEpisodes(rows: WatchedMedia[]): EpisodeWatchIndex {
+  const byShow = new Map<string, Map<string, MyWatch>>();
+  for (const r of rows) {
+    if (r.season_number == null || r.episode_number == null) continue;
+    // Todas las claves de la serie apuntan al mismo mapa, para no repartir episodios entre IDs.
+    const keys = idKeys({ tmdbId: r.show_tmdb_id, tvdbId: r.show_tvdb_id, imdbId: r.show_imdb_id });
+    if (!keys.length) continue;
+    const eps = keys.map((k) => byShow.get(k)).find(Boolean) ?? new Map<string, MyWatch>();
+    for (const k of keys) if (!byShow.has(k)) byShow.set(k, eps);
+    const key = episodeKey(r.season_number, r.episode_number);
+    const prev = eps.get(key);
+    if (!prev || (prev.state === "partial" && r.watched_state === "watched")) eps.set(key, toWatch(r));
+  }
+  return {
+    forShow: (ids) => {
+      for (const k of idKeys(ids)) {
+        const hit = byShow.get(k);
+        if (hit) return hit;
+      }
+      return undefined;
+    },
+  };
+}

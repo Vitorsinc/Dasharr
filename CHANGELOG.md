@@ -12,6 +12,11 @@ También se puede lanzar a mano en Actions → Release → «Run workflow» indi
 
 ## [Sin publicar]
 
+### Añadido
+- Ajustes → Contenido → «Lo que has visto»: eliges cuál de los usuarios de Plex eres tú.
+- Películas, Series y Anime marcan lo que ya has visto (✓ en el póster) y lo que has empezado (barra de progreso), con un filtro «Ya vistas / Empezadas / Sin ver».
+- En la ficha de una película o serie, cuántas veces la has visto y cuándo fue la última; en las temporadas, qué episodios has visto. Los datos salen de Tracearr (2.6 o superior).
+
 ### Cambiado
 - Ficha de película y serie reorganizada: las valoraciones (FilmAffinity, IMDb, TMDb, Rotten Tomatoes…) y los géneros pasan a la columna del póster, y los datos (estado, calidad, tamaño, duración, estrenos) quedan en una sola franja; la ficha cabe sin scroll en más pantallas. La serie muestra también si sigue en emisión y la duración de los episodios.
 

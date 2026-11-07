@@ -3,7 +3,7 @@ import { Segmented } from "@/components/ui";
 import { t } from "@/i18n/es";
 import type { RatingSource } from "@/hooks/usePrefs";
 import type { Tag } from "@/api/arrManage";
-import type { LibFilter, LibSort } from "./library";
+import type { LibFilter, LibSort, WatchFilter } from "./library";
 import { ratingName } from "./RatingBadges";
 
 export function LibraryToolbar({
@@ -20,6 +20,8 @@ export function LibraryToolbar({
   onTag,
   selecting,
   onSelecting,
+  watch,
+  onWatch,
 }: {
   query: string;
   onQuery: (v: string) => void;
@@ -37,6 +39,9 @@ export function LibraryToolbar({
   /** Modo selección para la edición masiva. */
   selecting?: boolean;
   onSelecting?: (v: boolean) => void;
+  /** Filtro por lo que has visto tú; solo aparece si has elegido tu usuario de Plex. */
+  watch?: WatchFilter;
+  onWatch?: (v: WatchFilter) => void;
 }) {
   return (
     <div className="flex flex-wrap items-center gap-3">
@@ -76,6 +81,19 @@ export function LibraryToolbar({
                 {x.label}
               </option>
             ))}
+        </select>
+      )}
+      {watch && onWatch && (
+        <select
+          className="input w-auto"
+          aria-label={t.myWatch.filterLabel}
+          value={watch}
+          onChange={(e) => onWatch(e.target.value as WatchFilter)}
+        >
+          <option value="all">{t.myWatch.filterAll}</option>
+          <option value="seen">{t.myWatch.filterSeen}</option>
+          <option value="started">{t.myWatch.filterStarted}</option>
+          <option value="unseen">{t.myWatch.filterUnseen}</option>
         </select>
       )}
       <label className="ml-auto flex items-center gap-2 text-sm text-muted">

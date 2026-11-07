@@ -30,6 +30,8 @@ export interface Prefs {
   autoUpdate: boolean;
   /** Último orden elegido en cada pantalla (clave de pantalla -> valor guardado por `usePersistedSort`). */
   sorts: Record<string, unknown>;
+  /** Persona de Tracearr que eres tú (tu usuario de Plex): marca en el catálogo lo que ya has visto. */
+  watchUserId: string | null;
 }
 
 const KEY = "dasharr.prefs";
@@ -45,6 +47,7 @@ const DEFAULTS: Prefs = {
   weekStyle: "agenda",
   autoUpdate: true,
   sorts: {},
+  watchUserId: null,
 };
 const listeners = new Set<() => void>();
 let cache: Prefs | null = null;

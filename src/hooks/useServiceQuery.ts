@@ -20,6 +20,7 @@ export function useServiceQuery<T>(
     staleTime?: number;
     /** Listas paginadas: sigue enseñando la página anterior mientras llega la nueva. */
     keepPrevious?: boolean;
+    retry?: boolean;
   } = {},
 ): UseQueryResult<T> & { configured: boolean | undefined } {
   const configured = useIsConfigured(service);
@@ -30,6 +31,7 @@ export function useServiceQuery<T>(
     refetchInterval: opts.refetchInterval,
     staleTime: opts.staleTime,
     placeholderData: opts.keepPrevious ? keepPreviousData : undefined,
+    ...(opts.retry !== undefined && { retry: opts.retry }),
   });
   return Object.assign(q, { configured });
 }

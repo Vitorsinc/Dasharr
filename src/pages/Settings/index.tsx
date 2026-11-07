@@ -8,7 +8,7 @@ import { disable, enable, isEnabled } from "@tauri-apps/plugin-autostart";
 import { Page } from "@/components/Page";
 import { Loading, Segmented, Toggle } from "@/components/ui";
 import { t } from "@/i18n/es";
-import { SERVICE_KINDS, type ServiceKind } from "@/lib/types";
+import { isApiError, SERVICE_KINDS, type ServiceKind } from "@/lib/types";
 import { useIsConfigured, useSettings } from "@/hooks/useSettings";
 import { SERVICES_SETTINGS_PATH, serviceSettingsPath } from "@/lib/settingsPaths";
 import { isManageable, manageTabs } from "@/pages/Manage";
@@ -37,6 +37,11 @@ import { useRadarrMeta, useSonarrMeta } from "@/hooks/useArr";
 import { defaultsFor, movieDefaultsFor, type SeriesKind } from "@/lib/anime";
 import { LogsPanel } from "@/pages/Logs";
 import { cn } from "@/lib/cn";
+import { useTracearrUsers } from "@/hooks/useTracearr";
+import { useMyWatchedCheck } from "@/hooks/useMyWatched";
+import { userLabel } from "@/api/tracearr";
+import { Avatar } from "@/components/Avatar";
+import { usePlexAvatar } from "@/hooks/usePlexAvatars";
 
 function readText(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -124,6 +129,56 @@ function Notifications() {
           onChange={(plexNotifications) => setPrefs({ plexNotifications })}
         />
       </Row>
+    </section>
+  );
+}
+
+function UserChoice({ name, username, selected, onPick }: { name: string; username?: string; selected: boolean; onPick: () => void }) {
+  const avatar = usePlexAvatar(username);
+  return (
+    <button
+      role="radio"
+      aria-checked={selected}
+      onClick={onPick}
+      className={cn(
+        "flex items-center gap-3 rounded-lg border px-3 py-2 text-left text-sm transition-colors",
+        selected ? "border-plex bg-plex/10 font-medium" : "border-border hover:border-plex/60",
+      )}
+    >
+      {username !== undefined ? <Avatar name={name} sources={[avatar]} className="h-7 w-7" /> : <span className="h-7 w-7" aria-hidden />}
+      <span className="min-w-0 flex-1 truncate">{name}</span>
+      {selected && username !== undefined && <span className="chip bg-plex/15 text-plex">{t.myWatch.me}</span>}
+    </button>
+  );
+}
+
+/** Ajustes → Contenido: cuál de los usuarios de Plex (personas de Tracearr) eres tú. */
+function MyPlexUser() {
+  const [prefs, setPrefs] = usePrefs();
+  const users = useTracearrUsers();
+  const check = useMyWatchedCheck();
+  if (users.configured === false) return <p className="card p-4 text-sm text-muted">{t.myWatch.needTracearr}</p>;
+  if (users.isLoading || users.configured === undefined) return <Loading />;
+  if (users.isError) return <p className="card p-4 text-sm text-danger">{errorMessage(users.error, "tracearr")}</p>;
+  return (
+    <section className="card flex flex-col gap-3 p-4" aria-label={t.myWatch.settingsTitle}>
+      <div role="radiogroup" aria-label={t.myWatch.settingsTitle} className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        {(users.data ?? []).map((u) => (
+          <UserChoice
+            key={u.id}
+            name={userLabel(u)}
+            username={u.username}
+            selected={prefs.watchUserId === u.id}
+            onPick={() => setPrefs({ watchUserId: u.id })}
+          />
+        ))}
+        <UserChoice name={t.myWatch.nobody} selected={!prefs.watchUserId} onPick={() => setPrefs({ watchUserId: null })} />
+      </div>
+      {prefs.watchUserId && check.isError && (
+        <p className="text-sm text-warning">
+          {isApiError(check.error) && check.error.kind === "Http" && check.error.status === 404 ? t.myWatch.oldTracearr : errorMessage(check.error, "tracearr")}
+        </p>
+      )}
     </section>
   );
 }
@@ -464,6 +519,9 @@ const tabs: { id: string; label: string; icon: LucideIcon; wide?: boolean; rende
     icon: Library,
     render: () => (
       <div className="flex flex-col gap-8">
+        <Section title={t.myWatch.settingsTitle} hint={t.myWatch.settingsHint}>
+          <MyPlexUser />
+        </Section>
         <Section title={t.settings.seriesDefaults} hint={t.settings.seriesDefaultsHint}>
           <SeriesDefaults />
         </Section>

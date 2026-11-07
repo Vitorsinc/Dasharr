@@ -22,6 +22,8 @@ import { posterUrl } from "@/api/arr";
 import { movieRefs } from "@/api/tracearr";
 import { MovieWatchHistory } from "@/components/watch/WatchHistory";
 import { PlexBadge } from "@/components/plex/PlexBadge";
+import { MyWatchChip } from "@/components/watch/MyWatch";
+import { useMyWatchedMovies } from "@/hooks/useMyWatched";
 import { RequestedBy } from "@/components/seerr/RequestedBy";
 import { movieItem } from "@/api/filmaffinity";
 import { radarr, type MinimumAvailability, type Movie } from "@/api/radarr";
@@ -62,6 +64,7 @@ export function MovieDetail({ movie, onClose }: { movie: Movie | null; onClose: 
   const [deletingFile, setDeletingFile] = useState(false);
   const [availability, setAvailability] = useState<MinimumAvailability>("released");
   const meta = useRadarrMeta();
+  const myWatched = useMyWatchedMovies();
   if (!movie) return null;
   const run = async (fn: () => Promise<unknown>, ok?: string) => {
     try {
@@ -128,6 +131,7 @@ export function MovieDetail({ movie, onClose }: { movie: Movie | null; onClose: 
               </Link>
             ) : null}
             <MediaTags service="radarr" value={movie.tags ?? []} onChange={(tags) => run(() => radarr.setTags(movie, tags), t.manage.tags.saved)} />
+            <MyWatchChip watch={myWatched?.get({ tmdbId: movie.tmdbId, imdbId: movie.imdbId })} />
             <MovieWatchHistory refs={movieRefs(movie)} />
             <RequestedBy type="movie" tmdbId={movie.tmdbId} />
             <PlexBadge kind="movie" ids={{ tmdbId: movie.tmdbId, imdbId: movie.imdbId }} />
