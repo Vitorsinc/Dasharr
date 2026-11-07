@@ -19,6 +19,7 @@ const defaultPorts: Record<ServiceKind, number> = {
   qbittorrent: 8080,
   tracearr: 3000,
   plex: 32400,
+  seerr: 5055,
 };
 
 function Field({ label, children, hint }: { label: string; children: React.ReactNode; hint?: string }) {
@@ -237,7 +238,7 @@ export function ServiceForm({ service, view, route }: { service: ServiceKind; vi
         ) : (
           <Field
             label={isPlex ? t.settings.plexToken : t.settings.apiKey}
-            hint={isPlex ? t.settings.plexTokenHint : isTracearr ? t.settings.tracearrApiKeyHint : t.settings.apiKeyHint}
+            hint={isPlex ? t.settings.plexTokenHint : isTracearr ? t.settings.tracearrApiKeyHint : service === "seerr" ? t.settings.seerrApiKeyHint : t.settings.apiKeyHint}
           >
             <input
               className="input font-mono"

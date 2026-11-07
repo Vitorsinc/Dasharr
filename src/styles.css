@@ -23,6 +23,7 @@
   --qbittorrent: 40 96 178;
   --prowlarr: 184 74 6;
   --plex: 133 93 0;
+  --seerr: 142 68 214;
   --success: 21 128 61;
   --warning: 180 83 9;
   --danger: 200 30 30;
@@ -42,6 +43,7 @@
   --qbittorrent: 106 165 240;
   --prowlarr: 255 138 61;
   --plex: 235 175 44;
+  --seerr: 206 150 252;
   --success: 74 222 128;
   --warning: 251 191 36;
   --danger: 248 113 113;
@@ -51,6 +53,7 @@
 [data-service="qbittorrent"] { --accent: var(--qbittorrent); }
 [data-service="prowlarr"] { --accent: var(--prowlarr); }
 [data-service="plex"] { --accent: var(--plex); }
+[data-service="seerr"] { --accent: var(--seerr); }
 
 html,
 body,

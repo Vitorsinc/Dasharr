@@ -115,9 +115,10 @@ test("Servicios se divide en una subpestaña por servicio y solo muestra el form
     "qBittorrent",
     "Tracearr",
     "Plex",
+    "Seerr",
   ]);
   expect(await screen.findByRole("region", { name: "Radarr" })).toBeInTheDocument();
-  for (const other of ["Sonarr", "Prowlarr", "Bazarr", "qBittorrent", "Tracearr", "Plex"])
+  for (const other of ["Sonarr", "Prowlarr", "Bazarr", "qBittorrent", "Tracearr", "Plex", "Seerr"])
     expect(screen.queryByRole("region", { name: other })).not.toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Importar desde archivo" })).toBeInTheDocument();
   await userEvent.click(within(services).getByRole("link", { name: "Bazarr" }));

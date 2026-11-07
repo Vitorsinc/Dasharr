@@ -19,6 +19,7 @@ import bazarrLogo from "@/assets/services/bazarr.svg";
 import qbittorrentLogo from "@/assets/services/qbittorrent.svg";
 import tracearrLogo from "@/assets/services/tracearr.svg";
 import plexLogo from "@/assets/services/plex.svg";
+import seerrLogo from "@/assets/services/seerr.svg";
 import { useConnectionStates } from "@/hooks/useConnectionStates";
 import { faClearQueue } from "@/api/filmaffinity";
 import { RATING_SOURCES, usePrefs, type RatingSource, type Theme } from "@/hooks/usePrefs";
@@ -407,6 +408,7 @@ const serviceLogos: Record<ServiceKind, string> = {
   qbittorrent: qbittorrentLogo,
   tracearr: tracearrLogo,
   plex: plexLogo,
+  seerr: seerrLogo,
 };
 
 const serviceTabs = SERVICE_KINDS.map((s) => ({ id: s, label: t.services[s], logo: serviceLogos[s] }));
