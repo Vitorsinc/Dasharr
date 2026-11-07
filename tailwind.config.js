@@ -16,6 +16,7 @@ export default {
         "accent-fg": "rgb(var(--accent-fg) / <alpha-value>)",
         radarr: "rgb(var(--radarr) / <alpha-value>)",
         sonarr: "rgb(var(--sonarr) / <alpha-value>)",
+        plex: "rgb(var(--plex) / <alpha-value>)",
         success: "rgb(var(--success) / <alpha-value>)",
         warning: "rgb(var(--warning) / <alpha-value>)",
         danger: "rgb(var(--danger) / <alpha-value>)",

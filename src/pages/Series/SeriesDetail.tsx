@@ -24,7 +24,9 @@ import { DeleteMediaDialog } from "@/components/media/DeleteMediaDialog";
 import { RenameDialog } from "./RenameDialog";
 import { useEpisodeFiles, useEpisodes, useSonarrMeta } from "@/hooks/useArr";
 import { useMediaHistory } from "@/hooks/useTracearr";
-import { episodeKey, playsByEpisode, showRefs, type Play } from "@/api/tracearr";
+import { episodeKey, playsByEpisode, showRefs, type MyWatch, type Play } from "@/api/tracearr";
+import { EpisodeWatchMark, MyWatchChip } from "@/components/watch/MyWatch";
+import { useMyWatchedEpisodes, useMyWatchedShows } from "@/hooks/useMyWatched";
 import { EpisodeViewersButton, PlayList, SeriesWatchSummary } from "@/components/watch/WatchHistory";
 import { t } from "@/i18n/es";
 import { errorMessage } from "@/lib/errors";
@@ -39,6 +41,7 @@ function SeasonBlock({
   run,
   onManual,
   watch,
+  mine,
   files,
   onDeleteFile,
 }: {
@@ -49,6 +52,8 @@ function SeasonBlock({
   onDeleteFile: (file: EpisodeFile, what: string) => void;
   /** Reproducciones de Tracearr por episodio (`"1x3"`); undefined sin Tracearr. */
   watch?: Map<string, Play[]>;
+  /** Episodios que has visto tú (`"1x3"`); undefined si no has elegido tu usuario de Plex. */
+  mine?: Map<string, MyWatch>;
   run: (fn: () => Promise<unknown>, ok?: string) => void;
   onManual: (q: ReleaseQuery, what: string) => void;
 }) {
@@ -56,6 +61,7 @@ function SeasonBlock({
   const [openEp, setOpenEp] = useState<number | null>(null);
   const have = episodes.filter((e) => e.hasFile).length;
   const aired = episodes.filter((e) => episodeStatus(e) !== "unaired").length;
+  const seen = mine ? episodes.filter((e) => mine.get(episodeKey(e.seasonNumber, e.episodeNumber))?.state === "watched").length : 0;
   const seasonMonitored = series.seasons?.find((x) => x.seasonNumber === season)?.monitored ?? episodes.some((e) => e.monitored);
   return (
     <div className="card overflow-hidden">
@@ -69,6 +75,11 @@ function SeasonBlock({
           <ChevronDown className={cn("h-4 w-4 transition-transform", open && "rotate-180")} />
           <span className="font-medium">{t.library.season(season)}</span>
           <span className="text-xs text-muted">{t.library.episodes(have, episodes.length)}</span>
+          {seen > 0 && (
+            <span className="chip bg-plex/15 text-plex" title={t.myWatch.episodes(seen, episodes.length)}>
+              {t.myWatch.seasonSeen(seen, episodes.length)}
+            </span>
+          )}
         </button>
         <div className="w-28">
           <ProgressBar value={aired ? have / aired : 0} tone={have >= aired && aired > 0 ? "success" : "accent"} />
@@ -95,6 +106,7 @@ function SeasonBlock({
                     onToggle={() => run(() => sonarr.setEpisodesMonitored([e.id], !e.monitored))}
                   />
                   <EpisodeMark status={st} number={e.episodeNumber} />
+                  {mine && <EpisodeWatchMark watch={mine.get(episodeKey(e.seasonNumber, e.episodeNumber))} />}
                   <span className="min-w-0 flex-1 truncate">{e.title}</span>
                   {file && (
                     <span className="flex shrink-0 items-center gap-1 text-xs text-muted" title={file.relativePath}>
@@ -157,6 +169,12 @@ export function SeriesDetail({ series, onClose }: { series: Series | null; onClo
   const [deleting, setDeleting] = useState<{ file: EpisodeFile; what: string } | null>(null);
   const watchQ = useMediaHistory(series ? showRefs(series) : []);
   const watch = useMemo(() => (watchQ.data && !watchQ.data.notFound ? playsByEpisode(watchQ.data.plays) : undefined), [watchQ.data]);
+  const myShows = useMyWatchedShows();
+  const myEpisodes = useMyWatchedEpisodes(!!series);
+  const ids = series ? { tvdbId: series.tvdbId, tmdbId: series.tmdbId, imdbId: series.imdbId } : undefined;
+  const myShow = ids ? myShows?.get(ids) : undefined;
+  // Con tu usuario elegido, una serie que no has empezado da un mapa vacío (todo sin ver), no "sin datos".
+  const mine = myEpisodes && ids ? (myEpisodes.forShow(ids) ?? new Map<string, MyWatch>()) : undefined;
   const seasons = useMemo(() => {
     const map = new Map<number, Episode[]>();
     for (const e of episodes.data ?? []) map.set(e.seasonNumber, [...(map.get(e.seasonNumber) ?? []), e]);
@@ -206,6 +224,7 @@ export function SeriesDetail({ series, onClose }: { series: Series | null; onClo
                   ))}
                 </select>
               </label>
+              <MyWatchChip watch={myShow} />
               {series.overview && <p className="line-clamp-5 text-sm leading-relaxed text-muted">{series.overview}</p>}
               <PlexBadge kind="show" ids={{ tvdbId: series.tvdbId, tmdbId: series.tmdbId, imdbId: series.imdbId }} />
               <RequestedBy type="tv" tmdbId={series.tmdbId} />
@@ -271,6 +290,7 @@ export function SeriesDetail({ series, onClose }: { series: Series | null; onClo
                   episodes={eps}
                   run={run}
                   watch={watch}
+                  mine={mine}
                   files={files}
                   onDeleteFile={(file, what) => setDeleting({ file, what })}
                   onManual={(query, what) => setManual({ query, what })}

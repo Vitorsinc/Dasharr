@@ -9,7 +9,19 @@ import { LibraryToolbar } from "@/components/media/LibraryToolbar";
 import { PosterCard, PosterGrid } from "@/components/media/PosterCard";
 import { QueueList } from "@/components/media/QueueList";
 import { usePersistedSort } from "@/hooks/usePersistedSort";
-import { fetchOrder, filterSort, isAvailable, isLibSort, libState, SERIES_SOURCES, type LibFilter, type LibSort } from "@/components/media/library";
+import {
+  fetchOrder,
+  filterSort,
+  isAvailable,
+  isLibSort,
+  libState,
+  matchesWatch,
+  SERIES_SOURCES,
+  type LibFilter,
+  type LibSort,
+  type WatchFilter,
+} from "@/components/media/library";
+import { useMyWatchedShows } from "@/hooks/useMyWatched";
 import { arrScores, visibleScores } from "@/components/media/RatingBadges";
 import { posterUrl, type ReleaseQuery, type WantedKind } from "@/api/arr";
 import { WantedList } from "@/components/media/WantedList";
@@ -50,6 +62,8 @@ export default function SeriesPage({ kind = "series" }: { kind?: SeriesKind }) {
   const [manual, setManual] = useState<{ query: ReleaseQuery; what: string } | null>(null);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<LibFilter>("all");
+  const [watchFilter, setWatchFilter] = useState<WatchFilter>("all");
+  const myWatched = useMyWatchedShows();
   const [sort, setSort] = usePersistedSort<LibSort>(kind, "title", isLibSort);
   const [tag, setTag] = useState<number | null>(null);
   const tags = useTags("sonarr");
@@ -108,10 +122,11 @@ export default function SeriesPage({ kind = "series" }: { kind?: SeriesKind }) {
         base.map((s) => ({
           ...s,
           scores: visibleScores({ ...arrScores({ tvdb: s.ratings }), filmaffinity: ratings[faKey(seriesItem(s))]?.rating ?? undefined }, hiddenRatings),
+          watch: myWatched?.get({ tvdbId: s.tvdbId, tmdbId: s.tmdbId, imdbId: s.imdbId }),
         })),
         { query, filter, tag: activeTag, sort: activeSort },
-      ),
-    [base, ratings, hiddenRatings, query, filter, activeTag, activeSort],
+      ).filter((s) => !myWatched || matchesWatch(s.watch?.state, watchFilter)),
+    [base, ratings, hiddenRatings, query, filter, activeTag, activeSort, myWatched, watchFilter],
   );
   const existing = useMemo(() => new Set((series.data ?? []).map((s) => s.tvdbId)), [series.data]);
   const selected = series.data?.find((s) => s.id === selectedId) ?? null;
@@ -211,6 +226,8 @@ export default function SeriesPage({ kind = "series" }: { kind?: SeriesKind }) {
             onTag={setTag}
             selecting={selecting}
             onSelecting={(v) => (v ? setSelecting(true) : exitSelection())}
+            watch={myWatched ? watchFilter : undefined}
+            onWatch={setWatchFilter}
           />
           {series.isLoading || series.configured === undefined ? (
             <Loading />
@@ -228,6 +245,7 @@ export default function SeriesPage({ kind = "series" }: { kind?: SeriesKind }) {
                   poster={posterUrl("sonarr", s)}
                   state={libState(s)}
                   scores={s.scores}
+                  watch={s.watch}
                   selected={selecting ? picked.has(s.id) : undefined}
                   onClick={() => (selecting ? togglePick(s.id) : setSelectedId(s.id))}
                 />

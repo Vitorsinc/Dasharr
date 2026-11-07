@@ -10,7 +10,19 @@ import { PosterCard, PosterGrid } from "@/components/media/PosterCard";
 import { QueueList } from "@/components/media/QueueList";
 import { ReleaseSearchDialog } from "@/components/media/ReleaseSearchDialog";
 import { usePersistedSort } from "@/hooks/usePersistedSort";
-import { fetchOrder, filterSort, isAvailable, isLibSort, libState, MOVIE_SOURCES, type LibFilter, type LibSort } from "@/components/media/library";
+import {
+  fetchOrder,
+  filterSort,
+  isAvailable,
+  isLibSort,
+  libState,
+  matchesWatch,
+  MOVIE_SOURCES,
+  type LibFilter,
+  type LibSort,
+  type WatchFilter,
+} from "@/components/media/library";
+import { useMyWatchedMovies } from "@/hooks/useMyWatched";
 import { arrScores, visibleScores } from "@/components/media/RatingBadges";
 import { posterUrl, type WantedKind } from "@/api/arr";
 import { WantedList } from "@/components/media/WantedList";
@@ -41,6 +53,8 @@ export default function MoviesPage() {
   const wanted = useRadarrWanted(wantedKind, tab === "wanted");
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<LibFilter>("all");
+  const [watchFilter, setWatchFilter] = useState<WatchFilter>("all");
+  const myWatched = useMyWatchedMovies();
   const [sort, setSort] = usePersistedSort<LibSort>("movies", "title", isLibSort);
   const [tag, setTag] = useState<number | null>(null);
   const tags = useTags("radarr");
@@ -84,10 +98,11 @@ export default function MoviesPage() {
         base.map((m) => ({
           ...m,
           scores: visibleScores({ ...arrScores(m.ratings), filmaffinity: ratings[faKey(movieItem(m))]?.rating ?? undefined }, hiddenRatings),
+          watch: myWatched?.get({ tmdbId: m.tmdbId, imdbId: m.imdbId }),
         })),
         { query, filter, tag: activeTag, sort: activeSort },
-      ),
-    [base, ratings, hiddenRatings, query, filter, activeTag, activeSort],
+      ).filter((m) => !myWatched || matchesWatch(m.watch?.state, watchFilter)),
+    [base, ratings, hiddenRatings, query, filter, activeTag, activeSort, myWatched, watchFilter],
   );
   const existing = useMemo(() => new Set((movies.data ?? []).map((m) => m.tmdbId)), [movies.data]);
   const selected = movies.data?.find((m) => m.id === selectedId) ?? null;
@@ -185,6 +200,8 @@ export default function MoviesPage() {
             onTag={setTag}
             selecting={selecting}
             onSelecting={(v) => (v ? setSelecting(true) : exitSelection())}
+            watch={myWatched ? watchFilter : undefined}
+            onWatch={setWatchFilter}
           />
           {movies.isLoading || movies.configured === undefined ? (
             <Loading />
@@ -202,6 +219,7 @@ export default function MoviesPage() {
                   poster={posterUrl("radarr", m)}
                   state={libState(m)}
                   scores={m.scores}
+                  watch={m.watch}
                   selected={selecting ? picked.has(m.id) : undefined}
                   onClick={() => (selecting ? togglePick(m.id) : setSelectedId(m.id))}
                 />
