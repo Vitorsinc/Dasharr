@@ -206,7 +206,8 @@ test("muestra la nota de FilmAffinity en la lista y en la ficha", async () => {
   await userEvent.click(screen.getByRole("button", { name: "Dune" }));
   const link = await screen.findByRole("link", { name: /7,3/ });
   expect(link).toHaveAttribute("href", "https://www.filmaffinity.com/es/film1.html");
-  expect(link).toHaveTextContent("52.310 votos");
+  expect(link).toHaveTextContent("52 mil");
+  expect(screen.getByTitle("52.310 votos")).toBeInTheDocument();
 });
 
 test("la ficha muestra también las notas que trae Radarr", async () => {
@@ -227,7 +228,8 @@ test("la ficha muestra también las notas que trae Radarr", async () => {
   const d = within(await screen.findByRole("dialog", { name: "Dune (2021)" }));
   expect(await d.findByText("IMDb")).toBeInTheDocument();
   expect(d.getByText("8,1")).toBeInTheDocument();
-  expect(d.getByText("920.000 votos")).toBeInTheDocument();
+  expect(d.getByText("920 mil")).toBeInTheDocument();
+  expect(d.getByTitle("920.000 votos")).toBeInTheDocument();
   expect(d.getByText("7,8")).toBeInTheDocument();
   expect(d.getByText("92 %")).toBeInTheDocument();
   expect(d.queryByText("Metacritic")).not.toBeInTheDocument();

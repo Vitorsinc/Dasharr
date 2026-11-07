@@ -771,6 +771,11 @@ export const es = {
     more: "Más información",
     count: (n: number) => (n === 1 ? "1 aviso" : `${n} avisos`),
   },
+  detail: {
+    ratings: "Valoraciones",
+    runtime: "Duración",
+    seriesStatus: { continuing: "En emisión", ended: "Finalizada", upcoming: "Próximamente", deleted: "Retirada" } as Record<string, string>,
+  },
   arrRatings: {
     imdb: "IMDb",
     tmdb: "TMDb",
