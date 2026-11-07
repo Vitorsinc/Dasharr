@@ -444,3 +444,19 @@ Seerr (seerr-team/seerr, sucesor de Overseerr y Jellyseerr). Puerto por defecto 
 - Descubrir: `GET /search?query&page`, `/discover/trending`, `/discover/movies`, `/discover/tv`, `/discover/movies/upcoming`, `/discover/tv/upcoming`. Pósters: `https://image.tmdb.org/t/p/w342{posterPath}`.
 - Servidores para opciones avanzadas: `GET /service/radarr|sonarr` y `/service/radarr|sonarr/{id}` (perfiles y carpetas).
 - Usuarios y cupos: `GET /user?sort=requests`, `GET /user/{id}/quota`. Incidencias: `GET /issue?filter=open|resolved|all`, `POST /issue/{id}/resolved|open`, `POST /issue/{id}/comment`, `DELETE /issue/{id}`.
+
+## 15. Radarr: colecciones
+
+Verificado con el código de Radarr (`src/Radarr.Api.V3/Collections`, rama develop, 07/11/2026).
+
+| Qué | Llamada |
+|---|---|
+| Listar (con sus películas) | `GET /api/v3/collection` (opcional `?tmdbId=`) |
+| Guardar ajustes de una | `PUT /api/v3/collection/{id}` con el recurso entero (`monitored`, `qualityProfileId`, `rootFolderPath`, `minimumAvailability`, `searchOnAdd`, `tags`); las `movies` se ignoran |
+| Monitorizar las películas de la colección | `PUT /api/v3/collection` con `{ collectionIds, monitorMovies }` |
+| Añadir ya las que faltan de una monitorizada | comando `RefreshCollections` con `collectionIds` |
+| Añadir una película suelta | `POST /api/v3/movie` con `title`, `tmdbId`, `year`, perfil, carpeta, `minimumAvailability` y `addOptions: { searchForMovie, addMethod: "collection" }` |
+
+- Cada película trae `isExisting` (ya en la biblioteca) e `isExcluded` (en exclusiones). `missingMovies` cuenta solo las que no existen ni están excluidas.
+- Las imágenes de la colección y de sus películas solo traen `remoteUrl` de TMDb: no usar `/mediacover/{id}` (ese id es de película, no de colección).
+- `GET /movie` trae `collection: { title, tmdbId }` en cada película.

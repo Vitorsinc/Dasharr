@@ -19,6 +19,9 @@ También se puede lanzar a mano en Actions → Release → «Run workflow» indi
 - Incidencias de Seerr (resolver, reabrir, comentar, borrar) y usuarios con sus cupos.
 - Inicio enseña las solicitudes pendientes de Seerr para aprobarlas o rechazarlas de un vistazo.
 - La ficha de cada película, serie o anime dice quién la pidió en Seerr, cuándo y qué temporadas.
+- Radarr → Colecciones: todas las sagas con su póster y cuántas películas tienes de cada una; filtro por incompletas, completas o monitorizadas.
+- En cada colección: qué películas tienes (descargadas o no), cuáles faltan y cuáles están excluidas; añadir una o todas las que faltan, monitorizar la colección para que Radarr las añada solo, y elegir perfil, carpeta, disponibilidad mínima y si busca al añadir.
+- La ficha de una película enlaza con su colección.
 
 ## [0.2.1] - 2026-10-31
 

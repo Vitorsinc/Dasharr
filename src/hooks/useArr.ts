@@ -8,6 +8,8 @@ export const useRadarrQueue = (enabled = true) =>
   useServiceQuery("radarr", ["queue"], radarr.getQueue, { refetchInterval: REFRESH.queue, enabled });
 export const useRadarrWanted = (kind: WantedKind, enabled = true) =>
   useServiceQuery("radarr", ["wanted", kind], () => radarr.getWanted(kind), { refetchInterval: REFRESH.library, enabled });
+export const useCollections = () =>
+  useServiceQuery("radarr", ["collections"], radarr.getCollections, { refetchInterval: REFRESH.library });
 export const useRadarrMeta = () => ({
   profiles: useServiceQuery("radarr", ["profiles"], radarr.getQualityProfiles, { staleTime: REFRESH.library }),
   roots: useServiceQuery("radarr", ["roots"], radarr.getRootFolders, { staleTime: REFRESH.library }),

@@ -4,6 +4,7 @@ import { Layout } from "@/components/Layout";
 import { RouteError } from "@/components/RouteError";
 import HomePage from "@/pages/Home";
 import MoviesPage from "@/pages/Movies";
+import CollectionsPage from "@/pages/Collections";
 import SeriesPage from "@/pages/Series";
 import DownloadsPage from "@/pages/Downloads";
 import SearchPage from "@/pages/Search";
@@ -36,6 +37,7 @@ export const routes: RouteObject[] = [
         children: [
           { path: "/", element: <HomePage /> },
           { path: "/peliculas", element: <MoviesPage /> },
+          { path: "/colecciones", element: <CollectionsPage /> },
           { path: "/series", element: <SeriesPage key="series" kind="series" /> },
           { path: "/anime", element: <SeriesPage key="anime" kind="anime" /> },
           { path: "/descargas", element: <DownloadsPage /> },

@@ -12,6 +12,7 @@ import {
   History,
   Home,
   Inbox,
+  Library,
   MonitorPlay,
   Radar,
   Search,
@@ -57,6 +58,7 @@ const groups: { service: ServiceKind; logo: string; items: NavItem[] }[] = [
     logo: radarrLogo,
     items: [
       { to: "/peliculas", label: t.nav.movies, icon: Clapperboard },
+      { to: "/colecciones", label: t.nav.collections, icon: Library },
       { to: "/actividad/radarr", label: t.activity.nav, icon: Activity, ariaLabel: `${t.activity.nav} · ${t.services.radarr}` },
     ],
   },
