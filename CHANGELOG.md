@@ -26,6 +26,7 @@ También se puede lanzar a mano en Actions → Release → «Run workflow» indi
 ## [0.2.1] - 2026-10-31
 
 ### Cambiado
+- Actividad (Historial y Bloqueadas): cada entrada ocupa una sola línea, más compacta.
 - La gestión de Radarr y Sonarr (perfiles, formatos, etiquetas, carpetas, retrasos, listas y exclusiones) pasa a Ajustes → Servicios, dentro de cada servicio junto a su conexión. Los enlaces antiguos de «Gestión» redirigen a la nueva ubicación.
 - Ajustes → Servicios tiene ahora una subpestaña por servicio, con su logo.
 
