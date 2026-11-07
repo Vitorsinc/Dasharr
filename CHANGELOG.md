@@ -12,6 +12,8 @@ También se puede lanzar a mano en Actions → Release → «Run workflow» indi
 
 ## [Sin publicar]
 
+## [0.3.0] - 2026-11-07
+
 ### Añadido
 - Seerr (sucesor de Overseerr/Jellyseerr) como servicio nuevo, con dirección local/externa y API key en Ajustes.
 - Seerr → Solicitudes: pendientes, aprobadas, en proceso, disponibles y fallidas, con aprobar, rechazar, reintentar y borrar; filtro por tipo y por usuario.
