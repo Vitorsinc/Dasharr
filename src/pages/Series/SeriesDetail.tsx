@@ -6,6 +6,7 @@ import { ConfirmDialog, Dialog } from "@/components/Dialog";
 import { ArrRatings } from "@/components/media/ArrRatings";
 import { FaInfo } from "@/components/media/FilmAffinity";
 import { Poster } from "@/components/media/PosterCard";
+import { FactSection } from "@/components/media/DetailFacts";
 import { ReleaseSearchDialog } from "@/components/media/ReleaseSearchDialog";
 import { SearchChoice } from "@/components/media/SearchChoice";
 import { EpisodeMark } from "@/components/media/EpisodeMark";
@@ -180,13 +181,30 @@ export function SeriesDetail({ series, onClose }: { series: Series | null; onClo
       <Dialog open onOpenChange={(o) => !o && onClose()} title={series.title} wide>
         <div className="flex flex-col gap-6">
           <div className="flex gap-6">
-            <Poster src={posterUrl("sonarr", series)} title={series.title} className="w-40 shrink-0" />
+            <aside className="flex w-48 shrink-0 flex-col gap-5">
+              <Poster src={posterUrl("sonarr", series)} title={series.title} className="w-full" />
+              <FactSection title={t.detail.ratings}>
+                <FaInfo item={seriesItem(series)} list />
+                <ArrRatings ratings={{ tvdb: series.ratings }} list />
+              </FactSection>
+              {series.genres?.length ? (
+                <div className="flex flex-wrap gap-1.5">
+                  {series.genres.map((g) => (
+                    <span key={g} className="chip bg-surface-2 text-muted">
+                      {g}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+            </aside>
             <div className="flex min-w-0 flex-1 flex-col gap-4">
               <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted">
                 <span>{series.year}</span>
                 {series.network && <span>{series.network}</span>}
+                {series.status && <span>{t.detail.seriesStatus[series.status] ?? series.status}</span>}
                 {st && <span>{t.library.episodes(st.episodeFileCount, st.episodeCount)}</span>}
                 {st?.sizeOnDisk ? <span>{formatBytes(st.sizeOnDisk)}</span> : null}
+                {series.runtime ? <span>{t.library.runtime(series.runtime)}</span> : null}
                 <span>{series.monitored ? t.library.monitoredLabel : t.library.unmonitoredLabel}</span>
               </div>
               <label className="flex items-center gap-2 text-sm">
@@ -206,14 +224,10 @@ export function SeriesDetail({ series, onClose }: { series: Series | null; onClo
                   ))}
                 </select>
               </label>
-              {series.overview && <p className="line-clamp-5 text-sm leading-relaxed text-muted">{series.overview}</p>}
+              {series.overview && <p className="text-sm leading-relaxed text-muted">{series.overview}</p>}
               <PlexBadge kind="show" ids={{ tvdbId: series.tvdbId, tmdbId: series.tmdbId, imdbId: series.imdbId }} />
               <RequestedBy type="tv" tmdbId={series.tmdbId} />
               <MediaTags service="sonarr" value={series.tags ?? []} onChange={(tags) => run(() => sonarr.setTags(series, tags), t.manage.tags.saved)} />
-              <div className="flex flex-wrap gap-x-8 gap-y-3">
-                <FaInfo item={seriesItem(series)} />
-                <ArrRatings ratings={{ tvdb: series.ratings }} />
-              </div>
               <div className="mt-auto flex flex-wrap gap-2">
                 <button className="btn-primary" onClick={() => run(() => sonarr.searchSeries(series.id), t.library.searchStarted)}>
                   <Search className="h-4 w-4" /> {t.library.searchNow}

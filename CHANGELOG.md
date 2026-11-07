@@ -12,6 +12,9 @@ También se puede lanzar a mano en Actions → Release → «Run workflow» indi
 
 ## [Sin publicar]
 
+### Cambiado
+- Ficha de película y serie reorganizada: las valoraciones (FilmAffinity, IMDb, TMDb, Rotten Tomatoes…) y los géneros pasan a la columna del póster, y los datos (estado, calidad, tamaño, duración, estrenos) quedan en una sola franja; la ficha cabe sin scroll en más pantallas. La serie muestra también si sigue en emisión y la duración de los episodios.
+
 ## [0.3.0] - 2026-11-07
 
 ### Añadido

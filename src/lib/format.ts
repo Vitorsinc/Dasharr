@@ -67,6 +67,13 @@ export function formatRating(n: number): string {
   return nfRating.format(n);
 }
 
+const nfCompact = new Intl.NumberFormat("es-ES", { notation: "compact", maximumSignificantDigits: 2 });
+
+/** Número corto para sitios estrechos: 812345 → «810 mil». */
+export function formatCountShort(n: number): string {
+  return nfCompact.format(n);
+}
+
 export function formatCount(n: number): string {
   return nfInt.format(n);
 }

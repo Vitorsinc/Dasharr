@@ -21,6 +21,8 @@ export interface Series {
   monitored: boolean;
   status?: string;
   network?: string;
+  /** Duración típica de un episodio, en minutos. */
+  runtime?: number;
   added?: string;
   tvdbId: number;
   tmdbId?: number;
