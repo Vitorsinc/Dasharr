@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use dasharr_core::plex::{self, PlexAccount, PlexServer, PlexUser};
-use dasharr_core::unit3d::{self, TrackerStats};
+use dasharr_core::unit3d::{self, TrackerDeals, TrackerStats, Unit3dSource};
 use dasharr_core::{ApiError, ApiRequest, FetchedTorrent, Route, ServiceClient, ServiceConfig, ServiceKind, ServiceSecrets};
 use serde::Serialize;
 use serde_json::Value;
@@ -140,19 +140,53 @@ pub struct PlexLogin {
     servers: Vec<PlexServer>,
 }
 
+/// Trackers UNIT3D de Prowlarr con su token. Se leen en cada llamada y no salen del backend.
+async fn unit3d_sources(state: &AppState) -> Result<Vec<Unit3dSource>, ApiError> {
+    let prowlarr = state.registry.get(ServiceKind::Prowlarr).await.ok_or(ApiError::NotConfigured)?;
+    let indexers = prowlarr.request(ApiRequest::get("/api/v1/indexer")).await?.body;
+    Ok(unit3d::unit3d_sources(&indexers))
+}
+
 /// Estadísticas del usuario en los trackers UNIT3D configurados en Prowlarr. Los tokens se leen de Prowlarr en cada
 /// llamada y no salen de aquí.
 #[tauri::command]
 pub async fn unit3d_stats(state: State<'_, AppState>) -> Result<Vec<TrackerStats>, ApiError> {
-    let prowlarr = state.registry.get(ServiceKind::Prowlarr).await.ok_or(ApiError::NotConfigured)?;
-    let indexers = prowlarr.request(ApiRequest::get("/api/v1/indexer")).await?.body;
     let http = unit3d::http_client();
     let mut tasks = tokio::task::JoinSet::new();
-    for src in unit3d::unit3d_sources(&indexers) {
+    for src in unit3d_sources(&state).await? {
         let http = http.clone();
         tasks.spawn(async move { unit3d::fetch_stats(&http, &src).await });
     }
     let mut out: Vec<TrackerStats> = tasks.join_all().await;
     out.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
     Ok(out)
+}
+
+/// Torrents en freeleech o con doble subida de cada tracker UNIT3D de Prowlarr.
+#[tauri::command]
+pub async fn unit3d_deals(state: State<'_, AppState>) -> Result<Vec<TrackerDeals>, ApiError> {
+    let http = unit3d::http_client();
+    let mut tasks = tokio::task::JoinSet::new();
+    for src in unit3d_sources(&state).await? {
+        let http = http.clone();
+        tasks.spawn(async move { unit3d::fetch_deals(&http, &src).await });
+    }
+    let mut out: Vec<TrackerDeals> = tasks.join_all().await;
+    out.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+    Ok(out)
+}
+
+/// Baja el .torrent de un torrent de un tracker UNIT3D para subirlo a qBittorrent.
+#[tauri::command]
+pub async fn unit3d_fetch_torrent(state: State<'_, AppState>, indexer_id: i64, torrent_id: i64) -> Result<FetchedTorrent, ApiError> {
+    let src = unit3d_sources(&state)
+        .await?
+        .into_iter()
+        .find(|s| s.indexer_id == indexer_id)
+        .ok_or(ApiError::Http { status: 404, message: "ese tracker ya no está en Prowlarr".into() })?;
+    let result = unit3d::fetch_torrent_file(&unit3d::http_client(), &src, torrent_id).await;
+    if let Err(e) = &result {
+        log::error!("unit3d {}: descargar torrent {torrent_id} -> {e}", src.name);
+    }
+    result
 }

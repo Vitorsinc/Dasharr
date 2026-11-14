@@ -31,6 +31,7 @@ import { errorMessage } from "@/lib/errors";
 import { formatDate } from "@/lib/format";
 import { faKey, seriesItem } from "@/api/filmaffinity";
 import { sonarr, type MonitorOption, type Series, type SeriesType } from "@/api/sonarr";
+import { deleteWithTorrents } from "@/api/mediaTorrents";
 import { useSeries, useSonarrMeta, useSonarrQueue, useSonarrWanted } from "@/hooks/useArr";
 import { usePrefs } from "@/hooks/usePrefs";
 import { useFaRatings } from "@/hooks/useFilmAffinity";
@@ -260,12 +261,21 @@ export default function SeriesPage({ kind = "series" }: { kind?: SeriesKind }) {
               profiles={meta.profiles.data ?? []}
               rootFolders={meta.roots.data ?? []}
               exclusionLabel={t.library.addExclusion}
+              selectedIds={[...picked]}
               onSelectAll={() => setPicked(new Set(items.map((s) => s.id)))}
               onClear={() => setPicked(new Set())}
               onExit={exitSelection}
               onApply={(e) => run(() => sonarr.editSeries([...picked], e), t.bulk.applied(picked.size))}
               onDelete={async (o) => {
-                const ok = await run(() => sonarr.deleteSeriesBulk([...picked], o), t.bulk.deleted(picked.size));
+                const ids = [...picked];
+                const ok = await run(
+                  async () => {
+                    const n = await deleteWithTorrents("sonarr", ids, o, () => sonarr.deleteSeriesBulk(ids, o));
+                    if (o.deleteTorrents) toast.success(t.library.torrentsDeleted(n));
+                  },
+                  t.bulk.deleted(ids.length),
+                  [["sonarr"], ["qbittorrent"]],
+                );
                 if (ok) setPicked(new Set());
                 return ok;
               }}

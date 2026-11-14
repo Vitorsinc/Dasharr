@@ -25,6 +25,7 @@ import { cn } from "@/lib/cn";
 import { useItemDetail } from "@/pages/Calendar";
 import { NowWatching } from "@/components/NowWatching";
 import { HealthList } from "@/components/HealthList";
+import { DuplicatesNotice } from "@/components/DuplicatesNotice";
 import { HEALTH_SERVICES } from "@/api/health";
 import { RecentlyAdded } from "@/components/plex/RecentlyAdded";
 import { PendingRequests } from "@/components/seerr/PendingRequests";
@@ -235,6 +236,7 @@ export default function HomePage() {
         ))}
       </section>
       <HealthList services={HEALTH_SERVICES} hideWhenOk />
+      <DuplicatesNotice />
       <PendingRequests />
       <NowWatching title={t.home.nowPlaying} hideWhenEmpty />
       <ActiveDownloads />

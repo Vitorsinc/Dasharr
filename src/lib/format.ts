@@ -31,6 +31,27 @@ export function formatEta(seconds: number | null | undefined): string {
   return `${m} min`;
 }
 
+/** Duración larga (tiempo sembrando): sin el tope de "infinito" de `formatEta`. */
+export function formatDuration(seconds: number | null | undefined): string {
+  if (seconds == null || seconds < 0) return "—";
+  const d = Math.floor(seconds / 86400);
+  const h = Math.floor((seconds % 86400) / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  if (d > 0) return `${d} d ${h} h`;
+  if (h > 0) return `${h} h ${m} min`;
+  return `${m} min`;
+}
+
+/** Solo el dominio del tracker: la URL de anuncio de los privados lleva la passkey. */
+export function trackerHost(url: string | null | undefined): string | null {
+  if (!url) return null;
+  try {
+    return new URL(url).hostname || null;
+  } catch {
+    return null;
+  }
+}
+
 export function formatPercent(fraction: number): string {
   return `${nf1.format(Math.max(0, Math.min(1, fraction)) * 100)} %`;
 }
