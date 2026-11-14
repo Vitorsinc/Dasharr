@@ -21,6 +21,16 @@ export interface Torrent {
   /** Motivo del error (qBittorrent 5.3+). */
   error?: string;
   save_path?: string;
+  /** Tracker que está funcionando ahora (vacío si ninguno). */
+  tracker?: string;
+  /** Segundos sembrando desde que se completó. */
+  seeding_time?: number;
+  /** Límites efectivos (los del torrent o, si no tiene, los globales): ratio y minutos sembrando; -1 = sin límite. */
+  max_ratio?: number;
+  max_seeding_time?: number;
+  /** Semillas y pares de todo el enjambre (según el tracker), no solo los conectados. */
+  num_complete?: number;
+  num_incomplete?: number;
   /** Límites de velocidad en bytes/s; 0 o -1 = sin límite. */
   dl_limit?: number;
   up_limit?: number;

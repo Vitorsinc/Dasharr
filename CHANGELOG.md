@@ -12,6 +12,9 @@ También se puede lanzar a mano en Actions → Release → «Run workflow» indi
 
 ## [Sin publicar]
 
+### Añadido
+- Nueva página «Duplicados» (en qBittorrent): encuentra las películas y series con varios torrents porque Radarr o Sonarr bajaron después una versión mejor (idioma, calidad o puntuación), marca cuál está en uso y cuáles sobran, y deja borrar los sobrantes con sus archivos. Enseña tracker, tamaño, ratio, tiempo sembrado, semillas/pares y avisa si alguno aún no ha cumplido el seed.
+
 ## [0.3.1] - 2026-11-07
 
 ### Añadido

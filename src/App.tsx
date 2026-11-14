@@ -7,6 +7,7 @@ import MoviesPage from "@/pages/Movies";
 import CollectionsPage from "@/pages/Collections";
 import SeriesPage from "@/pages/Series";
 import DownloadsPage from "@/pages/Downloads";
+import DuplicatesPage from "@/pages/Duplicates";
 import SearchPage from "@/pages/Search";
 import SubtitlesPage from "@/pages/Subtitles";
 import CalendarPage from "@/pages/Calendar";
@@ -41,6 +42,7 @@ export const routes: RouteObject[] = [
           { path: "/series", element: <SeriesPage key="series" kind="series" /> },
           { path: "/anime", element: <SeriesPage key="anime" kind="anime" /> },
           { path: "/descargas", element: <DownloadsPage /> },
+          { path: "/duplicados", element: <DuplicatesPage /> },
           { path: "/buscar", element: <SearchPage /> },
           { path: "/subtitulos", element: <SubtitlesPage /> },
           { path: "/calendario", element: <CalendarPage /> },

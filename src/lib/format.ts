@@ -77,3 +77,13 @@ export function formatCountShort(n: number): string {
 export function formatCount(n: number): string {
   return nfInt.format(n);
 }
+
+/** Duración corta para tiempos largos ("45 min", "7 h", "3 d 4 h", "120 d"). */
+export function formatDuration(seconds: number | null | undefined): string {
+  if (seconds == null || !Number.isFinite(seconds) || seconds < 0) return "—";
+  if (seconds < 3600) return `${Math.max(seconds > 0 ? 1 : 0, Math.round(seconds / 60))} min`;
+  if (seconds < 86400) return `${Math.round(seconds / 3600)} h`;
+  const d = Math.floor(seconds / 86400);
+  const h = Math.floor((seconds % 86400) / 3600);
+  return d < 10 && h > 0 ? `${d} d ${h} h` : `${d} d`;
+}

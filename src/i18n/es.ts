@@ -6,6 +6,7 @@ export const es = {
     series: "Series",
     anime: "Anime",
     downloads: "Descargas",
+    duplicates: "Duplicados",
     search: "Buscar",
     subtitles: "Subtítulos",
     calendar: "Calendario",
@@ -117,7 +118,8 @@ export const es = {
     importHint: "Puedes borrar el archivo después de importarlo: las claves quedan guardadas en el Administrador de credenciales.",
     seriesDefaults: "Series y anime",
     ratings: "Notas",
-    ratingsHint: "Qué notas se muestran en las fichas. FilmAffinity también sale sobre los pósters; si la quitas, Dasharr deja de consultarla.",
+    ratingsHint:
+      "Qué notas se muestran en las fichas. FilmAffinity también sale sobre los pósters; si la quitas, Dasharr deja de consultarla.",
     seriesDefaultsHint: "Carpeta y perfil de calidad de Sonarr con los que se añade cada tipo. Puedes cambiarlos al añadir.",
     movieDefaults: "Películas",
     movieDefaultsHint: "Carpeta y perfil de calidad de Radarr con los que se añaden las películas. Puedes cambiarlos al añadir.",
@@ -181,6 +183,53 @@ export const es = {
     limitsChanged: "Límites guardados",
     noLimit: "Sin límite",
     apply: "Aplicar",
+  },
+  duplicates: {
+    title: "Descargas duplicadas",
+    hint: "Películas y series con más de un torrent en qBittorrent. Los sobrantes son descargas que Radarr o Sonarr ya reemplazaron por otra (mejor idioma, calidad o puntuación): no se usan en la biblioteca y solo siguen sembrando y ocupando disco.",
+    refresh: "Volver a buscar",
+    all: "Todo",
+    movies: "Películas",
+    series: "Series",
+    leftovers: "Torrents sobrantes",
+    space: "Espacio que liberas",
+    stillSeeding: "Sin cumplir el seed",
+    stillSeedingHint: "Aún no han llegado al ratio ni al tiempo de siembra que tienen puesto en qBittorrent.",
+    role: { current: "En uso", leftover: "Sobrante", pending: "Sin importar" },
+    roleHint: {
+      current: "De aquí sale el archivo que tienes ahora en la biblioteca.",
+      leftover: "Ya se importó otra descarga para todo lo que trae.",
+      pending: "Aún no se ha importado (puede que se esté bajando o esperando).",
+    },
+    frees: (size: string) => `libera ${size}`,
+    selectReady: "Seleccionar los que ya cumplieron",
+    selectAllLeftovers: "Seleccionar todos los sobrantes",
+    selected: (n: number, size: string) => `${n} seleccionados · ${size}`,
+    deleteSelected: "Borrar seleccionados",
+    deleteOne: (name: string) => `Borrar ${name}`,
+    deleteTitle: (n: number) => (n === 1 ? "Borrar torrent sobrante" : `Borrar ${n} torrents sobrantes`),
+    deleteMessage: (size: string) =>
+      `Se quitarán de qBittorrent junto con sus archivos descargados (${size}). La biblioteca no se toca: Radarr y Sonarr usan la otra descarga.`,
+    deleteWarning: (n: number) =>
+      n === 1
+        ? "Uno aún no ha cumplido el tiempo o ratio de siembra. Si el tracker lo exige, podrías llevarte un H&R."
+        : `${n} aún no han cumplido el tiempo o ratio de siembra. Si el tracker lo exige, podrías llevarte un H&R.`,
+    deleted: (n: number) => (n === 1 ? "Torrent sobrante borrado" : `${n} torrents sobrantes borrados`),
+    ratio: "Ratio",
+    seeded: "Sembrado",
+    peers: "Semillas / pares",
+    size: "Tamaño",
+    goalMet: "Seed cumplido",
+    goalLeft: (left: string) => `Faltan ${left}`,
+    goalRatio: (ratio: string) => `Ratio mínimo ${ratio}`,
+    goalTitle: (parts: string) => `Objetivo de siembra en qBittorrent: ${parts}`,
+    imported: (date: string) => `importado ${date}`,
+    grabbed: (date: string) => `bajado ${date}`,
+    none: "No hay descargas duplicadas: cada película y episodio tiene un solo torrent en qBittorrent.",
+    noneFilter: "No hay duplicados de este tipo.",
+    needsArr: "Hace falta Radarr o Sonarr configurado para saber qué torrent es de qué película o serie.",
+    partial: (service: string) => `No se pudo leer el historial de ${service}: sus duplicados no aparecen.`,
+    open: (name: string) => `Ver detalles de ${name}`,
   },
   torrent: {
     general: "General",
@@ -546,8 +595,8 @@ export const es = {
       empty: "No hay formatos personalizados.",
       errors: {
         "invalid-json": "El texto no es un JSON válido.",
-        "missing-name": "Falta el nombre (\"name\").",
-        "missing-specs": "Faltan las condiciones (\"specifications\" con su \"implementation\").",
+        "missing-name": 'Falta el nombre ("name").',
+        "missing-specs": 'Faltan las condiciones ("specifications" con su "implementation").',
       } as Record<string, string>,
     },
     roots: {
@@ -774,7 +823,10 @@ export const es = {
   detail: {
     ratings: "Valoraciones",
     runtime: "Duración",
-    seriesStatus: { continuing: "En emisión", ended: "Finalizada", upcoming: "Próximamente", deleted: "Retirada" } as Record<string, string>,
+    seriesStatus: { continuing: "En emisión", ended: "Finalizada", upcoming: "Próximamente", deleted: "Retirada" } as Record<
+      string,
+      string
+    >,
   },
   arrRatings: {
     imdb: "IMDb",
@@ -842,7 +894,8 @@ export const es = {
     failed: (msg: string) => `No se pudo actualizar: ${msg}`,
     checkFailed: (msg: string) => `No se pudo comprobar si hay actualizaciones: ${msg}`,
     auto: "Instalar las actualizaciones automáticamente",
-    autoHint: "Dasharr mira si hay versión nueva al abrirse y cada 6 horas. Antes de instalarla te avisa unos segundos por si prefieres dejarlo para más tarde.",
+    autoHint:
+      "Dasharr mira si hay versión nueva al abrirse y cada 6 horas. Antes de instalarla te avisa unos segundos por si prefieres dejarlo para más tarde.",
     newVersion: (v: string) => `Nueva versión disponible: v${v}`,
     notes: "Novedades",
     sidebar: (v: string) => `Actualizar a v${v}`,
@@ -1207,8 +1260,7 @@ export const es = {
     issueFilters: { open: "Abiertas", resolved: "Resueltas", all: "Todas" },
     issueType: { 1: "Vídeo", 2: "Audio", 3: "Subtítulos", 4: "Otro" } as Record<number, string>,
     issueStatus: { 1: "Abierta", 2: "Resuelta" } as Record<number, string>,
-    issueWhere: (season?: number, episode?: number) =>
-      season ? (episode ? `T${season} · E${episode}` : `Temporada ${season}`) : "",
+    issueWhere: (season?: number, episode?: number) => (season ? (episode ? `T${season} · E${episode}` : `Temporada ${season}`) : ""),
     issuesEmpty: "No hay incidencias con este filtro.",
     resolve: "Marcar resuelta",
     reopen: "Reabrir",

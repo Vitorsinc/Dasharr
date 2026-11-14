@@ -101,6 +101,8 @@ export interface HistoryRecord {
   eventType: string;
   date: string;
   sourceTitle: string;
+  /** Id de la descarga en el cliente: en qBittorrent, el hash del torrent (en mayúsculas). */
+  downloadId?: string;
   quality?: { quality?: { name?: string } };
   data?: Record<string, string | undefined>;
   movieId?: number;
