@@ -35,6 +35,7 @@ export function BulkEditBar({
   profiles,
   rootFolders,
   exclusionLabel,
+  selectedIds,
   onSelectAll,
   onClear,
   onExit,
@@ -48,6 +49,8 @@ export function BulkEditBar({
   profiles: QualityProfile[];
   rootFolders: RootFolder[];
   exclusionLabel?: string;
+  /** Lo seleccionado, para enseñar sus torrents al borrar. */
+  selectedIds?: number[];
   onSelectAll: () => void;
   onClear: () => void;
   onExit: () => void;
@@ -197,6 +200,7 @@ export function BulkEditBar({
         title={t.bulk.deleteTitle(count)}
         message={t.bulk.deleteMessage(count)}
         exclusionLabel={exclusionLabel}
+        lookup={selectedIds && { service, ids: selectedIds }}
         onConfirm={(o) => void onDelete(o)}
       />
     </>

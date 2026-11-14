@@ -1,8 +1,8 @@
 import { apiRequest } from "@/lib/tauri";
 import type { DeleteOptions, HistoryRecord } from "./arr";
-import { qbit } from "./qbit";
+import { qbit, type Torrent } from "./qbit";
 
-type LibraryService = "radarr" | "sonarr";
+export type LibraryService = "radarr" | "sonarr";
 
 /**
  * Hashes de los torrents que el *arr descargó para estas películas o series: el `downloadId` de su
@@ -28,11 +28,14 @@ export async function historyDownloadIds(service: LibraryService, ids: number[])
   return out;
 }
 
-/** De esos ids, los que siguen en qBittorrent (las descargas de usenet u otros clientes se quedan fuera). */
-export async function torrentsInQbit(ids: Set<string>): Promise<string[]> {
+/** De esos ids, los torrents que siguen en qBittorrent (las descargas de usenet u otros clientes se quedan fuera). */
+export async function torrentsInQbit(ids: Set<string>): Promise<Torrent[]> {
   if (ids.size === 0) return [];
-  return (await qbit.getTorrents()).map((t) => t.hash.toLowerCase()).filter((h) => ids.has(h));
+  return (await qbit.getTorrents()).filter((t) => ids.has(t.hash.toLowerCase()));
 }
+
+/** Torrents de qBittorrent que el *arr descargó para estas películas o series. */
+export const findTorrents = async (service: LibraryService, ids: number[]) => torrentsInQbit(await historyDownloadIds(service, ids));
 
 /**
  * Quita películas o series de la biblioteca y, si se pide, también sus torrents de qBittorrent con
@@ -45,7 +48,8 @@ export async function deleteWithTorrents(
   o: DeleteOptions,
   deleteMedia: () => Promise<unknown>,
 ): Promise<number> {
-  const hashes = o.deleteTorrents ? await torrentsInQbit(await historyDownloadIds(service, ids)) : [];
+  // El diálogo ya los buscó para enseñarlos; si no llegó a tiempo, se buscan ahora.
+  const hashes = !o.deleteTorrents ? [] : (o.torrentHashes ?? (await findTorrents(service, ids)).map((t) => t.hash));
   await deleteMedia();
   if (hashes.length) await qbit.remove(hashes, true);
   return hashes.length;

@@ -235,6 +235,7 @@ export default function MoviesPage() {
               profiles={meta.profiles.data ?? []}
               rootFolders={meta.roots.data ?? []}
               exclusionLabel={t.library.addExclusion}
+              selectedIds={[...picked]}
               onSelectAll={() => setPicked(new Set(items.map((m) => m.id)))}
               onClear={() => setPicked(new Set())}
               onExit={exitSelection}

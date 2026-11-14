@@ -84,7 +84,24 @@ test("borrar película: también quita su torrent de qBittorrent si se marca", a
         return [];
       },
       qbittorrent: (req) => {
-        if (req.path === "/api/v2/torrents/info") return [{ hash: "abc" }, { hash: "otro" }];
+        if (req.path === "/api/v2/torrents/info")
+          return [
+            {
+              hash: "abc",
+              name: "Dune.2021.1080p",
+              size: 8 * 1024 ** 3,
+              progress: 1,
+              state: "uploading",
+              tracker: "https://tracker.ejemplo.org/announce/PASSKEY",
+              seeding_time: 3 * 86400 + 2 * 3600,
+              ratio: 1.5,
+              num_seeds: 3,
+              num_complete: 40,
+              num_leechs: 1,
+              num_incomplete: 2,
+            },
+            { hash: "otro" },
+          ];
         if (req.path === "/api/v2/torrents/delete") removed.push(Object.fromEntries(req.body.value));
         return [];
       },
@@ -93,6 +110,12 @@ test("borrar película: también quita su torrent de qBittorrent si se marca", a
   const dialog = await openDune();
   await userEvent.click(within(dialog).getByRole("button", { name: "Borrar" }));
   const confirm = await screen.findByRole("dialog", { name: "Borrar película" });
+  expect(await within(confirm).findByText("Dune.2021.1080p")).toBeInTheDocument();
+  expect(within(confirm).getByText("tracker.ejemplo.org")).toBeInTheDocument();
+  expect(within(confirm).queryByText(/PASSKEY/)).toBeNull();
+  expect(within(confirm).getByText("3 d 2 h")).toBeInTheDocument();
+  expect(within(confirm).getByText("1,50")).toBeInTheDocument();
+  expect(within(confirm).getByText("3 (de 40)")).toBeInTheDocument();
   await userEvent.click(within(confirm).getByRole("checkbox", { name: /Quitar también el torrent/ }));
   await userEvent.click(within(confirm).getByRole("button", { name: "Borrar" }));
   await vi.waitFor(() => expect(removed).toEqual([{ hashes: "abc", deleteFiles: "true" }]));

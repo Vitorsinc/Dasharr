@@ -131,6 +131,8 @@ export interface DeleteOptions {
   addExclusion: boolean;
   /** Quitar también de qBittorrent los torrents que descargó, con sus archivos. */
   deleteTorrents?: boolean;
+  /** Hashes ya encontrados (los que se enseñaron en el diálogo). */
+  torrentHashes?: string[];
 }
 
 export interface HealthItem {

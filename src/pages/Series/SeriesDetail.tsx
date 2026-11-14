@@ -356,6 +356,7 @@ export function SeriesDetail({ series, onClose }: { series: Series | null; onClo
         title={t.library.deleteSeries}
         message={t.library.deleteMessage(series.title)}
         exclusionLabel={t.library.addExclusion}
+        lookup={{ service: "sonarr", ids: [series.id] }}
         onConfirm={(o) =>
           run(async () => {
             const n = await deleteWithTorrents("sonarr", [series.id], o, () => sonarr.deleteSeries(series.id, o));

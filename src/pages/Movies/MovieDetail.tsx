@@ -242,6 +242,7 @@ export function MovieDetail({ movie, onClose }: { movie: Movie | null; onClose: 
         title={t.library.deleteMovie}
         message={t.library.deleteMessage(movie.title)}
         exclusionLabel={t.library.addExclusion}
+        lookup={{ service: "radarr", ids: [movie.id] }}
         onConfirm={(o) =>
           run(async () => {
             const n = await deleteWithTorrents("radarr", [movie.id], o, () => radarr.deleteMovie(movie.id, o));

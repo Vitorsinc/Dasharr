@@ -283,6 +283,12 @@ export const es = {
     addExclusion: "Añadir a las exclusiones (las listas de importación no la volverán a añadir)",
     deleteTorrents: "Quitar también el torrent de qBittorrent y lo descargado",
     deleteTorrentsHint: "Busca en el historial de Radarr/Sonarr los torrents que descargó y los borra de qBittorrent con sus archivos.",
+    torrentsLooking: "Buscando sus torrents en qBittorrent…",
+    torrentsLookupFailed: "No se pudo consultar qBittorrent. Si lo marcas, se volverá a intentar al borrar.",
+    torrentsNone: "No queda ningún torrent suyo en qBittorrent.",
+    torrentsFound: (n: number) => (n === 1 ? "1 torrent en qBittorrent" : `${n} torrents en qBittorrent`),
+    seedTime: "Sembrado",
+    leechers: "Leechers",
     torrentsDeleted: (n: number) =>
       n === 0 ? "No quedaba ningún torrent suyo en qBittorrent" : n === 1 ? "Quitado 1 torrent de qBittorrent" : `Quitados ${n} torrents de qBittorrent`,
     quality: "Calidad",
