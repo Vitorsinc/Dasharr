@@ -34,6 +34,8 @@ export interface Prefs {
   watchUserId: string | null;
   /** Al borrar una película o serie, quitar también sus torrents de qBittorrent (se recuerda la última elección). */
   deleteTorrents: boolean;
+  /** Días mínimos de siembra que exige cada tracker (por su dominio), para avisar antes de borrar un torrent. */
+  seedMinDays: Record<string, number>;
 }
 
 const KEY = "dasharr.prefs";
@@ -51,6 +53,7 @@ const DEFAULTS: Prefs = {
   sorts: {},
   watchUserId: null,
   deleteTorrents: false,
+  seedMinDays: {},
 };
 const listeners = new Set<() => void>();
 let cache: Prefs | null = null;
@@ -62,6 +65,7 @@ function read(): Prefs {
     cache = { ...DEFAULTS, ...stored };
     // Un valor corrupto no debe romper las pantallas que leen el orden.
     if (!cache!.sorts || typeof cache!.sorts !== "object" || Array.isArray(cache!.sorts)) cache!.sorts = {};
+    if (!cache!.seedMinDays || typeof cache!.seedMinDays !== "object" || Array.isArray(cache!.seedMinDays)) cache!.seedMinDays = {};
   } catch {
     cache = DEFAULTS;
   }

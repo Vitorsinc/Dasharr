@@ -7,6 +7,7 @@ import {
   ChevronDown,
   Clapperboard,
   Compass,
+  CopyMinus,
   Download,
   Gauge,
   History,
@@ -71,7 +72,14 @@ const groups: { service: ServiceKind; logo: string; items: NavItem[] }[] = [
       { to: "/actividad/sonarr", label: t.activity.nav, icon: Activity, ariaLabel: `${t.activity.nav} · ${t.services.sonarr}` },
     ],
   },
-  { service: "qbittorrent", logo: qbittorrentLogo, items: [{ to: "/descargas", label: t.nav.downloads, icon: Download }] },
+  {
+    service: "qbittorrent",
+    logo: qbittorrentLogo,
+    items: [
+      { to: "/descargas", label: t.nav.downloads, icon: Download },
+      { to: "/duplicados", label: t.nav.duplicates, icon: CopyMinus },
+    ],
+  },
   {
     service: "prowlarr",
     logo: prowlarrLogo,

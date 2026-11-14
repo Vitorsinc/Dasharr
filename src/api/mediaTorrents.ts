@@ -39,7 +39,7 @@ export const findTorrents = async (service: LibraryService, ids: number[]) => to
 
 /**
  * Quita películas o series de la biblioteca y, si se pide, también sus torrents de qBittorrent con
- * los archivos descargados. Los torrents se buscan antes de borrar; si qBittorrent no responde no
+ * los archivos descargados (salvo los que comparte otro torrent que se queda). Los torrents se buscan antes de borrar; si qBittorrent no responde no
  * se borra nada, para poder reintentar. Devuelve cuántos torrents se quitaron.
  */
 export async function deleteWithTorrents(
@@ -51,6 +51,7 @@ export async function deleteWithTorrents(
   // El diálogo ya los buscó para enseñarlos; si no llegó a tiempo, se buscan ahora.
   const hashes = !o.deleteTorrents ? [] : (o.torrentHashes ?? (await findTorrents(service, ids)).map((t) => t.hash));
   await deleteMedia();
-  if (hashes.length) await qbit.remove(hashes, true);
+  // Sin romper el cross-seed: si otro torrent que se queda usa los mismos archivos, se dejan.
+  if (hashes.length) await qbit.removeWithFiles(hashes);
   return hashes.length;
 }
