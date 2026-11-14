@@ -101,6 +101,8 @@ export interface HistoryRecord {
   eventType: string;
   date: string;
   sourceTitle: string;
+  /** Id de la descarga en el cliente: en qBittorrent, el hash del torrent (en mayúsculas). */
+  downloadId?: string;
   quality?: { quality?: { name?: string } };
   data?: Record<string, string | undefined>;
   movieId?: number;
@@ -127,6 +129,10 @@ export interface DeleteOptions {
   deleteFiles: boolean;
   /** Añadir a las exclusiones de las listas de importación para que no se vuelva a añadir sola. */
   addExclusion: boolean;
+  /** Quitar también de qBittorrent los torrents que descargó, con sus archivos. */
+  deleteTorrents?: boolean;
+  /** Hashes ya encontrados (los que se enseñaron en el diálogo). */
+  torrentHashes?: string[];
 }
 
 export interface HealthItem {

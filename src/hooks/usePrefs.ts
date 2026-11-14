@@ -32,6 +32,8 @@ export interface Prefs {
   sorts: Record<string, unknown>;
   /** Persona de Tracearr que eres tú (tu usuario de Plex): marca en el catálogo lo que ya has visto. */
   watchUserId: string | null;
+  /** Al borrar una película o serie, quitar también sus torrents de qBittorrent (se recuerda la última elección). */
+  deleteTorrents: boolean;
 }
 
 const KEY = "dasharr.prefs";
@@ -48,6 +50,7 @@ const DEFAULTS: Prefs = {
   autoUpdate: true,
   sorts: {},
   watchUserId: null,
+  deleteTorrents: false,
 };
 const listeners = new Set<() => void>();
 let cache: Prefs | null = null;

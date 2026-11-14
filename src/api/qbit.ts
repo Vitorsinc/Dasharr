@@ -21,6 +21,14 @@ export interface Torrent {
   /** Motivo del error (qBittorrent 5.3+). */
   error?: string;
   save_path?: string;
+  /** Tracker que está funcionando ahora (URL de anuncio: puede llevar la passkey, no mostrarla entera). */
+  tracker?: string;
+  /** Segundos sembrando en total. */
+  seeding_time?: number;
+  /** Semillas y pares de todo el enjambre según el tracker (`num_seeds`/`num_leechs` son los conectados). */
+  num_complete?: number;
+  num_incomplete?: number;
+  uploaded?: number;
   /** Límites de velocidad en bytes/s; 0 o -1 = sin límite. */
   dl_limit?: number;
   up_limit?: number;

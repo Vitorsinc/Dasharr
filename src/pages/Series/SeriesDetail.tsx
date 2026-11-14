@@ -18,6 +18,7 @@ import { PlexBadge } from "@/components/plex/PlexBadge";
 import { RequestedBy } from "@/components/seerr/RequestedBy";
 import { seriesItem } from "@/api/filmaffinity";
 import { episodeStatus, sonarr, type Episode, type EpisodeFile, type MonitorChange, type Series, type SeriesType } from "@/api/sonarr";
+import { deleteWithTorrents } from "@/api/mediaTorrents";
 import { ArrHistory } from "@/components/media/ArrHistory";
 import { EditMediaDialog } from "@/components/media/EditMediaDialog";
 import { MediaTags } from "@/components/media/TagPicker";
@@ -355,7 +356,17 @@ export function SeriesDetail({ series, onClose }: { series: Series | null; onClo
         title={t.library.deleteSeries}
         message={t.library.deleteMessage(series.title)}
         exclusionLabel={t.library.addExclusion}
-        onConfirm={(o) => run(() => sonarr.deleteSeries(series.id, o).then(onClose))}
+        lookup={{ service: "sonarr", ids: [series.id] }}
+        onConfirm={(o) =>
+          run(async () => {
+            const n = await deleteWithTorrents("sonarr", [series.id], o, () => sonarr.deleteSeries(series.id, o));
+            if (o.deleteTorrents) {
+              toast.success(t.library.torrentsDeleted(n));
+              void qc.invalidateQueries({ queryKey: ["qbittorrent"] });
+            }
+            onClose();
+          })
+        }
       />
     </>
   );
