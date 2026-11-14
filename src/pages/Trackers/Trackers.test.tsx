@@ -31,7 +31,7 @@ const stats: TrackerStats[] = [
 test("muestra las estadísticas y los trackers sin API", async () => {
   mockBackend({ commands: { unit3d_stats: () => stats, unit3d_deals: () => [] } });
   renderApp("/trackers");
-  const card = await screen.findByRole("article", { name: "Aither (API)" });
+  const card = await screen.findByRole("button", { name: "Aither (API)" });
   expect(card).toHaveTextContent("Power User");
   expect(card).toHaveTextContent("2,5");
   expect(card).toHaveTextContent("1,3 TB");
@@ -73,12 +73,31 @@ const deal = (id: number, name: string, freeleech: number, doubleUpload: boolean
   detailsUrl: `https://aither.cc/torrents/${id}`,
 });
 
+const twoTrackers: TrackerStats[] = [stats[0], { ...stats[0], indexerId: 3, name: "Blutopia", siteUrl: "https://blutopia.cc/" }];
 const deals: TrackerDeals[] = [
   { indexerId: 1, name: "Aither (API)", status: "ok", message: null, torrents: [deal(1, "Matrix 1999", 100, false, 5), deal(2, "Dune 2021", 0, true, 50)] },
-  { indexerId: 2, name: "Otro", status: "unsupported", message: "no", torrents: [] },
+  { indexerId: 3, name: "Blutopia", status: "ok", message: null, torrents: [deal(5, "Arrival 2016", 50, false, 9)] },
 ];
 
-test("lista freeleech y doble subida, filtra y manda a qBittorrent", async () => {
+test("el freeleech va por tracker: se elige pulsando su tarjeta", async () => {
+  mockBackend({ commands: { unit3d_stats: () => twoTrackers, unit3d_deals: () => deals } });
+  renderApp("/trackers");
+  const aither = await screen.findByRole("button", { name: "Aither (API)" });
+  expect(aither).toHaveAttribute("aria-pressed", "true");
+  expect(await within(aither).findByLabelText("2 en freeleech o ×2")).toHaveTextContent("2");
+  const section = await screen.findByRole("region", { name: "Freeleech y doble subida" });
+  expect(await within(section).findByRole("listitem", { name: "Matrix 1999" })).toHaveTextContent("Freeleech");
+  expect(within(section).queryByRole("listitem", { name: "Arrival 2016" })).not.toBeInTheDocument();
+
+  await userEvent.click(screen.getByRole("button", { name: "Blutopia" }));
+  expect(screen.getByRole("button", { name: "Blutopia" })).toHaveAttribute("aria-pressed", "true");
+  const now = screen.getByRole("region", { name: "Freeleech y doble subida" });
+  expect(now).toHaveTextContent("Blutopia");
+  expect(within(now).getByRole("listitem", { name: "Arrival 2016" })).toHaveTextContent("Freeleech 50%");
+  expect(within(now).queryByRole("listitem", { name: "Matrix 1999" })).not.toBeInTheDocument();
+});
+
+test("filtra por tipo y manda a qBittorrent", async () => {
   const added: unknown[] = [];
   const mock = mockBackend({
     commands: {
@@ -98,10 +117,7 @@ test("lista freeleech y doble subida, filtra y manda a qBittorrent", async () =>
   });
   renderApp("/trackers");
   const section = await screen.findByRole("region", { name: "Freeleech y doble subida" });
-  expect(await within(section).findByRole("listitem", { name: "Matrix 1999" })).toHaveTextContent("Freeleech");
-  expect(within(section).getByRole("listitem", { name: "Dune 2021" })).toHaveTextContent("×2 subida");
-  expect(section).toHaveTextContent("Sin datos de: Otro");
-
+  expect(await within(section).findByRole("listitem", { name: "Dune 2021" })).toHaveTextContent("×2 subida");
   await userEvent.click(within(section).getByRole("tab", { name: "Doble subida" }));
   expect(within(section).queryByRole("listitem", { name: "Matrix 1999" })).not.toBeInTheDocument();
 

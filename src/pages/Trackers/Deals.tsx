@@ -12,7 +12,7 @@ import { openExternal } from "@/lib/tauri";
 
 type Kind = "all" | "free" | "double";
 type Sort = "newest" | "seeders" | "size";
-type Row = TrackerDeal & { indexerId: number; tracker: string };
+type Row = TrackerDeal & { indexerId: number };
 
 const PAGE = 40;
 
@@ -53,13 +53,7 @@ function DealRow({ d, sending, onSend }: { d: Row; sending: boolean; onSend: () 
         </div>
         <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-muted">
           <Badges d={d} />
-          <span className="truncate">{d.tracker}</span>
-          {details && (
-            <>
-              <span aria-hidden>·</span>
-              <span className="truncate">{details}</span>
-            </>
-          )}
+          {details && <span className="truncate">{details}</span>}
         </div>
       </div>
       <div className="hidden w-20 text-right text-xs tabular-nums text-muted sm:block">{formatBytes(d.size)}</div>
@@ -95,23 +89,17 @@ function DealRow({ d, sending, onSend }: { d: Row; sending: boolean; onSend: () 
   );
 }
 
-/** Lista de torrents en freeleech o con doble subida de todos los trackers, con botón para mandarlos a qBittorrent. */
-export function Deals({ list, loading }: { list: TrackerDeals[]; loading: boolean }) {
+/** Torrents en freeleech o con doble subida del tracker elegido arriba, con botón para mandarlos a qBittorrent. */
+export function Deals({ tracker, loading }: { tracker: TrackerDeals | undefined; loading: boolean }) {
   const qbitCategories = useCategories();
   const [kind, setKind] = useState<Kind>("all");
   const [sort, setSort] = useState<Sort>("newest");
-  const [tracker, setTracker] = useState<number | "">("");
   const [qbCategory, setQbCategory] = useState("");
   const [shown, setShown] = useState(PAGE);
   const [sending, setSending] = useState<string | null>(null);
 
-  const withData = list.filter((x) => x.status === "ok");
-  const failed = list.filter((x) => x.status !== "ok");
-  const all: Row[] = withData.flatMap((x) => x.torrents.map((d) => ({ ...d, indexerId: x.indexerId, tracker: x.name })));
-  const rows = sortRows(
-    all.filter((d) => (tracker === "" || d.indexerId === tracker) && (kind === "all" || (kind === "free" ? d.freeleech > 0 : d.doubleUpload))),
-    sort,
-  );
+  const all: Row[] = tracker?.status === "ok" ? tracker.torrents.map((d) => ({ ...d, indexerId: tracker.indexerId })) : [];
+  const rows = sortRows(all.filter((d) => kind === "all" || (kind === "free" ? d.freeleech > 0 : d.doubleUpload)), sort);
 
   async function send(d: Row) {
     const key = `${d.indexerId}:${d.id}`;
@@ -126,11 +114,14 @@ export function Deals({ list, loading }: { list: TrackerDeals[]; loading: boolea
     }
   }
 
-  if (!list.length && !loading) return null;
+  if (!tracker && !loading) return null;
   return (
     <section className="flex flex-col gap-3" aria-label={t.trackers.deals.title}>
       <div>
-        <h2 className="text-lg font-semibold">{t.trackers.deals.title}</h2>
+        <h2 className="text-lg font-semibold">
+          {t.trackers.deals.title}
+          {tracker && <span className="text-muted"> · {tracker.name}</span>}
+        </h2>
         <p className="text-sm text-muted">{t.trackers.deals.hint}</p>
       </div>
       {loading ? (
@@ -153,24 +144,6 @@ export function Deals({ list, loading }: { list: TrackerDeals[]; loading: boolea
                 { value: "double", label: t.trackers.deals.double },
               ]}
             />
-            {withData.length > 1 && (
-              <select
-                className="input w-auto"
-                value={tracker}
-                onChange={(e) => {
-                  setTracker(e.target.value ? Number(e.target.value) : "");
-                  setShown(PAGE);
-                }}
-                aria-label={t.trackers.deals.tracker}
-              >
-                <option value="">{t.trackers.deals.allTrackers}</option>
-                {withData.map((x) => (
-                  <option key={x.indexerId} value={x.indexerId}>
-                    {x.name}
-                  </option>
-                ))}
-              </select>
-            )}
             <select className="input w-auto" value={sort} onChange={(e) => setSort(e.target.value as Sort)} aria-label={t.trackers.deals.sort}>
               <option value="newest">{t.trackers.deals.newest}</option>
               <option value="seeders">{t.trackers.deals.seeders}</option>
@@ -187,7 +160,11 @@ export function Deals({ list, loading }: { list: TrackerDeals[]; loading: boolea
             </label>
             <span className="ml-auto">{t.trackers.deals.count(rows.length)}</span>
           </div>
-          {rows.length === 0 ? (
+          {tracker && tracker.status !== "ok" ? (
+            <div className="card">
+              <Empty>{t.trackers.deals.failed(tracker.message ?? t.trackers.status[tracker.status])}</Empty>
+            </div>
+          ) : rows.length === 0 ? (
             <div className="card">
               <Empty>{t.trackers.deals.none}</Empty>
             </div>
@@ -207,11 +184,6 @@ export function Deals({ list, loading }: { list: TrackerDeals[]; loading: boolea
             <button type="button" className="btn-outline self-center" onClick={() => setShown((n) => n + PAGE)}>
               {t.trackers.deals.more(Math.min(PAGE, rows.length - shown))}
             </button>
-          )}
-          {failed.length > 0 && (
-            <p className="text-xs text-muted" title={failed.map((x) => `${x.name}: ${x.message ?? ""}`).join("\n")}>
-              {t.trackers.deals.failed(failed.map((x) => x.name).join(", "))}
-            </p>
           )}
         </>
       )}
