@@ -12,6 +12,9 @@ También se puede lanzar a mano en Actions → Release → «Run workflow» indi
 
 ## [Sin publicar]
 
+### Añadido
+- Trackers: nueva lista «Freeleech y doble subida» con los torrents de tus trackers UNIT3D que ahora no cuentan como bajada o suben el doble. Se filtra por tipo y tracker, se ordena por fecha, semillas o tamaño, y cada torrent se manda a qBittorrent con un botón.
+
 ## [0.3.1] - 2026-11-07
 
 ### Añadido
