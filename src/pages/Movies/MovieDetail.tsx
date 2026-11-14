@@ -27,6 +27,7 @@ import { useMyWatchedMovies } from "@/hooks/useMyWatched";
 import { RequestedBy } from "@/components/seerr/RequestedBy";
 import { movieItem } from "@/api/filmaffinity";
 import { radarr, type MinimumAvailability, type Movie } from "@/api/radarr";
+import { deleteWithTorrents } from "@/api/mediaTorrents";
 import { t } from "@/i18n/es";
 import { errorMessage } from "@/lib/errors";
 import { formatBytes } from "@/lib/format";
@@ -241,7 +242,17 @@ export function MovieDetail({ movie, onClose }: { movie: Movie | null; onClose: 
         title={t.library.deleteMovie}
         message={t.library.deleteMessage(movie.title)}
         exclusionLabel={t.library.addExclusion}
-        onConfirm={(o) => run(() => radarr.deleteMovie(movie.id, o).then(onClose))}
+        lookup={{ service: "radarr", ids: [movie.id] }}
+        onConfirm={(o) =>
+          run(async () => {
+            const n = await deleteWithTorrents("radarr", [movie.id], o, () => radarr.deleteMovie(movie.id, o));
+            if (o.deleteTorrents) {
+              toast.success(t.library.torrentsDeleted(n));
+              void qc.invalidateQueries({ queryKey: ["qbittorrent"] });
+            }
+            onClose();
+          })
+        }
       />
     </>
   );

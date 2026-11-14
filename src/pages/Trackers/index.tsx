@@ -3,11 +3,12 @@ import { Page } from "@/components/Page";
 import { ErrorPanel } from "@/components/ErrorPanel";
 import { Empty, Loading, Spinner } from "@/components/ui";
 import { t } from "@/i18n/es";
-import { getTrackerStats, type TrackerStats, type TrackerStatus, type TrackerUser } from "@/api/trackers";
+import { getTrackerDeals, getTrackerStats, type TrackerStats, type TrackerStatus, type TrackerUser } from "@/api/trackers";
 import { useServiceQuery } from "@/hooks/useServiceQuery";
 import { formatBytes } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import { openExternal } from "@/lib/tauri";
+import { Deals } from "./Deals";
 
 // El límite de UNIT3D es de 30 peticiones por minuto, compartido con las búsquedas de Prowlarr.
 const REFRESH_MS = 30 * 60_000;
@@ -120,6 +121,16 @@ function Unavailable({ list }: { list: TrackerStats[] }) {
 
 export default function TrackersPage() {
   const q = useServiceQuery("prowlarr", ["unit3d"], getTrackerStats, { refetchInterval: REFRESH_MS, staleTime: REFRESH_MS / 2 });
+  const deals = useServiceQuery("prowlarr", ["unit3d", "deals"], getTrackerDeals, {
+    refetchInterval: REFRESH_MS,
+    staleTime: REFRESH_MS / 2,
+    enabled: !!q.data?.length,
+  });
+  const refresh = () => {
+    void q.refetch();
+    if (q.data?.length) void deals.refetch();
+  };
+  const fetching = q.isFetching || deals.isFetching;
   const list = q.data ?? [];
   const ok = list.filter((x): x is TrackerStats & { user: TrackerUser } => x.status === "ok" && x.user != null);
   const rest = list.filter((x) => !ok.includes(x as never));
@@ -128,8 +139,8 @@ export default function TrackersPage() {
       title={t.nav.trackers}
       actions={
         q.configured !== false && (
-          <button className="btn-outline" onClick={() => q.refetch()} disabled={q.isFetching}>
-            {q.isFetching ? <Spinner className="h-4 w-4" /> : <RefreshCw className="h-4 w-4" />}
+          <button className="btn-outline" onClick={refresh} disabled={fetching}>
+            {fetching ? <Spinner className="h-4 w-4" /> : <RefreshCw className="h-4 w-4" />}
             {t.trackers.refresh}
           </button>
         )
@@ -156,6 +167,7 @@ export default function TrackersPage() {
             </section>
           )}
           <Unavailable list={rest} />
+          <Deals list={deals.data ?? []} loading={deals.isLoading} />
         </>
       )}
     </Page>

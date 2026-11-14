@@ -105,7 +105,7 @@ test("enseña el torrent sobrante y lo borra con sus archivos", async () => {
   expect(group).toHaveTextContent("Sobrante");
   expect(group).toHaveTextContent("Dos");
   // 3 días sembrado de 7 que pide: faltan 4.
-  expect(within(group).getByText("Faltan 4 d")).toBeInTheDocument();
+  expect(within(group).getByText("Faltan 4 d 0 h")).toBeInTheDocument();
 
   await userEvent.click(within(group).getByRole("button", { name: "Borrar Dune.2021.1080p.VOSE" }));
   expect(await screen.findByText(/podrías llevarte un H&R/)).toBeInTheDocument();

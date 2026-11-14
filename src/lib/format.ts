@@ -31,6 +31,27 @@ export function formatEta(seconds: number | null | undefined): string {
   return `${m} min`;
 }
 
+/** Duración larga (tiempo sembrando): sin el tope de "infinito" de `formatEta`. */
+export function formatDuration(seconds: number | null | undefined): string {
+  if (seconds == null || seconds < 0) return "—";
+  const d = Math.floor(seconds / 86400);
+  const h = Math.floor((seconds % 86400) / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  if (d > 0) return `${d} d ${h} h`;
+  if (h > 0) return `${h} h ${m} min`;
+  return `${m} min`;
+}
+
+/** Solo el dominio del tracker: la URL de anuncio de los privados lleva la passkey. */
+export function trackerHost(url: string | null | undefined): string | null {
+  if (!url) return null;
+  try {
+    return new URL(url).hostname || null;
+  } catch {
+    return null;
+  }
+}
+
 export function formatPercent(fraction: number): string {
   return `${nf1.format(Math.max(0, Math.min(1, fraction)) * 100)} %`;
 }
@@ -76,14 +97,4 @@ export function formatCountShort(n: number): string {
 
 export function formatCount(n: number): string {
   return nfInt.format(n);
-}
-
-/** Duración corta para tiempos largos ("45 min", "7 h", "3 d 4 h", "120 d"). */
-export function formatDuration(seconds: number | null | undefined): string {
-  if (seconds == null || !Number.isFinite(seconds) || seconds < 0) return "—";
-  if (seconds < 3600) return `${Math.max(seconds > 0 ? 1 : 0, Math.round(seconds / 60))} min`;
-  if (seconds < 86400) return `${Math.round(seconds / 3600)} h`;
-  const d = Math.floor(seconds / 86400);
-  const h = Math.floor((seconds % 86400) / 3600);
-  return d < 10 && h > 0 ? `${d} d ${h} h` : `${d} d`;
 }

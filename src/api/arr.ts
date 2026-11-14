@@ -129,6 +129,10 @@ export interface DeleteOptions {
   deleteFiles: boolean;
   /** Añadir a las exclusiones de las listas de importación para que no se vuelva a añadir sola. */
   addExclusion: boolean;
+  /** Quitar también de qBittorrent los torrents que descargó, con sus archivos. */
+  deleteTorrents?: boolean;
+  /** Hashes ya encontrados (los que se enseñaron en el diálogo). */
+  torrentHashes?: string[];
 }
 
 export interface HealthItem {

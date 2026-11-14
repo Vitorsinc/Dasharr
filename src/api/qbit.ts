@@ -23,16 +23,17 @@ export interface Torrent {
   save_path?: string;
   /** Ruta de lo descargado: la carpeta del torrent o, si es un solo archivo, ese archivo. */
   content_path?: string;
-  /** Tracker que está funcionando ahora (vacío si ninguno). */
+  /** Tracker que está funcionando ahora (URL de anuncio: puede llevar la passkey, no mostrarla entera). */
   tracker?: string;
-  /** Segundos sembrando desde que se completó. */
+  /** Segundos sembrando en total. */
   seeding_time?: number;
+  /** Semillas y pares de todo el enjambre según el tracker (`num_seeds`/`num_leechs` son los conectados). */
+  num_complete?: number;
+  num_incomplete?: number;
+  uploaded?: number;
   /** Límites efectivos (los del torrent o, si no tiene, los globales): ratio y minutos sembrando; -1 = sin límite. */
   max_ratio?: number;
   max_seeding_time?: number;
-  /** Semillas y pares de todo el enjambre (según el tracker), no solo los conectados. */
-  num_complete?: number;
-  num_incomplete?: number;
   /** Límites de velocidad en bytes/s; 0 o -1 = sin límite. */
   dl_limit?: number;
   up_limit?: number;
