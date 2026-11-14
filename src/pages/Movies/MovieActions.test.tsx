@@ -115,7 +115,7 @@ test("borrar película: también quita su torrent de qBittorrent si se marca", a
   expect(within(confirm).queryByText(/PASSKEY/)).toBeNull();
   expect(within(confirm).getByText("3 d 2 h")).toBeInTheDocument();
   expect(within(confirm).getByText("1,50")).toBeInTheDocument();
-  expect(within(confirm).getByText("3 (de 40)")).toBeInTheDocument();
+  expect(within(confirm).getByText("3/40")).toBeInTheDocument();
   await userEvent.click(within(confirm).getByRole("checkbox", { name: /Quitar también el torrent/ }));
   await userEvent.click(within(confirm).getByRole("button", { name: "Borrar" }));
   await vi.waitFor(() => expect(removed).toEqual([{ hashes: "abc", deleteFiles: "true" }]));

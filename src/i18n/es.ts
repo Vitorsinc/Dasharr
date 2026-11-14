@@ -288,6 +288,7 @@ export const es = {
     torrentsNone: "No queda ningún torrent suyo en qBittorrent.",
     torrentsFound: (n: number) => (n === 1 ? "1 torrent en qBittorrent" : `${n} torrents en qBittorrent`),
     seedTime: "Sembrado",
+    swarmHint: "Conectados / total del enjambre",
     leechers: "Leechers",
     torrentsDeleted: (n: number) =>
       n === 0 ? "No quedaba ningún torrent suyo en qBittorrent" : n === 1 ? "Quitado 1 torrent de qBittorrent" : `Quitados ${n} torrents de qBittorrent`,
