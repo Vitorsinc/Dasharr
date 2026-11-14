@@ -14,7 +14,7 @@ También se puede lanzar a mano en Actions → Release → «Run workflow» indi
 
 ### Añadido
 - Al borrar una película o serie (desde su ficha o en lote) puedes quitar también sus torrents de qBittorrent con lo descargado. El diálogo enseña cada torrent con su tracker, tiempo sembrado, ratio (R), semillas (S), leechers (L) y tamaño, y puedes elegirlos uno a uno o marcar «quitar todos»; Dasharr los encuentra en el historial de Radarr/Sonarr y recuerda si dejaste la casilla marcada.
-- Trackers: nueva lista «Freeleech y doble subida» con los torrents de tus trackers UNIT3D que ahora no cuentan como bajada o suben el doble. Se filtra por tipo y tracker, se ordena por fecha, semillas o tamaño, y cada torrent se manda a qBittorrent con un botón.
+- Trackers: nueva lista «Freeleech y doble subida» con los torrents de tus trackers UNIT3D que ahora no cuentan como bajada o suben el doble. Va por tracker: pulsas la tarjeta de un tracker y debajo sale su lista (la tarjeta dice cuántos hay). Se filtra por tipo, se ordena por fecha, semillas o tamaño, y cada torrent se manda a qBittorrent con un botón.
 - Nueva página «Duplicados» (en qBittorrent): encuentra las películas y series con varios torrents porque Radarr o Sonarr bajaron después una versión mejor (idioma, calidad o puntuación), marca cuál está en uso y cuáles sobran, y deja borrar los sobrantes con sus archivos. Enseña tracker, tamaño, ratio, tiempo sembrado, semillas/pares y avisa si alguno aún no ha cumplido el seed.
 - Duplicados no rompe el cross-seed: si otro torrent siembra los mismos archivos, se quita solo el torrent y los datos se quedan.
 - Duplicados enseña también los torrents «sin dueño»: completos en qBittorrent pero sin rastro en el historial de Radarr ni Sonarr.

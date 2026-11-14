@@ -1,9 +1,10 @@
-import { ArrowDown, ArrowUp, ExternalLink, RefreshCw } from "lucide-react";
+import { useState } from "react";
+import { ArrowDown, ArrowUp, BadgePercent, ExternalLink, RefreshCw } from "lucide-react";
 import { Page } from "@/components/Page";
 import { ErrorPanel } from "@/components/ErrorPanel";
 import { Empty, Loading, Spinner } from "@/components/ui";
 import { t } from "@/i18n/es";
-import { getTrackerDeals, getTrackerStats, type TrackerStats, type TrackerStatus, type TrackerUser } from "@/api/trackers";
+import { getTrackerDeals, getTrackerStats, type TrackerDeals, type TrackerStats, type TrackerStatus, type TrackerUser } from "@/api/trackers";
 import { useServiceQuery } from "@/hooks/useServiceQuery";
 import { formatBytes } from "@/lib/format";
 import { cn } from "@/lib/cn";
@@ -53,7 +54,11 @@ function SiteLink({ tr }: { tr: TrackerStats }) {
     <button
       type="button"
       className="grid h-6 w-6 shrink-0 place-items-center rounded-md text-muted transition-colors hover:bg-surface-2 hover:text-accent focus-visible:text-accent"
-      onClick={() => void openExternal(tr.siteUrl)}
+      onClick={(e) => {
+        e.stopPropagation();
+        void openExternal(tr.siteUrl);
+      }}
+      onKeyDown={(e) => e.stopPropagation()}
       title={t.trackers.openSite}
       aria-label={`${t.trackers.openSite}: ${tr.name}`}
     >
@@ -62,10 +67,38 @@ function SiteLink({ tr }: { tr: TrackerStats }) {
   );
 }
 
-function TrackerCard({ tr }: { tr: TrackerStats & { user: TrackerUser } }) {
+function TrackerCard({
+  tr,
+  deals,
+  selected,
+  onSelect,
+}: {
+  tr: TrackerStats & { user: TrackerUser };
+  deals: TrackerDeals | undefined;
+  selected: boolean;
+  onSelect: () => void;
+}) {
   const u = tr.user;
+  const dealCount = deals?.status === "ok" ? deals.torrents.length : null;
   return (
-    <article className="card flex flex-col gap-2.5 px-3.5 py-3" aria-label={tr.name}>
+    <article
+      className={cn(
+        "card flex cursor-pointer flex-col gap-2.5 px-3.5 py-3 transition-colors hover:border-accent/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
+        selected && "border-accent ring-1 ring-accent",
+      )}
+      aria-label={tr.name}
+      role="button"
+      tabIndex={0}
+      aria-pressed={selected}
+      title={t.trackers.deals.select(tr.name)}
+      onClick={onSelect}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onSelect();
+        }
+      }}
+    >
       <header className="flex items-center justify-between gap-2">
         <div className="min-w-0">
           <div className="truncate text-sm font-semibold">{tr.name}</div>
@@ -79,14 +112,24 @@ function TrackerCard({ tr }: { tr: TrackerStats & { user: TrackerUser } }) {
         </div>
       </header>
       <div className="flex items-center gap-3 text-xs tabular-nums">
-        <span className="flex items-center gap-1" title={t.trackers.uploaded}>
+        <span className="flex items-center gap-1 whitespace-nowrap" title={t.trackers.uploaded}>
           <ArrowUp className="h-3.5 w-3.5 text-success" aria-hidden />
           {formatBytes(u.uploaded)}
         </span>
-        <span className="flex items-center gap-1" title={t.trackers.downloaded}>
+        <span className="flex items-center gap-1 whitespace-nowrap" title={t.trackers.downloaded}>
           <ArrowDown className="h-3.5 w-3.5 text-accent" aria-hidden />
           {formatBytes(u.downloaded)}
         </span>
+        {dealCount != null && (
+          <span
+            className={cn("ml-auto flex items-center gap-1 whitespace-nowrap", dealCount ? "text-success" : "text-muted")}
+            title={t.trackers.deals.onCard(dealCount)}
+            aria-label={t.trackers.deals.onCard(dealCount)}
+          >
+            <BadgePercent className="h-3.5 w-3.5" aria-hidden />
+            {dealCount}
+          </span>
+        )}
       </div>
       <div className="flex justify-between gap-3 border-t border-border pt-2">
         <Stat label={t.trackers.buffer} value={bufferLabel(u)} className={u.buffer != null && u.buffer < 0 ? "text-danger" : undefined} />
@@ -134,6 +177,10 @@ export default function TrackersPage() {
   const list = q.data ?? [];
   const ok = list.filter((x): x is TrackerStats & { user: TrackerUser } => x.status === "ok" && x.user != null);
   const rest = list.filter((x) => !ok.includes(x as never));
+  const [picked, setPicked] = useState<number | null>(null);
+  // Sin elegir, el primero; si el elegido desaparece, también.
+  const selectedId = ok.some((x) => x.indexerId === picked) ? picked : (ok[0]?.indexerId ?? null);
+  const dealsOf = (id: number | null) => deals.data?.find((d) => d.indexerId === id);
   return (
     <Page
       title={t.nav.trackers}
@@ -162,12 +209,18 @@ export default function TrackersPage() {
           {ok.length > 0 && (
             <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
               {ok.map((tr) => (
-                <TrackerCard key={tr.indexerId} tr={tr} />
+                <TrackerCard
+                  key={tr.indexerId}
+                  tr={tr}
+                  deals={dealsOf(tr.indexerId)}
+                  selected={tr.indexerId === selectedId}
+                  onSelect={() => setPicked(tr.indexerId)}
+                />
               ))}
             </section>
           )}
+          {selectedId != null && <Deals key={selectedId} tracker={dealsOf(selectedId)} loading={deals.isLoading} />}
           <Unavailable list={rest} />
-          <Deals list={deals.data ?? []} loading={deals.isLoading} />
         </>
       )}
     </Page>
