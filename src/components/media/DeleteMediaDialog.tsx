@@ -34,6 +34,8 @@ export function DeleteMediaDialog({
 }) {
   const [deleteFiles, setDeleteFiles] = useState(false);
   const [addExclusion, setAddExclusion] = useState(false);
+  /** Torrents elegidos uno a uno cuando no se marca «quitar todos». */
+  const [picked, setPicked] = useState<Set<string>>(new Set());
   const [{ deleteTorrents }, setPrefs] = usePrefs();
   const hasQbit = useIsConfigured("qbittorrent") === true;
   const torrents = useQuery({
@@ -47,6 +49,7 @@ export function DeleteMediaDialog({
     if (open) {
       setDeleteFiles(false);
       setAddExclusion(false);
+      setPicked(new Set());
     }
   }, [open]);
   return (
@@ -78,7 +81,19 @@ export function DeleteMediaDialog({
         )}
         {hasQbit && lookup && (
           <div className="pl-6">
-            <MediaTorrents q={torrents} />
+            <MediaTorrents
+              q={torrents}
+              picked={picked}
+              locked={deleteTorrents}
+              onPick={(hash, on) =>
+                setPicked((prev) => {
+                  const next = new Set(prev);
+                  if (on) next.add(hash);
+                  else next.delete(hash);
+                  return next;
+                })
+              }
+            />
           </div>
         )}
         {exclusionLabel && (
@@ -97,8 +112,8 @@ export function DeleteMediaDialog({
               onConfirm({
                 deleteFiles,
                 addExclusion: !!exclusionLabel && addExclusion,
-                deleteTorrents: hasQbit && deleteTorrents,
-                torrentHashes: torrents.data?.map((tr) => tr.hash),
+                deleteTorrents: hasQbit && (deleteTorrents || picked.size > 0),
+                torrentHashes: deleteTorrents ? torrents.data?.map((tr) => tr.hash) : [...picked],
               });
               onOpenChange(false);
             }}
