@@ -145,7 +145,9 @@ function Group({ service, logo, items }: (typeof groups)[number]) {
   const holdsActive = items.some((i) => pathname === i.to || pathname.startsWith(`${i.to}/`));
   const toggle = () =>
     setPrefs({
-      sidebarCollapsed: collapsed ? prefs.sidebarCollapsed.filter((s) => s !== service) : [...prefs.sidebarCollapsed, service],
+      sidebarCollapsed: collapsed
+        ? prefs.sidebarCollapsed.filter((s) => s !== service)
+        : [...prefs.sidebarCollapsed, service],
     });
   return (
     <div>
@@ -161,7 +163,10 @@ function Group({ service, logo, items }: (typeof groups)[number]) {
       >
         <img src={logo} alt="" className="h-4 w-4" />
         <span className="flex-1 text-left">{name}</span>
-        <ChevronDown className={cn("h-3.5 w-3.5 opacity-50 transition group-hover:opacity-100", collapsed && "-rotate-90")} aria-hidden />
+        <ChevronDown
+          className={cn("h-3.5 w-3.5 opacity-50 transition group-hover:opacity-100", collapsed && "-rotate-90")}
+          aria-hidden
+        />
       </button>
       {!collapsed && (
         <div className="mt-0.5 flex flex-col gap-0.5">

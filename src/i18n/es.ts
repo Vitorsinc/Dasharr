@@ -118,8 +118,7 @@ export const es = {
     importHint: "Puedes borrar el archivo después de importarlo: las claves quedan guardadas en el Administrador de credenciales.",
     seriesDefaults: "Series y anime",
     ratings: "Notas",
-    ratingsHint:
-      "Qué notas se muestran en las fichas. FilmAffinity también sale sobre los pósters; si la quitas, Dasharr deja de consultarla.",
+    ratingsHint: "Qué notas se muestran en las fichas. FilmAffinity también sale sobre los pósters; si la quitas, Dasharr deja de consultarla.",
     seriesDefaultsHint: "Carpeta y perfil de calidad de Sonarr con los que se añade cada tipo. Puedes cambiarlos al añadir.",
     movieDefaults: "Películas",
     movieDefaultsHint: "Carpeta y perfil de calidad de Radarr con los que se añaden las películas. Puedes cambiarlos al añadir.",
@@ -595,8 +594,8 @@ export const es = {
       empty: "No hay formatos personalizados.",
       errors: {
         "invalid-json": "El texto no es un JSON válido.",
-        "missing-name": 'Falta el nombre ("name").',
-        "missing-specs": 'Faltan las condiciones ("specifications" con su "implementation").',
+        "missing-name": "Falta el nombre (\"name\").",
+        "missing-specs": "Faltan las condiciones (\"specifications\" con su \"implementation\").",
       } as Record<string, string>,
     },
     roots: {
@@ -823,10 +822,7 @@ export const es = {
   detail: {
     ratings: "Valoraciones",
     runtime: "Duración",
-    seriesStatus: { continuing: "En emisión", ended: "Finalizada", upcoming: "Próximamente", deleted: "Retirada" } as Record<
-      string,
-      string
-    >,
+    seriesStatus: { continuing: "En emisión", ended: "Finalizada", upcoming: "Próximamente", deleted: "Retirada" } as Record<string, string>,
   },
   arrRatings: {
     imdb: "IMDb",
@@ -894,8 +890,7 @@ export const es = {
     failed: (msg: string) => `No se pudo actualizar: ${msg}`,
     checkFailed: (msg: string) => `No se pudo comprobar si hay actualizaciones: ${msg}`,
     auto: "Instalar las actualizaciones automáticamente",
-    autoHint:
-      "Dasharr mira si hay versión nueva al abrirse y cada 6 horas. Antes de instalarla te avisa unos segundos por si prefieres dejarlo para más tarde.",
+    autoHint: "Dasharr mira si hay versión nueva al abrirse y cada 6 horas. Antes de instalarla te avisa unos segundos por si prefieres dejarlo para más tarde.",
     newVersion: (v: string) => `Nueva versión disponible: v${v}`,
     notes: "Novedades",
     sidebar: (v: string) => `Actualizar a v${v}`,
@@ -1260,7 +1255,8 @@ export const es = {
     issueFilters: { open: "Abiertas", resolved: "Resueltas", all: "Todas" },
     issueType: { 1: "Vídeo", 2: "Audio", 3: "Subtítulos", 4: "Otro" } as Record<number, string>,
     issueStatus: { 1: "Abierta", 2: "Resuelta" } as Record<number, string>,
-    issueWhere: (season?: number, episode?: number) => (season ? (episode ? `T${season} · E${episode}` : `Temporada ${season}`) : ""),
+    issueWhere: (season?: number, episode?: number) =>
+      season ? (episode ? `T${season} · E${episode}` : `Temporada ${season}`) : "",
     issuesEmpty: "No hay incidencias con este filtro.",
     resolve: "Marcar resuelta",
     reopen: "Reabrir",
