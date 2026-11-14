@@ -31,6 +31,7 @@ const torrents = [
     max_ratio: -1,
     max_seeding_time: 10080,
     tracker: "https://t.two/announce",
+    content_path: "/d/Dune.VOSE",
   },
 ];
 const movie = { id: 1, title: "Dune", year: 2021 };
@@ -85,7 +86,7 @@ test("enseña el torrent sobrante y lo borra con sus archivos", async () => {
     api: {
       qbittorrent: (req) => {
         if (req.path === "/api/v2/torrents/delete") {
-          removed.push(new URLSearchParams(req.body).toString() || JSON.stringify(req.body));
+          removed.push(JSON.stringify(req.body));
           return null;
         }
         return torrents;
@@ -122,4 +123,67 @@ test("sin Radarr ni Sonarr explica que hacen falta", async () => {
   mockBackend({ settings, api: { qbittorrent: () => [] } });
   renderApp("/duplicados");
   expect(await screen.findByText(/Hace falta Radarr o Sonarr/)).toBeInTheDocument();
+});
+
+test("un torrent sin dueño que comparte archivos con el sobrante: solo se quita el torrent", async () => {
+  const removed: string[] = [];
+  const crossSeed = { ...torrents[1], hash: "ccc", name: "Dune.VOSE.otro.tracker", tracker: "https://t.three/announce" };
+  mockBackend({
+    api: {
+      qbittorrent: (req) => {
+        if (req.path === "/api/v2/torrents/delete") {
+          removed.push(JSON.stringify(req.body));
+          return null;
+        }
+        return [...torrents, crossSeed];
+      },
+      radarr: (req) => {
+        const records = history(Object.fromEntries(req.query).eventType);
+        return { page: 1, pageSize: 1000, totalRecords: records.length, records };
+      },
+      sonarr: () => ({ page: 1, pageSize: 1000, totalRecords: 0, records: [] }),
+    },
+  });
+  renderApp("/duplicados");
+  const group = await screen.findByRole("region", { name: "Dune (2021)" });
+  // Comparte los archivos con el de otro tracker: borrarlo no libera nada.
+  expect(group).toHaveTextContent("libera 0 B");
+  expect(within(group).getByText("Comparte archivos")).toBeInTheDocument();
+  const orphans = screen.getByRole("region", { name: "Torrents sin dueño" });
+  expect(orphans).toHaveTextContent("Dune.VOSE.otro.tracker");
+
+  await userEvent.click(within(group).getByRole("button", { name: "Borrar Dune.2021.1080p.VOSE" }));
+  expect(await screen.findByText(/no se libera espacio/)).toBeInTheDocument();
+  await userEvent.click(screen.getByRole("button", { name: "Borrar" }));
+  await vi.waitFor(() => expect(removed).toHaveLength(1));
+  expect(removed[0]).toContain("bbb");
+  expect(removed[0]).toContain('["deleteFiles","false"]');
+});
+
+test("Inicio avisa de los sobrantes y lleva a Duplicados", async () => {
+  mockBackend({
+    api: {
+      qbittorrent: () => torrents,
+      radarr: (req) => {
+        if (req.path !== "/api/v3/history") return [];
+        const records = history(Object.fromEntries(req.query).eventType);
+        return { page: 1, pageSize: 1000, totalRecords: records.length, records };
+      },
+      sonarr: (req) => (req.path === "/api/v3/history" ? { page: 1, pageSize: 1000, totalRecords: 0, records: [] } : []),
+    },
+  });
+  renderApp("/");
+  const notice = await screen.findByRole("link", { name: /Hay 1 torrent sobrante: liberarías 10 GB/ });
+  await userEvent.click(notice);
+  expect(await screen.findByRole("heading", { name: "Descargas duplicadas" })).toBeInTheDocument();
+});
+
+test("Ajustes: días mínimos por tracker, con los trackers de qBittorrent", async () => {
+  mockBackend({ api: { qbittorrent: () => torrents } });
+  renderApp("/ajustes/contenido");
+  const input = await screen.findByRole("spinbutton", { name: "Días mínimos en t.two" });
+  await userEvent.clear(input);
+  await userEvent.type(input, "7");
+  expect(JSON.parse(localStorage.getItem("dasharr.prefs")!).seedMinDays).toMatchObject({ "t.two": 7 });
+  expect(screen.getByRole("spinbutton", { name: "Días mínimos en t.one" })).toHaveValue(0);
 });

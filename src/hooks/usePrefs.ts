@@ -32,6 +32,8 @@ export interface Prefs {
   sorts: Record<string, unknown>;
   /** Persona de Tracearr que eres tú (tu usuario de Plex): marca en el catálogo lo que ya has visto. */
   watchUserId: string | null;
+  /** Días mínimos de siembra que exige cada tracker (por su dominio), para avisar antes de borrar un torrent. */
+  seedMinDays: Record<string, number>;
 }
 
 const KEY = "dasharr.prefs";
@@ -48,6 +50,7 @@ const DEFAULTS: Prefs = {
   autoUpdate: true,
   sorts: {},
   watchUserId: null,
+  seedMinDays: {},
 };
 const listeners = new Set<() => void>();
 let cache: Prefs | null = null;
@@ -59,6 +62,7 @@ function read(): Prefs {
     cache = { ...DEFAULTS, ...stored };
     // Un valor corrupto no debe romper las pantallas que leen el orden.
     if (!cache!.sorts || typeof cache!.sorts !== "object" || Array.isArray(cache!.sorts)) cache!.sorts = {};
+    if (!cache!.seedMinDays || typeof cache!.seedMinDays !== "object" || Array.isArray(cache!.seedMinDays)) cache!.seedMinDays = {};
   } catch {
     cache = DEFAULTS;
   }

@@ -10,12 +10,15 @@ type LibraryService = "radarr" | "sonarr";
  * - `leftover`: el *arr ya importó después otra descarga para todo lo que traía (mejor idioma,
  *   calidad o puntuación); el torrent solo sigue sembrando y ocupando disco.
  * - `pending`: aún no se ha importado y no hay nada más nuevo (p. ej. una mejora que se está bajando).
+ * - `orphan`: está en qBittorrent pero ni Radarr ni Sonarr lo tienen en su historial.
  */
-export type DuplicateRole = "current" | "leftover" | "pending";
+export type DuplicateRole = "current" | "leftover" | "pending" | "orphan";
 
 export interface SeedGoal {
-  /** `true` si ya llegó al ratio o al tiempo de siembra que tiene puesto en qBittorrent. */
+  /** `true` si ya sembró lo mínimo de su tracker o, si no hay mínimo, llegó al límite que tiene en qBittorrent. */
   met: boolean;
+  /** De dónde sale el objetivo: el mínimo fijado en Ajustes para su tracker o los límites de qBittorrent. */
+  source: "tracker" | "qbit";
   /** Segundos que faltan para el tiempo mínimo (si lo hay y no se ha cumplido por ratio). */
   remainingSecs?: number;
   ratio?: number;
@@ -33,8 +36,12 @@ export interface DuplicateTorrent {
   importedAt?: string;
   /** Episodios que trae, solo en series: «1x03», «1x01–1x08» o «T1–T2 · 20 ep.». */
   episodes?: string;
-  /** Sin límites de siembra en qBittorrent no se sabe: `undefined`. */
-  seedGoal?: SeedGoal;
+}
+
+export interface Duplicates {
+  groups: DuplicateGroup[];
+  /** Torrents completos que ningún *arr reconoce; vacío si no se pidió o el historial no llegó entero. */
+  orphans: DuplicateTorrent[];
 }
 
 export interface DuplicateGroup {
@@ -42,7 +49,7 @@ export interface DuplicateGroup {
   service: LibraryService;
   title: string;
   items: DuplicateTorrent[];
-  /** Lo que se libera borrando los sobrantes. */
+  /** Tamaño de los sobrantes (para ordenar; lo que se libera de verdad depende de los archivos compartidos). */
   leftoverSize: number;
 }
 
@@ -52,11 +59,17 @@ const MAX_PAGES = 30;
 const GRABBED = 1;
 const IMPORTED = 3;
 
+export interface ArrHistory {
+  records: HistoryRecord[];
+  /** `false` si había tanto historial que no se leyó entero: no se puede decir que un torrent no esté en él. */
+  complete: boolean;
+}
+
 /**
  * Historial de un tipo de evento, de lo más nuevo a lo más viejo, hasta `sinceMs`: los torrents se
  * añadieron a qBittorrent después de que el *arr los cogiera, así que lo anterior no hace falta.
  */
-async function historySince(service: LibraryService, eventType: number, sinceMs: number): Promise<HistoryRecord[]> {
+async function historySince(service: LibraryService, eventType: number, sinceMs: number): Promise<ArrHistory> {
   const out: HistoryRecord[] = [];
   for (let page = 1; page <= MAX_PAGES; page++) {
     const res = await apiRequest<Paged<HistoryRecord>>(service, {
@@ -73,31 +86,41 @@ async function historySince(service: LibraryService, eventType: number, sinceMs:
     const records = res?.records ?? [];
     out.push(...records);
     const last = records[records.length - 1];
-    if (records.length < HISTORY_PAGE || !last || Date.parse(last.date) < sinceMs) break;
+    if (records.length < HISTORY_PAGE || !last || Date.parse(last.date) < sinceMs) return { records: out, complete: true };
   }
-  return out;
+  return { records: out, complete: false };
 }
 
 /** Descargas e importaciones del *arr que pueden tocar a los torrents que hay en qBittorrent. */
-export async function arrDownloadHistory(service: LibraryService, torrents: Torrent[]): Promise<HistoryRecord[]> {
-  if (torrents.length === 0) return [];
+export async function arrDownloadHistory(service: LibraryService, torrents: Torrent[]): Promise<ArrHistory> {
+  if (torrents.length === 0) return { records: [], complete: true };
   // Un día de margen por relojes distintos entre máquinas.
   const since = Math.min(...torrents.map((t) => t.added_on * 1000)) - 86_400_000;
   const [grabs, imports] = await Promise.all([historySince(service, GRABBED, since), historySince(service, IMPORTED, since)]);
-  return [...grabs, ...imports];
+  return { records: [...grabs.records, ...imports.records], complete: grabs.complete && imports.complete };
 }
 
-/** Si el torrent ya cumplió lo que tiene configurado para sembrar (ratio o tiempo, lo primero que llegue). */
-export function seedGoal(t: Torrent): SeedGoal | undefined {
+/**
+ * Si el torrent ya sembró lo suficiente. Con un mínimo de días para su tracker (Ajustes) manda ese
+ * tiempo; si no, los límites de qBittorrent (ratio o tiempo, lo primero que llegue). Sin ninguno
+ * de los dos no se sabe: `undefined`.
+ */
+export function seedGoal(t: Torrent, minDays?: number): SeedGoal | undefined {
+  const seeded = t.seeding_time ?? 0;
+  if (minDays != null && minDays > 0) {
+    const minutes = Math.round(minDays * 1440);
+    const met = seeded >= minutes * 60;
+    return { met, source: "tracker", minutes, ...(!met && { remainingSecs: minutes * 60 - seeded }) };
+  }
   const ratio = t.max_ratio ?? -1;
   const minutes = t.max_seeding_time ?? -1;
   if (!(ratio > 0) && !(minutes > 0)) return undefined;
-  const seeded = t.seeding_time ?? 0;
   const byRatio = ratio > 0 && t.ratio >= ratio;
   const byTime = minutes > 0 && seeded >= minutes * 60;
   const met = byRatio || byTime;
   return {
     met,
+    source: "qbit",
     ...(ratio > 0 && { ratio }),
     ...(minutes > 0 && { minutes }),
     ...(!met && minutes > 0 && { remainingSecs: minutes * 60 - seeded }),
@@ -135,15 +158,23 @@ const newer = (a: string | undefined, b: string | undefined) => (a ?? "") > (b ?
 /**
  * Cruza los torrents de qBittorrent con el historial de Radarr y Sonarr (por el `downloadId`, que es
  * el hash) y devuelve las películas y series que tienen más de un torrent con alguno sobrante.
+ * Con `orphans`, también los torrents completos que no salen en ningún historial; solo tiene sentido
+ * si el historial de todos los *arr configurados llegó entero.
  */
-export function findDuplicates(torrents: Torrent[], history: { service: LibraryService; records: HistoryRecord[] }[]): DuplicateGroup[] {
+export function findDuplicates(
+  torrents: Torrent[],
+  history: { service: LibraryService; records: HistoryRecord[] }[],
+  opts: { orphans?: boolean } = {},
+): Duplicates {
   const byHash = new Map(torrents.map((t) => [t.hash.toLowerCase(), t]));
   const accs = new Map<string, Acc>();
+  const known = new Set<string>();
 
   for (const { service, records } of history) {
     for (const r of records) {
       const hash = r.downloadId?.trim().toLowerCase();
       if (!hash || !byHash.has(hash)) continue;
+      known.add(hash);
       const itemId = service === "radarr" ? r.movieId : r.seriesId;
       const unit = service === "radarr" ? r.movieId : r.episodeId;
       if (itemId == null || unit == null) continue;
@@ -202,11 +233,10 @@ export function findDuplicates(torrents: Torrent[], history: { service: LibraryS
         grabbedAt: m.grabbedAt,
         importedAt,
         episodes: m.service === "sonarr" ? episodesLabel(units.flatMap((u) => m.episodes.get(u) ?? [])) : undefined,
-        seedGoal: seedGoal(torrent),
       };
     });
     if (!items.some((i) => i.role === "leftover")) continue;
-    const order: Record<DuplicateRole, number> = { current: 0, pending: 1, leftover: 2 };
+    const order: Record<DuplicateRole, number> = { current: 0, pending: 1, leftover: 2, orphan: 3 };
     items.sort(
       (a, b) => order[a.role] - order[b.role] || (b.importedAt ?? b.grabbedAt ?? "").localeCompare(a.importedAt ?? a.grabbedAt ?? ""),
     );
@@ -218,7 +248,13 @@ export function findDuplicates(torrents: Torrent[], history: { service: LibraryS
       leftoverSize: items.filter((i) => i.role === "leftover").reduce((s, i) => s + i.torrent.size, 0),
     });
   }
-  return out.sort((a, b) => b.leftoverSize - a.leftoverSize || a.title.localeCompare(b.title, "es"));
+  const orphans: DuplicateTorrent[] = opts.orphans
+    ? torrents
+        .filter((t) => t.progress >= 1 && !known.has(t.hash.toLowerCase()))
+        .sort((a, b) => b.size - a.size)
+        .map((torrent) => ({ torrent, role: "orphan" }))
+    : [];
+  return { groups: out.sort((a, b) => b.leftoverSize - a.leftoverSize || a.title.localeCompare(b.title, "es")), orphans };
 }
 
 /** Nombre corto del tracker a partir de su URL de announce: «tracker.example.org». */

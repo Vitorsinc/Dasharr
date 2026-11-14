@@ -19,7 +19,7 @@ const rec = (eventType: string, hash: string, date: string, extra: Partial<Histo
 });
 
 test("película: la última importación está en uso y la anterior sobra", () => {
-  const groups = findDuplicates(
+  const { groups } = findDuplicates(
     [tor("old", { size: 5e9 }), tor("new"), tor("other")],
     [
       {
@@ -46,7 +46,7 @@ test("película: la última importación está en uso y la anterior sobra", () =
 });
 
 test("una mejora que aún no se ha importado no deja nada como sobrante", () => {
-  const groups = findDuplicates(
+  const { groups } = findDuplicates(
     [tor("a"), tor("b", { progress: 0.4 })],
     [
       {
@@ -76,10 +76,10 @@ test("serie: un pack de temporada solo sobra si todos sus episodios se reemplaza
     sonarr("downloadFolderImported", "pack", "2026-01-01T00:00:00Z", 12, 2),
     sonarr("downloadFolderImported", "e1", "2026-02-01T00:00:00Z", 11, 1),
   ];
-  expect(findDuplicates([tor("pack"), tor("e1")], [{ service: "sonarr", records }])).toEqual([]);
+  expect(findDuplicates([tor("pack"), tor("e1")], [{ service: "sonarr", records }]).groups).toEqual([]);
 
   records.push(sonarr("downloadFolderImported", "e2", "2026-02-02T00:00:00Z", 12, 2));
-  const [g] = findDuplicates([tor("pack"), tor("e1"), tor("e2")], [{ service: "sonarr", records }]);
+  const [g] = findDuplicates([tor("pack"), tor("e1"), tor("e2")], [{ service: "sonarr", records }]).groups;
   expect(g.title).toBe("Severance");
   const pack = g.items.find((i) => i.torrent.hash === "pack")!;
   expect(pack.role).toBe("leftover");
@@ -91,6 +91,7 @@ test("objetivo de siembra: ratio o tiempo, lo primero que llegue", () => {
   expect(seedGoal(tor("x", { max_ratio: -1, max_seeding_time: -1 }))).toBeUndefined();
   expect(seedGoal(tor("x", { max_ratio: 2, max_seeding_time: 120, ratio: 0.5, seeding_time: 3600 }))).toEqual({
     met: false,
+    source: "qbit",
     ratio: 2,
     minutes: 120,
     remainingSecs: 3600,
@@ -115,7 +116,25 @@ test("el historial se pide por páginas y para al llegar a torrents más antiguo
       },
     },
   });
-  const records = await arrDownloadHistory("radarr", [tor("a", { added_on: Date.parse("2026-01-01") / 1000 })]);
+  const { records, complete } = await arrDownloadHistory("radarr", [tor("a", { added_on: Date.parse("2026-01-01") / 1000 })]);
   expect(records).toHaveLength(4000);
+  expect(complete).toBe(true);
   expect(pages.sort()).toEqual(["1:1", "1:2", "3:1", "3:2"]);
+});
+
+test("el mínimo del tracker manda sobre los límites de qBittorrent", () => {
+  const t = tor("x", { max_ratio: 1, ratio: 2, seeding_time: 2 * 86400 });
+  expect(seedGoal(t)?.met).toBe(true);
+  expect(seedGoal(t, 7)).toEqual({ met: false, source: "tracker", minutes: 7 * 1440, remainingSecs: 5 * 86400 });
+  expect(seedGoal(t, 0)?.source).toBe("qbit");
+});
+
+test("sin dueño: torrents completos que no salen en ningún historial", () => {
+  const { orphans } = findDuplicates(
+    [tor("known"), tor("lost", { size: 9 }), tor("half", { progress: 0.5 })],
+    [{ service: "radarr", records: [rec("grabbed", "known", "2026-01-01T00:00:00Z")] }],
+    { orphans: true },
+  );
+  expect(orphans.map((o) => [o.torrent.hash, o.role])).toEqual([["lost", "orphan"]]);
+  expect(findDuplicates([tor("lost")], []).orphans).toEqual([]);
 });

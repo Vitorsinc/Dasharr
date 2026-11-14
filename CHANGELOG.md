@@ -14,6 +14,10 @@ También se puede lanzar a mano en Actions → Release → «Run workflow» indi
 
 ### Añadido
 - Nueva página «Duplicados» (en qBittorrent): encuentra las películas y series con varios torrents porque Radarr o Sonarr bajaron después una versión mejor (idioma, calidad o puntuación), marca cuál está en uso y cuáles sobran, y deja borrar los sobrantes con sus archivos. Enseña tracker, tamaño, ratio, tiempo sembrado, semillas/pares y avisa si alguno aún no ha cumplido el seed.
+- Duplicados no rompe el cross-seed: si otro torrent siembra los mismos archivos, se quita solo el torrent y los datos se quedan.
+- Duplicados enseña también los torrents «sin dueño»: completos en qBittorrent pero sin rastro en el historial de Radarr ni Sonarr.
+- Ajustes → Contenido: días mínimos de siembra por tracker, para que el aviso de H&R no dependa de los límites de qBittorrent.
+- Inicio avisa cuando hay torrents sobrantes y cuánto espacio liberarías.
 
 ## [0.3.1] - 2026-11-07
 

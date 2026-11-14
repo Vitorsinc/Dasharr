@@ -1,4 +1,4 @@
-import { AddRejectedError, detectCompleted, qbit, torrentGroup, type Torrent } from "./qbit";
+import { AddRejectedError, detectCompleted, planRemoval, qbit, sharedContent, torrentGroup, type Torrent } from "./qbit";
 import { mockBackend } from "@/test/utils";
 
 const tor = (hash: string, progress: number, state = "downloading") => ({ hash, progress, state }) as Torrent;
@@ -57,4 +57,54 @@ test("torrents/add: detecta 'Fails.', failure_count y 409", async () => {
   await expect(qbit.addUrls(["magnet:?a"])).rejects.toBeInstanceOf(AddRejectedError);
   reply = 409;
   await expect(qbit.addUrls(["magnet:?a"])).rejects.toBeInstanceOf(AddRejectedError);
+});
+
+const data = (hash: string, content_path: string, size = 10) => ({ hash, name: hash, size, content_path }) as Torrent;
+
+test("sharedContent: misma ruta (cross-seed) o una dentro de la otra (episodio dentro del pack)", () => {
+  const list = [
+    data("a", "D:\\Descargas\\Dune.2021"),
+    data("b", "D:/Descargas/Dune.2021/"),
+    data("pack", "D:/Descargas/Show.S01"),
+    data("ep", "D:/Descargas/Show.S01/Show.S01E01.mkv"),
+    data("sib", "D:/Descargas/Show.S01.2"),
+    data("solo", "D:/Descargas/Otra"),
+  ];
+  const shared = sharedContent(list);
+  expect(shared.get("a")?.map((t) => t.hash)).toEqual(["b"]);
+  expect(shared.get("pack")?.map((t) => t.hash)).toEqual(["ep"]);
+  expect(shared.has("sib")).toBe(false);
+  expect(shared.has("solo")).toBe(false);
+});
+
+test("planRemoval no borra archivos que usa otro torrent que se queda", () => {
+  const list = [data("a", "/d/X"), data("b", "/d/X"), data("c", "/d/Y", 5)];
+  expect(planRemoval(["a", "c"], list)).toEqual({ withFiles: ["c"], keepFiles: ["a"], freed: 5 });
+  // Si se borran los dos que comparten, los archivos sí se van (y cuentan una vez).
+  expect(planRemoval(["a", "b"], list)).toEqual({ withFiles: ["a", "b"], keepFiles: [], freed: 10 });
+});
+
+test("removeWithFiles quita sin archivos los que comparten con otro", async () => {
+  const calls: string[] = [];
+  mockBackend({
+    api: {
+      qbittorrent: (req) => {
+        if (req.path === "/api/v2/torrents/info") return [data("a", "/d/X"), data("b", "/d/X"), data("c", "/d/Y")];
+        calls.push(JSON.stringify(req.body.value));
+        return null;
+      },
+    },
+  });
+  const plan = await qbit.removeWithFiles(["a", "c"]);
+  expect(plan.keepFiles).toEqual(["a"]);
+  expect(calls).toEqual([
+    JSON.stringify([
+      ["hashes", "a"],
+      ["deleteFiles", "false"],
+    ]),
+    JSON.stringify([
+      ["hashes", "c"],
+      ["deleteFiles", "true"],
+    ]),
+  ]);
 });

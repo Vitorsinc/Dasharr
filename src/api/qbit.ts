@@ -21,6 +21,8 @@ export interface Torrent {
   /** Motivo del error (qBittorrent 5.3+). */
   error?: string;
   save_path?: string;
+  /** Ruta de lo descargado: la carpeta del torrent o, si es un solo archivo, ese archivo. */
+  content_path?: string;
   /** Tracker que está funcionando ahora (vacío si ninguno). */
   tracker?: string;
   /** Segundos sembrando desde que se completó. */
@@ -132,6 +134,72 @@ export function detectCompleted(prev: Torrent[] | undefined, next: Torrent[]): T
   return next.filter((t) => t.progress >= 1 && before.has(t.hash) && before.get(t.hash)! < 1);
 }
 
+/**
+ * Dónde están los datos de un torrent. Dos torrents con la misma clave siembran los mismos archivos
+ * (cross-seed: el mismo contenido en varios trackers).
+ */
+export function contentKey(t: Pick<Torrent, "content_path" | "save_path" | "name" | "hash">): string {
+  const path = t.content_path || (t.save_path ? `${t.save_path}/${t.name}` : "");
+  return path ? path.replace(/\\/g, "/").replace(/\/+$/, "") : `#${t.hash}`;
+}
+
+/**
+ * Por cada torrent, los otros que comparten sus archivos: los que tienen la misma ruta o una que
+ * está dentro de la suya (un episodio suelto dentro de la carpeta de un pack).
+ */
+export function sharedContent(torrents: Torrent[]): Map<string, Torrent[]> {
+  const byKey = new Map<string, Torrent[]>();
+  for (const t of torrents) byKey.set(contentKey(t), [...(byKey.get(contentKey(t)) ?? []), t]);
+  const keys = [...byKey.keys()].sort();
+  const out = new Map<string, Set<Torrent>>();
+  const link = (a: Torrent, b: Torrent) => {
+    if (a === b) return;
+    out.set(a.hash, (out.get(a.hash) ?? new Set()).add(b));
+    out.set(b.hash, (out.get(b.hash) ?? new Set()).add(a));
+  };
+  keys.forEach((key, i) => {
+    const group = byKey.get(key)!;
+    for (const a of group) for (const b of group) link(a, b);
+    if (key.startsWith("#")) return;
+    // Ordenadas, las rutas de dentro van justo después (salvo hermanas como «Carpeta.2», que se saltan).
+    for (let j = i + 1; j < keys.length && keys[j].startsWith(key); j++)
+      if (keys[j].startsWith(`${key}/`)) for (const a of group) for (const b of byKey.get(keys[j])!) link(a, b);
+  });
+  return new Map([...out].map(([hash, set]) => [hash, [...set]]));
+}
+
+export interface RemovalPlan {
+  /** Se borran con sus archivos. */
+  withFiles: string[];
+  /** Solo se quita el torrent: sus archivos los sigue usando otro que no se borra. */
+  keepFiles: string[];
+  /** Bytes que se liberan (los archivos compartidos entre varios borrados cuentan una vez). */
+  freed: number;
+}
+
+/** Qué torrents se pueden borrar con archivos sin romper a otro que siembra los mismos. */
+export function planRemoval(hashes: string[], torrents: Torrent[]): RemovalPlan {
+  const going = new Set(hashes);
+  const shared = sharedContent(torrents);
+  const plan: RemovalPlan = { withFiles: [], keepFiles: [], freed: 0 };
+  const counted = new Set<string>();
+  for (const t of torrents) {
+    if (!going.has(t.hash)) continue;
+    if ((shared.get(t.hash) ?? []).some((o) => !going.has(o.hash))) {
+      plan.keepFiles.push(t.hash);
+      continue;
+    }
+    plan.withFiles.push(t.hash);
+    const key = contentKey(t);
+    if (!counted.has(key)) plan.freed += t.size;
+    counted.add(key);
+  }
+  // Los que ya no están en qBittorrent se piden igual: borrarlos no hace nada.
+  const seen = new Set(torrents.map((t) => t.hash));
+  plan.withFiles.push(...hashes.filter((h) => !seen.has(h)));
+  return plan;
+}
+
 const join = (hashes: string[]) => hashes.join("|");
 const post = (path: string, form: Record<string, string>) => apiRequest<unknown>("qbittorrent", { method: "POST", path, form });
 
@@ -183,6 +251,17 @@ export const qbit = {
   recheck: (hashes: string[]) => post("/api/v2/torrents/recheck", { hashes: join(hashes) }),
   remove: (hashes: string[], deleteFiles: boolean) =>
     post("/api/v2/torrents/delete", { hashes: join(hashes), deleteFiles: String(deleteFiles) }),
+  /**
+   * Borra torrents con sus archivos, salvo los que comparten archivos con otro torrent que se queda
+   * (cross-seed): de esos solo se quita el torrent, para no dejar al otro sin datos. Mira la lista
+   * de qBittorrent en el momento de borrar.
+   */
+  removeWithFiles: async (hashes: string[]): Promise<RemovalPlan> => {
+    const plan = planRemoval(hashes, await qbit.getTorrents());
+    if (plan.keepFiles.length) await qbit.remove(plan.keepFiles, false);
+    if (plan.withFiles.length) await qbit.remove(plan.withFiles, true);
+    return plan;
+  },
   getProperties: (hash: string) => apiRequest<TorrentProperties>("qbittorrent", { path: "/api/v2/torrents/properties", query: { hash } }),
   getFiles: (hash: string) => apiRequest<TorrentFile[]>("qbittorrent", { path: "/api/v2/torrents/files", query: { hash } }),
   setFilePriority: (hash: string, indexes: number[], priority: number) =>
