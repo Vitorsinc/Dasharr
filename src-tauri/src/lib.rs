@@ -39,6 +39,8 @@ pub fn run() {
             commands::plex_login_finish,
             commands::plex_users,
             commands::unit3d_stats,
+            commands::unit3d_deals,
+            commands::unit3d_fetch_torrent,
             logs::read_log,
             logs::clear_log,
             logs::write_log,

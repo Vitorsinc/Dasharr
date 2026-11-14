@@ -401,6 +401,29 @@ Guardar el resultado por tracker y volver a probar solo al pulsar "Actualizar" o
   después confirmar con `GET api/user`. No hace falta una lista fija de trackers.
 - El token leído de Prowlarr no se guarda en Dasharr: se vuelve a leer cuando hace falta. Nunca en logs.
 
+### Freeleech y doble subida
+
+`GET /api/torrents/filter` (mismo token y límite) acepta `free[]=25|50|75|100` (porcentajes de freeleech, se
+combinan con OR) y `doubleup=1`, además de `perPage` (máx. 100), `sortField`
+(`name,size,seeders,leechers,times_completed,created_at,bumped_at`) y `sortDirection`. Responde
+`{ data: [{ type, id, attributes }], links, meta }`; en `attributes`: `name`, `category`, `type`, `resolution`,
+`size` (bytes), `freeleech` (texto `"100%"`), `double_upload`, `seeders`, `leechers`, `times_completed`,
+`tmdb_id`, `created_at`, `meta.poster` (TMDB pequeño), `details_link` y `download_link`/`magnet_link`.
+**`download_link` lleva la clave RSS y `magnet_link` la passkey**: no se mandan a la interfaz. Los filtros
+se combinan con AND, así que Dasharr hace dos peticiones por tracker (freeleech y doble subida) y junta sin
+repetidos; además descarta lo que no esté en ninguna de las dos por si un fork ignora el filtro. El tracker
+guarda cada búsqueda 5 minutos.
+
+Para mandar uno a qBittorrent, Dasharr pide `GET /api/torrents/{id}` (sin envoltorio: `{ type, id, attributes }`),
+comprueba que `download_link` es del mismo host que el tracker, baja el .torrent sin la cabecera del token y lo
+sube a qBittorrent como archivo.
+
+Comandos: `unit3d_deals` y `unit3d_fetch_torrent` (`fetch_deals` y `fetch_torrent_file` en `unit3d.rs`). La
+página Trackers los refresca a la vez que las estadísticas (cada 30 min o con el botón).
+
+Lo demás de la API (`/api/requests/*`, subida) no se usa. Marcadores, «me gusta» y búsqueda rápida
+(`/api/bookmarks`, `/api/posts`, `/api/quicksearch`) van con la sesión de la web, no con el token.
+
 En Dasharr: comando Tauri `unit3d_stats` (`src-tauri/src/commands.rs`) con la lógica en
 `crates/dasharr-core/src/unit3d.rs`. El token no llega a la interfaz; la página Trackers refresca cada
 30 min o con el botón. Solo trackers de Prowlarr (decisión de Vitor, 2026-10-29), sin alta manual.
