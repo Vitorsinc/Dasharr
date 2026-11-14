@@ -73,3 +73,28 @@ test("ficha de película: sin nada que renombrar lo dice", async () => {
   const preview = await screen.findByRole("dialog", { name: "Renombrar · Dune" });
   expect(await within(preview).findByText("Todos los archivos ya tienen el nombre correcto.")).toBeInTheDocument();
 });
+
+test("borrar película: también quita su torrent de qBittorrent si se marca", async () => {
+  const removed: any[] = [];
+  mockBackend({
+    api: {
+      radarr: (req) => {
+        if (req.path === "/api/v3/movie" && req.method === "GET") return [dune];
+        if (req.path === "/api/v3/history/movie") return [{ id: 1, eventType: "grabbed", date: "2026-01-01", sourceTitle: "Dune", downloadId: "ABC" }];
+        return [];
+      },
+      qbittorrent: (req) => {
+        if (req.path === "/api/v2/torrents/info") return [{ hash: "abc" }, { hash: "otro" }];
+        if (req.path === "/api/v2/torrents/delete") removed.push(Object.fromEntries(req.body.value));
+        return [];
+      },
+    },
+  });
+  const dialog = await openDune();
+  await userEvent.click(within(dialog).getByRole("button", { name: "Borrar" }));
+  const confirm = await screen.findByRole("dialog", { name: "Borrar película" });
+  await userEvent.click(within(confirm).getByRole("checkbox", { name: /Quitar también el torrent/ }));
+  await userEvent.click(within(confirm).getByRole("button", { name: "Borrar" }));
+  await vi.waitFor(() => expect(removed).toEqual([{ hashes: "abc", deleteFiles: "true" }]));
+  expect(await screen.findByText("Quitado 1 torrent de qBittorrent")).toBeInTheDocument();
+});

@@ -12,6 +12,9 @@ También se puede lanzar a mano en Actions → Release → «Run workflow» indi
 
 ## [Sin publicar]
 
+### Añadido
+- Al borrar una película o serie (desde su ficha o en lote) puedes quitar también sus torrents de qBittorrent con lo descargado. Dasharr los encuentra en el historial de Radarr/Sonarr y recuerda si dejaste la casilla marcada.
+
 ## [0.3.1] - 2026-11-07
 
 ### Añadido

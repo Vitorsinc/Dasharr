@@ -281,6 +281,10 @@ export const es = {
     deleteSeries: "Borrar serie",
     deleteMessage: (title: string) => `Se quitará "${title}" de la biblioteca.`,
     addExclusion: "Añadir a las exclusiones (las listas de importación no la volverán a añadir)",
+    deleteTorrents: "Quitar también el torrent de qBittorrent y lo descargado",
+    deleteTorrentsHint: "Busca en el historial de Radarr/Sonarr los torrents que descargó y los borra de qBittorrent con sus archivos.",
+    torrentsDeleted: (n: number) =>
+      n === 0 ? "No quedaba ningún torrent suyo en qBittorrent" : n === 1 ? "Quitado 1 torrent de qBittorrent" : `Quitados ${n} torrents de qBittorrent`,
     quality: "Calidad",
     file: "Archivo",
     size: "Tamaño",

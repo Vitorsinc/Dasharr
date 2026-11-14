@@ -31,6 +31,7 @@ import { errorMessage } from "@/lib/errors";
 import { formatDate } from "@/lib/format";
 import { faKey, movieItem } from "@/api/filmaffinity";
 import { movieReleaseDate, radarr, type Movie } from "@/api/radarr";
+import { deleteWithTorrents } from "@/api/mediaTorrents";
 import { useMovies, useRadarrMeta, useRadarrQueue, useRadarrWanted } from "@/hooks/useArr";
 import { useFaRatings } from "@/hooks/useFilmAffinity";
 import { useRun, useTags } from "@/hooks/useArrManage";
@@ -239,7 +240,15 @@ export default function MoviesPage() {
               onExit={exitSelection}
               onApply={(e) => run(() => radarr.editMovies([...picked], e), t.bulk.applied(picked.size))}
               onDelete={async (o) => {
-                const ok = await run(() => radarr.deleteMovies([...picked], o), t.bulk.deleted(picked.size));
+                const ids = [...picked];
+                const ok = await run(
+                  async () => {
+                    const n = await deleteWithTorrents("radarr", ids, o, () => radarr.deleteMovies(ids, o));
+                    if (o.deleteTorrents) toast.success(t.library.torrentsDeleted(n));
+                  },
+                  t.bulk.deleted(ids.length),
+                  [["radarr"], ["qbittorrent"]],
+                );
                 if (ok) setPicked(new Set());
                 return ok;
               }}
