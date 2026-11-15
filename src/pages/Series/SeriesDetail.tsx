@@ -244,7 +244,7 @@ export function SeriesDetail({ series, onClose }: { series: Series | null; onClo
                 </select>
               </label>
               <MyWatchChip watch={myShow} />
-              {series.overview && <p className="text-sm leading-relaxed text-muted">{series.overview}</p>}
+              {series.overview && <p className="text-sm leading-relaxed text-fg">{series.overview}</p>}
               <PlexBadge kind="show" ids={{ tvdbId: series.tvdbId, tmdbId: series.tmdbId, imdbId: series.imdbId }} />
               <RequestedBy type="tv" tmdbId={series.tmdbId} />
               <MediaTags service="sonarr" value={series.tags ?? []} onChange={(tags) => run(() => sonarr.setTags(series, tags), t.manage.tags.saved)} />

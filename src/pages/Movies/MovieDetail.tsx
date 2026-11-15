@@ -98,7 +98,7 @@ export function MovieDetail({ movie, onClose }: { movie: Movie | null; onClose: 
             ) : null}
           </aside>
           <div className="flex min-w-0 flex-1 flex-col gap-5">
-            {movie.overview && <p className="text-sm leading-relaxed text-muted">{movie.overview}</p>}
+            {movie.overview && <p className="text-sm leading-relaxed text-fg">{movie.overview}</p>}
             <div className="grid grid-cols-4 gap-x-4 gap-y-3">
               <Info label={t.library.status} value={status} />
               <Info label={t.library.quality} value={movie.movieFile?.quality?.quality?.name} />
