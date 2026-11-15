@@ -122,11 +122,14 @@ test("el historial se pide por páginas y para al llegar a torrents más antiguo
   expect(pages.sort()).toEqual(["1:1", "1:2", "3:1", "3:2"]);
 });
 
-test("el mínimo del tracker manda sobre los límites de qBittorrent", () => {
-  const t = tor("x", { max_ratio: 1, ratio: 2, seeding_time: 2 * 86400 });
-  expect(seedGoal(t)?.met).toBe(true);
-  expect(seedGoal(t, 7)).toEqual({ met: false, source: "tracker", minutes: 7 * 1440, remainingSecs: 5 * 86400 });
-  expect(seedGoal(t, 0)?.source).toBe("qbit");
+test("el seed mínimo de Prowlarr manda sobre los límites de qBittorrent; los packs usan su tiempo", () => {
+  const t = tor("x", { max_ratio: 1, ratio: 0.5, seeding_time: 2 * 86400 });
+  const rule = { indexer: "HD", domains: [], minutes: 7 * 1440, packMinutes: 1440 };
+  expect(seedGoal(tor("x", { max_ratio: 1, ratio: 2 }))?.met).toBe(true);
+  expect(seedGoal(t, rule)).toEqual({ met: false, source: "prowlarr", indexer: "HD", minutes: 7 * 1440, remainingSecs: 5 * 86400 });
+  expect(seedGoal(t, rule, true)?.met).toBe(true);
+  expect(seedGoal(t, { indexer: "HD", domains: [], ratio: 0.4 })?.met).toBe(true);
+  expect(seedGoal(t, { indexer: "HD", domains: [] })?.source).toBe("qbit");
 });
 
 test("sin dueño: torrents completos que no salen en ningún historial", () => {

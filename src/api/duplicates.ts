@@ -1,6 +1,7 @@
 import { apiRequest } from "@/lib/tauri";
 import type { HistoryRecord, Paged } from "./arr";
 import type { Torrent } from "./qbit";
+import type { SeedRule } from "./seedRules";
 
 type LibraryService = "radarr" | "sonarr";
 
@@ -17,8 +18,10 @@ export type DuplicateRole = "current" | "leftover" | "pending" | "orphan";
 export interface SeedGoal {
   /** `true` si ya sembró lo mínimo de su tracker o, si no hay mínimo, llegó al límite que tiene en qBittorrent. */
   met: boolean;
-  /** De dónde sale el objetivo: el mínimo fijado en Ajustes para su tracker o los límites de qBittorrent. */
-  source: "tracker" | "qbit";
+  /** De dónde sale el objetivo: el seed mínimo de su indexador en Prowlarr o los límites de qBittorrent. */
+  source: "prowlarr" | "qbit";
+  /** Indexador de Prowlarr del que sale (con `source: "prowlarr"`). */
+  indexer?: string;
   /** Segundos que faltan para el tiempo mínimo (si lo hay y no se ha cumplido por ratio). */
   remainingSecs?: number;
   ratio?: number;
@@ -36,6 +39,8 @@ export interface DuplicateTorrent {
   importedAt?: string;
   /** Episodios que trae, solo en series: «1x03», «1x01–1x08» o «T1–T2 · 20 ep.». */
   episodes?: string;
+  /** Trae varios episodios (pack): Prowlarr puede pedir otro tiempo de siembra para los packs. */
+  pack?: boolean;
 }
 
 export interface Duplicates {
@@ -101,26 +106,23 @@ export async function arrDownloadHistory(service: LibraryService, torrents: Torr
 }
 
 /**
- * Si el torrent ya sembró lo suficiente. Con un mínimo de días para su tracker (Ajustes) manda ese
- * tiempo; si no, los límites de qBittorrent (ratio o tiempo, lo primero que llegue). Sin ninguno
- * de los dos no se sabe: `undefined`.
+ * Si el torrent ya sembró lo suficiente. Manda el seed mínimo de su indexador en Prowlarr (ratio o
+ * tiempo, lo primero que llegue; con tiempo propio para packs); si no tiene, los límites que tenga
+ * en qBittorrent. Sin ninguno de los dos no se sabe: `undefined`.
  */
-export function seedGoal(t: Torrent, minDays?: number): SeedGoal | undefined {
-  const seeded = t.seeding_time ?? 0;
-  if (minDays != null && minDays > 0) {
-    const minutes = Math.round(minDays * 1440);
-    const met = seeded >= minutes * 60;
-    return { met, source: "tracker", minutes, ...(!met && { remainingSecs: minutes * 60 - seeded }) };
-  }
-  const ratio = t.max_ratio ?? -1;
-  const minutes = t.max_seeding_time ?? -1;
+export function seedGoal(t: Torrent, rule?: SeedRule, pack = false): SeedGoal | undefined {
+  const fromRule = rule && (rule.ratio || rule.minutes || (pack && rule.packMinutes));
+  const ratio = fromRule ? (rule.ratio ?? -1) : (t.max_ratio ?? -1);
+  const minutes = fromRule ? (pack && rule.packMinutes) || rule.minutes || -1 : (t.max_seeding_time ?? -1);
   if (!(ratio > 0) && !(minutes > 0)) return undefined;
+  const seeded = t.seeding_time ?? 0;
   const byRatio = ratio > 0 && t.ratio >= ratio;
   const byTime = minutes > 0 && seeded >= minutes * 60;
   const met = byRatio || byTime;
   return {
     met,
-    source: "qbit",
+    source: fromRule ? "prowlarr" : "qbit",
+    ...(fromRule && { indexer: rule.indexer }),
     ...(ratio > 0 && { ratio }),
     ...(minutes > 0 && { minutes }),
     ...(!met && minutes > 0 && { remainingSecs: minutes * 60 - seeded }),
@@ -233,6 +235,7 @@ export function findDuplicates(
         grabbedAt: m.grabbedAt,
         importedAt,
         episodes: m.service === "sonarr" ? episodesLabel(units.flatMap((u) => m.episodes.get(u) ?? [])) : undefined,
+        pack: m.service === "sonarr" && units.length > 1,
       };
     });
     if (!items.some((i) => i.role === "leftover")) continue;

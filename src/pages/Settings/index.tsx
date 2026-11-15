@@ -24,7 +24,6 @@ import { useConnectionStates } from "@/hooks/useConnectionStates";
 import { faClearQueue } from "@/api/filmaffinity";
 import { RATING_SOURCES, usePrefs, type RatingSource, type Theme } from "@/hooks/usePrefs";
 import { ServiceForm } from "./ServiceForm";
-import { SeedMinimums } from "./SeedMinimums";
 import { parseConfigFile } from "@/lib/importConfig";
 import { openExternal, saveService } from "@/lib/tauri";
 import { tmdbSaveKey } from "@/api/tmdb";
@@ -534,9 +533,6 @@ const tabs: { id: string; label: string; icon: LucideIcon; wide?: boolean; rende
         </Section>
         <Section title={t.premieres.title}>
           <MovieReleasesSettings />
-        </Section>
-        <Section title={t.duplicates.seedMin.title} hint={t.duplicates.seedMin.hint}>
-          <SeedMinimums />
         </Section>
       </div>
     ),

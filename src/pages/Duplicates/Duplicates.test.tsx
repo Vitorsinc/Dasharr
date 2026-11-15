@@ -178,12 +178,60 @@ test("Inicio avisa de los sobrantes y lleva a Duplicados", async () => {
   expect(await screen.findByRole("heading", { name: "Descargas duplicadas" })).toBeInTheDocument();
 });
 
-test("Ajustes: días mínimos por tracker, con los trackers de qBittorrent", async () => {
-  mockBackend({ api: { qbittorrent: () => torrents } });
-  renderApp("/ajustes/contenido");
-  const input = await screen.findByRole("spinbutton", { name: "Días mínimos en t.two" });
-  await userEvent.clear(input);
-  await userEvent.type(input, "7");
-  expect(JSON.parse(localStorage.getItem("dasharr.prefs")!).seedMinDays).toMatchObject({ "t.two": 7 });
-  expect(screen.getByRole("spinbutton", { name: "Días mínimos en t.one" })).toHaveValue(0);
+test("el seed mínimo sale del indexador de Prowlarr", async () => {
+  mockBackend({
+    api: {
+      qbittorrent: () => torrents.map((x) => ({ ...x, max_ratio: -1, max_seeding_time: -1 })),
+      radarr: (req) => {
+        const records = history(Object.fromEntries(req.query).eventType);
+        return { page: 1, pageSize: 1000, totalRecords: records.length, records };
+      },
+      sonarr: () => ({ page: 1, pageSize: 1000, totalRecords: 0, records: [] }),
+      prowlarr: () => [
+        { id: 2, name: "Dos", enable: true, protocol: "torrent", fields: [{ name: "torrentBaseSettings.seedTime", value: 5 * 1440 }] },
+      ],
+    },
+  });
+  renderApp("/duplicados");
+  const group = await screen.findByRole("region", { name: "Dune (2021)" });
+  // 3 días sembrado de los 5 que pide Prowlarr para «Dos».
+  expect(await within(group).findByText("Faltan 2 d 0 h")).toBeInTheDocument();
+  expect(within(group).getByText("Faltan 2 d 0 h")).toHaveAttribute("title", "Seed mínimo de Dos en Prowlarr: 5 d 0 h");
+});
+
+test("el seed mínimo se edita en el tracker y se guarda en Prowlarr en minutos", async () => {
+  const puts: any[] = [];
+  const fields = [
+    { order: 1, name: "baseUrl", label: "Base Url", type: "textbox", value: "https://dos.org" },
+    { order: 2, name: "torrentBaseSettings.seedRatio", label: "Seed Ratio", type: "number", value: null },
+    { order: 3, name: "torrentBaseSettings.seedTime", label: "Seed Time", type: "number", value: 4320, advanced: true },
+    { order: 4, name: "torrentBaseSettings.packSeedTime", label: "Pack Seed Time", type: "number", value: null, advanced: true },
+  ];
+  mockBackend({
+    api: {
+      prowlarr: (req) => {
+        if (req.method === "PUT") {
+          puts.push(req.body.value);
+          return req.body.value;
+        }
+        if (req.path === "/api/v1/indexer") return [{ id: 2, name: "Dos", enable: true, protocol: "torrent", privacy: "private", fields }];
+        return [];
+      },
+    },
+  });
+  renderApp("/indexadores");
+  await userEvent.click(await screen.findByRole("button", { name: "Editar Dos" }));
+  const days = await screen.findByRole("textbox", { name: "Tiempo sembrando" });
+  expect(days).toHaveValue("72");
+  // No se repiten en la lista general (Seed Time era avanzado; Seed Ratio no).
+  expect(screen.queryByText("Seed Ratio")).not.toBeInTheDocument();
+  await userEvent.clear(days);
+  await userEvent.type(days, "7,5");
+  await userEvent.type(screen.getByRole("textbox", { name: "Ratio" }), "1");
+  await userEvent.click(screen.getByRole("button", { name: "Guardar" }));
+  await vi.waitFor(() => expect(puts).toHaveLength(1));
+  const value = (n: string) => puts[0].fields.find((f: { name: string }) => f.name === n).value;
+  expect(value("torrentBaseSettings.seedTime")).toBe(450);
+  expect(value("torrentBaseSettings.seedRatio")).toBe(1);
+  expect(value("torrentBaseSettings.packSeedTime")).toBeNull();
 });

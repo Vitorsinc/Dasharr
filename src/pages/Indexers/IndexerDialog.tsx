@@ -11,6 +11,7 @@ import { useServiceQuery } from "@/hooks/useServiceQuery";
 import { t } from "@/i18n/es";
 import { errorMessage } from "@/lib/errors";
 import { hasAdvanced, setFieldValue, visibleFields } from "@/lib/providerFields";
+import { hasSeedFields, isSeedField, SeedMinimum } from "./SeedMinimum";
 
 const SHOWN = 100;
 const DEFAULT_PRIORITY = 25;
@@ -144,12 +145,18 @@ function IndexerForm({ initial, isNew, onBack, onClose }: { initial: IndexerFull
           </label>
         )}
       </div>
+      {hasSeedFields(fields) && (
+        <SeedMinimum fields={fields} onChange={(name, value) => setIx((cur) => ({ ...cur, fields: setFieldValue(cur.fields ?? [], name, value) }))} />
+      )}
       <ProviderFields
         idPrefix={`ix-${ix.id ?? "new"}`}
-        fields={visibleFields(fields, advanced)}
+        fields={visibleFields(
+          fields.filter((f) => !isSeedField(f)),
+          advanced,
+        )}
         onChange={(name, value) => setIx((cur) => ({ ...cur, fields: setFieldValue(cur.fields ?? [], name, value) }))}
       />
-      {hasAdvanced(fields) && (
+      {hasAdvanced(fields.filter((f) => !isSeedField(f))) && (
         <label className="flex items-center gap-2 text-sm text-muted">
           <input type="checkbox" className="h-4 w-4" checked={advanced} onChange={(e) => setAdvanced(e.target.checked)} />
           {t.indexers.advanced}
