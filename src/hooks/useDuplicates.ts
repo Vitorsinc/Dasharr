@@ -1,6 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { qbit, type Torrent } from "@/api/qbit";
 import { arrDownloadHistory, findDuplicates, type Duplicates } from "@/api/duplicates";
+import { prowlarr } from "@/api/prowlarr";
+import { seedRules, type SeedRule } from "@/api/seedRules";
 import { useIsConfigured } from "./useSettings";
 
 export interface DuplicatesData extends Duplicates {
@@ -10,6 +12,8 @@ export interface DuplicatesData extends Duplicates {
   failed: ("radarr" | "sonarr")[];
   /** `false` si no se pudo saber qué torrents no son de ningún *arr (falló o no cupo algún historial). */
   orphansKnown: boolean;
+  /** Seed mínimo de cada indexador de Prowlarr (vacío si Prowlarr no está o no respondió). */
+  rules: SeedRule[];
 }
 
 /** qBittorrent solo dice el tracker si alguno responde: a los parados se les pregunta la lista. */
@@ -36,12 +40,15 @@ export function useDuplicates(opts: { staleTime?: number } = {}) {
   const qbitOn = useIsConfigured("qbittorrent");
   const radarrOn = useIsConfigured("radarr");
   const sonarrOn = useIsConfigured("sonarr");
+  const prowlarrOn = useIsConfigured("prowlarr");
   const q = useQuery({
-    queryKey: ["qbittorrent", "duplicates", radarrOn, sonarrOn],
+    queryKey: ["qbittorrent", "duplicates", radarrOn, sonarrOn, prowlarrOn],
     enabled: qbitOn === true && (radarrOn === true || sonarrOn === true),
     staleTime: opts.staleTime ?? 60_000,
     queryFn: async (): Promise<DuplicatesData> => {
       const torrents = await qbit.getTorrents();
+      // El seed mínimo es opcional: sin Prowlarr se usan los límites de qBittorrent.
+      const rules = prowlarrOn ? prowlarr.getIndexers().then(seedRules, () => []) : Promise.resolve([]);
       const services = (["radarr", "sonarr"] as const).filter((s) => (s === "radarr" ? radarrOn : sonarrOn));
       const results = await Promise.allSettled(services.map((s) => arrDownloadHistory(s, torrents)));
       const history = services.flatMap((service, i) => {
@@ -54,7 +61,7 @@ export function useDuplicates(opts: { staleTime?: number } = {}) {
       await fillTrackers(
         [...found.groups.flatMap((g) => g.items), ...found.orphans].filter((i) => i.role !== "current").map((i) => i.torrent),
       );
-      return { ...found, torrents, failed, orphansKnown };
+      return { ...found, torrents, failed, orphansKnown, rules: await rules };
     },
   });
   return { ...q, qbitOn, arrOn: radarrOn === true || sonarrOn === true, arrKnown: radarrOn !== undefined && sonarrOn !== undefined };

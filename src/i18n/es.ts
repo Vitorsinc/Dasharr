@@ -193,7 +193,7 @@ export const es = {
     leftovers: "Torrents sobrantes",
     space: "Espacio que liberas",
     stillSeeding: "Sin cumplir el seed",
-    stillSeedingHint: "Aún no han llegado al ratio ni al tiempo de siembra que tienen puesto en qBittorrent.",
+    stillSeedingHint: "Aún no han llegado al seed mínimo de su tracker en Prowlarr (o, si no tiene, a los límites de qBittorrent).",
     orphans: "Sin dueño",
     orphansTitle: "Torrents sin dueño",
     orphansHint:
@@ -204,6 +204,7 @@ export const es = {
     shared: "Comparte archivos",
     sharedHint: (others: string) => `Los mismos archivos los siembra también: ${others}. Al borrarlo se quita solo el torrent y los archivos se quedan.`,
     seedSettings: "Seed mínimo por tracker",
+    seedSettingsHint: "Se pone en cada indexador de Prowlarr: Indexadores → editar el tracker → Seed mínimo.",
     role: { current: "En uso", leftover: "Sobrante", pending: "Sin importar", orphan: "Sin dueño" },
     roleHint: {
       current: "De aquí sale el archivo que tienes ahora en la biblioteca.",
@@ -243,20 +244,10 @@ export const es = {
     goalLeft: (left: string) => `Faltan ${left}`,
     goalRatio: (ratio: string) => `Ratio mínimo ${ratio}`,
     goalTitle: (parts: string) => `Objetivo de siembra en qBittorrent: ${parts}`,
-    goalTrackerTitle: (tracker: string, days: string) => `Mínimo de ${tracker} (Ajustes): ${days} sembrando`,
+    goalProwlarrTitle: (indexer: string, parts: string) => `Seed mínimo de ${indexer} en Prowlarr: ${parts}`,
     homeNotice: (n: number, size: string) =>
       n === 1 ? `Hay 1 torrent sobrante: liberarías ${size}.` : `Hay ${n} torrents sobrantes: liberarías ${size}.`,
     homeReview: "Revisar",
-    seedMin: {
-      title: "Seed mínimo por tracker",
-      hint: "Días que cada tracker te obliga a sembrar. Duplicados avisa antes de borrar un torrent que aún no los ha cumplido. Con 0, se usan los límites que tenga el torrent en qBittorrent.",
-      days: (tracker: string) => `Días mínimos en ${tracker}`,
-      unit: "días",
-      torrents: (n: number) => (n === 1 ? "1 torrent" : `${n} torrents`),
-      add: "Añadir tracker",
-      addPlaceholder: "dominio del tracker (ejemplo.org)",
-      empty: "No hay trackers en qBittorrent todavía.",
-    },
     imported: (date: string) => `importado ${date}`,
     grabbed: (date: string) => `bajado ${date}`,
     none: "No hay descargas duplicadas: cada película y episodio tiene un solo torrent en qBittorrent.",
@@ -778,6 +769,14 @@ export const es = {
       `Se borrará del disco el archivo de ${title}. La película seguirá en la biblioteca y, si está monitorizada, Radarr la volverá a buscar.`,
   },
   indexers: {
+    seed: {
+      title: "Seed mínimo",
+      hint: "Lo que el tracker te obliga a sembrar. Se guarda en Prowlarr, que lo pasa a Radarr y Sonarr; Duplicados avisa antes de borrar un torrent que aún no lo ha cumplido (vale con llegar al tiempo o al ratio). Vacío = sin mínimo.",
+      hours: "Tiempo sembrando",
+      hoursUnit: "horas",
+      ratio: "Ratio",
+      packHours: "Tiempo para packs de temporada",
+    },
     testAll: "Probar todos",
     test: "Probar",
     testing: "Probando…",
