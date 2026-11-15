@@ -10,6 +10,7 @@ export function Dialog({
   title,
   children,
   wide,
+  backdrop,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
@@ -17,6 +18,8 @@ export function Dialog({
   children: ReactNode;
   /** true = ancho; "xl" = extra ancho (tablas como la búsqueda manual). */
   wide?: boolean | "xl";
+  /** Imagen de fondo (fanart) detrás del contenido, difuminada hacia el color de la tarjeta. */
+  backdrop?: string;
 }) {
   return (
     <RD.Root open={open} onOpenChange={onOpenChange}>
@@ -27,18 +30,36 @@ export function Dialog({
           className={cn(
             "card fixed left-1/2 top-1/2 z-50 flex max-h-[88vh] w-[92vw] -translate-x-1/2 -translate-y-1/2 flex-col shadow-2xl outline-none",
             wide === "xl" ? "max-w-6xl" : wide ? "max-w-4xl" : "max-w-lg",
+            backdrop && "overflow-hidden",
           )}
         >
-          <div className="flex items-center justify-between border-b border-border px-5 py-3">
+          {backdrop && <Backdrop src={backdrop} />}
+          <div className="relative flex items-center justify-between border-b border-border px-5 py-3">
             <RD.Title className="text-base font-semibold">{title}</RD.Title>
             <RD.Close className="btn-ghost p-1.5" aria-label={t.common.close}>
               <X className="h-4 w-4" />
             </RD.Close>
           </div>
-          <div className="overflow-y-auto p-5">{children}</div>
+          <div className="relative overflow-y-auto p-5">{children}</div>
         </RD.Content>
       </RD.Portal>
     </RD.Root>
+  );
+}
+
+/** Fanart a todo el diálogo, con un velo del color de la tarjeta para que el texto se lea en tema claro y oscuro. */
+function Backdrop({ src }: { src: string }) {
+  const [loaded, setLoaded] = useState(false);
+  return (
+    <div className="pointer-events-none absolute inset-0" aria-hidden data-testid="dialog-backdrop">
+      <img
+        src={src}
+        alt=""
+        onLoad={() => setLoaded(true)}
+        className={cn("h-full w-full object-cover object-top transition-opacity duration-500", loaded ? "opacity-100" : "opacity-0")}
+      />
+      <div className="absolute inset-0 bg-gradient-to-b from-surface/55 via-surface/85 to-surface" />
+    </div>
   );
 }
 

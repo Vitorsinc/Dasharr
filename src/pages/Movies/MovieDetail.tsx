@@ -18,7 +18,7 @@ import { DeleteMediaDialog } from "@/components/media/DeleteMediaDialog";
 import { useRadarrMeta } from "@/hooks/useArr";
 import { useMovieReleases } from "@/hooks/useMovieReleases";
 import { RELEASE_KINDS } from "@/lib/releases";
-import { posterUrl } from "@/api/arr";
+import { fanartUrl, posterUrl } from "@/api/arr";
 import { movieRefs } from "@/api/tracearr";
 import { MovieWatchHistory } from "@/components/watch/WatchHistory";
 import { PlexBadge } from "@/components/plex/PlexBadge";
@@ -79,7 +79,7 @@ export function MovieDetail({ movie, onClose }: { movie: Movie | null; onClose: 
   const status = movie.hasFile ? t.library.statusDownloaded : movie.monitored ? t.library.statusMissing : t.library.statusUnmonitored;
   return (
     <>
-      <Dialog open onOpenChange={(o) => !o && onClose()} title={`${movie.title} (${movie.year})`} wide>
+      <Dialog open onOpenChange={(o) => !o && onClose()} title={`${movie.title} (${movie.year})`} wide backdrop={fanartUrl("radarr", movie)}>
         <div className="flex gap-6">
           <aside className="flex w-48 shrink-0 flex-col gap-5">
             <Poster src={posterUrl("radarr", movie)} title={movie.title} className="w-full" />
