@@ -245,6 +245,8 @@ pub struct Unit3dDeal {
     /// Póster pequeño de TMDB (solo https).
     pub poster: Option<String>,
     pub tmdb_id: Option<i64>,
+    pub tvdb_id: Option<i64>,
+    pub imdb_id: Option<i64>,
     /// Ficha del torrent en la web del tracker.
     pub details_url: Option<String>,
 }
@@ -273,6 +275,15 @@ fn truthy(v: &Value) -> bool {
 
 fn text_opt(v: &Value) -> Option<String> {
     v.as_str().map(str::trim).filter(|s| !s.is_empty()).map(String::from)
+}
+
+/// ID de TMDB/TVDB/IMDb: UNIT3D pone 0 cuando no lo tiene; IMDb va sin el `tt`.
+fn id_of(v: &Value) -> Option<i64> {
+    let n = match v {
+        Value::String(s) => s.trim().trim_start_matches("tt").parse::<f64>().ok(),
+        v => number(v),
+    }?;
+    (n > 0.0).then_some(n as i64)
 }
 
 fn https(v: &Value) -> Option<String> {
@@ -317,7 +328,9 @@ pub fn parse_deals(body: &Value) -> Option<Vec<Unit3dDeal>> {
                     completed: count(&a["times_completed"]),
                     created_at: text_opt(&a["created_at"]),
                     poster: https(&a["meta"]["poster"]),
-                    tmdb_id: number(&a["tmdb_id"]).map(|n| n as i64).filter(|n| *n > 0),
+                    tmdb_id: id_of(&a["tmdb_id"]),
+                    tvdb_id: id_of(&a["tvdb_id"]),
+                    imdb_id: id_of(&a["imdb_id"]),
                     details_url: text_opt(&a["details_link"]).filter(|u| u.starts_with("http://") || u.starts_with("https://")),
                 })
             })

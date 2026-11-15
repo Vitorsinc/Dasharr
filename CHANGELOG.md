@@ -12,6 +12,9 @@ También se puede lanzar a mano en Actions → Release → «Run workflow» indi
 
 ## [Sin publicar]
 
+### Añadido
+- Trackers: al mandar un freeleech a qBittorrent, la película o serie se añade también a Radarr o Sonarr (con la carpeta y el perfil de Ajustes, sin buscar) y el torrent va con su categoría para que lo importen al terminar.
+
 ## [0.4.0] - 2026-11-14
 
 ### Añadido

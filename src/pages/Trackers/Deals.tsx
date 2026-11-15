@@ -3,7 +3,9 @@ import { ExternalLink, Send } from "lucide-react";
 import { toast } from "sonner";
 import { Empty, Segmented, Spinner } from "@/components/ui";
 import { t } from "@/i18n/es";
-import { sendDealToQbit, type TrackerDeal, type TrackerDeals } from "@/api/trackers";
+import type { TrackerDeal, TrackerDeals } from "@/api/trackers";
+import { grabDeal, type ArrResult } from "@/api/trackerGrab";
+import { useQueryClient } from "@tanstack/react-query";
 import { useCategories } from "@/hooks/useTorrents";
 import { errorMessage } from "@/lib/errors";
 import { formatAge, formatBytes } from "@/lib/format";
@@ -89,9 +91,27 @@ function DealRow({ d, sending, onSend }: { d: Row; sending: boolean; onSend: () 
   );
 }
 
+function arrMessage(r: ArrResult) {
+  const arr = t.services[r.service];
+  const d = t.trackers.deals;
+  switch (r.status) {
+    case "added":
+      return d.sentAdded(arr, r.title);
+    case "existed":
+      return d.sentExisted(arr, r.title);
+    case "notFound":
+      return d.sentNotFound(arr);
+    case "notConfigured":
+      return d.sentNoArr(arr);
+    case "failed":
+      return d.sentArrFailed(arr, r.error ? errorMessage(r.error, r.service) : t.errors.unknown);
+  }
+}
+
 /** Torrents en freeleech o con doble subida del tracker elegido arriba, con botón para mandarlos a qBittorrent. */
 export function Deals({ tracker, loading }: { tracker: TrackerDeals | undefined; loading: boolean }) {
   const qbitCategories = useCategories();
+  const qc = useQueryClient();
   const [kind, setKind] = useState<Kind>("all");
   const [sort, setSort] = useState<Sort>("newest");
   const [qbCategory, setQbCategory] = useState("");
@@ -105,8 +125,11 @@ export function Deals({ tracker, loading }: { tracker: TrackerDeals | undefined;
     const key = `${d.indexerId}:${d.id}`;
     setSending(key);
     try {
-      await sendDealToQbit(d.indexerId, d, qbCategory || undefined);
-      toast.success(t.search.sent);
+      const arr = await grabDeal(d.indexerId, d, qbCategory || undefined);
+      if (arr.status === "added") void qc.invalidateQueries({ queryKey: [arr.service] });
+      const msg = arrMessage(arr);
+      if (arr.status === "added" || arr.status === "existed") toast.success(msg);
+      else toast.warning(msg);
     } catch (err) {
       toast.error(errorMessage(err));
     } finally {
@@ -152,7 +175,7 @@ export function Deals({ tracker, loading }: { tracker: TrackerDeals | undefined;
             <label className="flex items-center gap-2">
               {t.downloads.category}
               <select className="input w-auto" value={qbCategory} onChange={(e) => setQbCategory(e.target.value)}>
-                <option value="">{t.downloads.noCategory}</option>
+                <option value="">{t.trackers.deals.autoCategory}</option>
                 {(qbitCategories.data ?? []).map((c) => (
                   <option key={c}>{c}</option>
                 ))}

@@ -49,6 +49,9 @@ export interface TrackerDeal {
   createdAt: string | null;
   poster: string | null;
   tmdbId: number | null;
+  tvdbId: number | null;
+  /** Número de IMDb sin el `tt`. */
+  imdbId: number | null;
   detailsUrl: string | null;
 }
 
