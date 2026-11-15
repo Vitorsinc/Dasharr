@@ -1207,7 +1207,7 @@ export const es = {
     unavailableTitle: "Sin estadísticas",
     deals: {
       title: "Freeleech y doble subida",
-      hint: "Torrents del tracker elegido que ahora no cuentan como bajada o cuentan el doble de subida. Pulsa otra tarjeta para cambiar de tracker.",
+      hint: "Torrents del tracker elegido que ahora no cuentan como bajada o cuentan el doble de subida. Pulsa otra tarjeta para cambiar de tracker. Al enviar uno, la película o serie se añade también a Radarr o Sonarr.",
       kind: "Tipo",
       all: "Todo",
       freeleech: "Freeleech",
@@ -1225,6 +1225,12 @@ export const es = {
       freeBadge: (pct: number) => (pct === 100 ? "Freeleech" : `Freeleech ${pct}%`),
       doubleBadge: "×2 subida",
       openTorrent: "Ver en el tracker",
+      autoCategory: "Automática (Radarr/Sonarr)",
+      sentAdded: (arr: string, title: string) => `Enviado a qBittorrent y «${title}» añadido a ${arr}`,
+      sentExisted: (arr: string, title: string) => `Enviado a qBittorrent; «${title}» ya estaba en ${arr}`,
+      sentNotFound: (arr: string) => `Enviado a qBittorrent, pero ${arr} no lo encuentra: añádelo a mano`,
+      sentNoArr: (arr: string) => `Enviado a qBittorrent (${arr} no está configurado)`,
+      sentArrFailed: (arr: string, why: string) => `Enviado a qBittorrent, pero no se pudo añadir a ${arr}: ${why}`,
     },
     openSite: "Abrir la web del tracker",
     status: {

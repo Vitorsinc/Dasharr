@@ -70,6 +70,8 @@ const deal = (id: number, name: string, freeleech: number, doubleUpload: boolean
   createdAt: `2026-11-1${id}T10:00:00Z`,
   poster: null,
   tmdbId: 603,
+  tvdbId: null,
+  imdbId: null,
   detailsUrl: `https://aither.cc/torrents/${id}`,
 });
 
@@ -97,8 +99,9 @@ test("el freeleech va por tracker: se elige pulsando su tarjeta", async () => {
   expect(within(now).queryByRole("listitem", { name: "Matrix 1999" })).not.toBeInTheDocument();
 });
 
-test("filtra por tipo y manda a qBittorrent", async () => {
-  const added: unknown[] = [];
+test("filtra por tipo, añade la película a Radarr y la manda a qBittorrent con su categoría", async () => {
+  const added: { body: { value: { fields: [string, string][] } } }[] = [];
+  const posted: unknown[] = [];
   const mock = mockBackend({
     commands: {
       unit3d_stats: () => stats,
@@ -113,6 +116,19 @@ test("filtra por tipo y manda a qBittorrent", async () => {
         }
         return {};
       },
+      radarr: (req) => {
+        if (req.path === "/api/v3/movie" && req.method === "POST") {
+          posted.push(req.body.value);
+          return { ...req.body.value, id: 9 };
+        }
+        if (req.path === "/api/v3/movie") return [];
+        if (req.path === "/api/v3/movie/lookup") return [{ title: "Dune", tmdbId: 603, year: 2021 }];
+        if (req.path === "/api/v3/rootfolder") return [{ id: 1, path: "D:/Peliculas", freeSpace: 1 }];
+        if (req.path === "/api/v3/qualityprofile") return [{ id: 4, name: "HD" }];
+        if (req.path === "/api/v3/downloadclient")
+          return [{ implementation: "QBittorrent", enable: true, fields: [{ name: "movieCategory", value: "radarr" }] }];
+        return [];
+      },
     },
   });
   renderApp("/trackers");
@@ -122,7 +138,9 @@ test("filtra por tipo y manda a qBittorrent", async () => {
   expect(within(section).queryByRole("listitem", { name: "Matrix 1999" })).not.toBeInTheDocument();
 
   await userEvent.click(within(section).getByRole("button", { name: "Enviar a qBittorrent: Dune 2021" }));
-  expect(await screen.findByText("Enviado a qBittorrent")).toBeInTheDocument();
+  expect(await screen.findByText("Enviado a qBittorrent y «Dune» añadido a Radarr")).toBeInTheDocument();
   expect(mock).toHaveBeenCalledWith("unit3d_fetch_torrent", { indexerId: 1, torrentId: 2 });
+  expect(posted).toEqual([expect.objectContaining({ tmdbId: 603, qualityProfileId: 4, rootFolderPath: "D:/Peliculas", monitored: true, addOptions: { searchForMovie: false } })]);
   expect(added).toHaveLength(1);
+  expect(added[0].body.value.fields).toContainEqual(["category", "radarr"]);
 });
