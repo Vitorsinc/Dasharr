@@ -4,7 +4,7 @@ import { t } from "@/i18n/es";
 import { cn } from "@/lib/cn";
 import { formatCount, formatCountShort } from "@/lib/format";
 import { Fact } from "./DetailFacts";
-import { formatScore, scoreTone } from "./RatingBadges";
+import { formatScore, RatingIcon, scoreTone } from "./RatingBadges";
 
 type Source = keyof typeof t.arrRatings;
 const ORDER: Source[] = ["imdb", "tmdb", "rottenTomatoes", "metacritic", "trakt", "tvdb"];
@@ -27,6 +27,7 @@ export function ArrRatings({ ratings, list }: { ratings?: Partial<Record<Source,
             <Fact
               key={source}
               label={t.arrRatings[source]}
+              icon={<RatingIcon source={source} />}
               title={votes ? t.filmaffinity.votes(formatCount(votes)) : undefined}
               value={
                 <>
@@ -38,7 +39,10 @@ export function ArrRatings({ ratings, list }: { ratings?: Partial<Record<Source,
           );
         return (
           <div key={source}>
-            <div className="text-xs text-muted">{t.arrRatings[source]}</div>
+            <div className="flex items-center gap-1.5 text-xs text-muted">
+              <RatingIcon source={source} className="h-3.5 w-3.5" />
+              {t.arrRatings[source]}
+            </div>
             <div className="text-sm">
               <span className={cn("font-semibold", scoreTone(source, value))}>{formatScore(source, value)}</span>
               {votes ? <span className="ml-1.5 text-xs text-muted">{t.filmaffinity.votes(formatCount(votes))}</span> : null}

@@ -4,7 +4,7 @@ import { usePrefs } from "@/hooks/usePrefs";
 import { cn } from "@/lib/cn";
 import { formatCount, formatCountShort } from "@/lib/format";
 import { Fact } from "./DetailFacts";
-import { formatScore, scoreTone } from "./RatingBadges";
+import { formatScore, RatingIcon, scoreTone } from "./RatingBadges";
 import { t } from "@/i18n/es";
 
 /** Nota de Letterboxd (sobre 5) y enlace en la ficha de una película, en una línea de la columna del póster. */
@@ -34,5 +34,5 @@ export function LbInfo({ tmdbId }: { tmdbId: number }) {
         <ExternalLink className="h-3.5 w-3.5 text-muted" aria-hidden />
       </a>
     );
-  return <Fact label={t.letterboxd.label} value={value} />;
+  return <Fact label={t.letterboxd.label} value={value} icon={<RatingIcon source="letterboxd" />} />;
 }

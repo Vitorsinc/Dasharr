@@ -23,7 +23,7 @@ import seerrLogo from "@/assets/services/seerr.svg";
 import { useConnectionStates } from "@/hooks/useConnectionStates";
 import { faClearQueue } from "@/api/filmaffinity";
 import { lbClearQueue } from "@/api/letterboxd";
-import { ratingName } from "@/components/media/RatingBadges";
+import { RatingIcon, ratingName } from "@/components/media/RatingBadges";
 import { RATING_SOURCES, usePrefs, type RatingSource, type Theme } from "@/hooks/usePrefs";
 import { ServiceForm } from "./ServiceForm";
 import { parseConfigFile } from "@/lib/importConfig";
@@ -220,7 +220,10 @@ function RatingsSettings() {
     <section className="card grid divide-border sm:grid-cols-2" aria-label={t.settings.ratings}>
       {RATING_SOURCES.map((s) => (
         <div key={s} className="flex items-center justify-between gap-4 p-4">
-          <span className="text-sm">{label(s)}</span>
+          <span className="flex items-center gap-2.5 text-sm">
+            <RatingIcon source={s} className="h-5 w-5" />
+            {label(s)}
+          </span>
           <Toggle label={label(s)} checked={!prefs.hiddenRatings.includes(s)} onChange={(v) => toggle(s, v)} />
         </div>
       ))}
