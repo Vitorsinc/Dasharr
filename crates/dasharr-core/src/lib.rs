@@ -2,6 +2,7 @@
 mod client;
 mod error;
 pub mod filmaffinity;
+pub mod letterboxd;
 mod model;
 pub mod nyaa;
 pub mod plex;

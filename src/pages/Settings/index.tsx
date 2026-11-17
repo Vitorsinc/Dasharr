@@ -22,6 +22,8 @@ import plexLogo from "@/assets/services/plex.svg";
 import seerrLogo from "@/assets/services/seerr.svg";
 import { useConnectionStates } from "@/hooks/useConnectionStates";
 import { faClearQueue } from "@/api/filmaffinity";
+import { lbClearQueue } from "@/api/letterboxd";
+import { ratingName } from "@/components/media/RatingBadges";
 import { RATING_SOURCES, usePrefs, type RatingSource, type Theme } from "@/hooks/usePrefs";
 import { ServiceForm } from "./ServiceForm";
 import { parseConfigFile } from "@/lib/importConfig";
@@ -208,10 +210,11 @@ function Autostart() {
 
 function RatingsSettings() {
   const [prefs, setPrefs] = usePrefs();
-  const label = (s: RatingSource) => (s === "filmaffinity" ? t.filmaffinity.label : t.arrRatings[s]);
+  const label = ratingName;
   const toggle = (s: RatingSource, show: boolean) => {
     setPrefs({ hiddenRatings: show ? prefs.hiddenRatings.filter((h) => h !== s) : [...prefs.hiddenRatings, s] });
     if (s === "filmaffinity" && !show) faClearQueue().catch(() => {});
+    if (s === "letterboxd" && !show) lbClearQueue().catch(() => {});
   };
   return (
     <section className="card grid divide-border sm:grid-cols-2" aria-label={t.settings.ratings}>

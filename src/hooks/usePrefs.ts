@@ -7,7 +7,7 @@ export interface LibraryDefaults {
   qualityProfileId?: number;
 }
 /** Fuentes de notas que se pueden mostrar u ocultar en Ajustes. */
-export const RATING_SOURCES = ["filmaffinity", "imdb", "tmdb", "rottenTomatoes", "metacritic", "trakt", "tvdb"] as const;
+export const RATING_SOURCES = ["filmaffinity", "letterboxd", "imdb", "tmdb", "rottenTomatoes", "metacritic", "trakt", "tvdb"] as const;
 export type RatingSource = (typeof RATING_SOURCES)[number];
 
 export interface Prefs {

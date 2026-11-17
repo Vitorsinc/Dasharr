@@ -1,6 +1,7 @@
 mod commands;
 mod filmaffinity;
 mod images;
+mod letterboxd;
 mod logs;
 mod nyaa;
 mod settings;
@@ -49,6 +50,9 @@ pub fn run() {
             filmaffinity::filmaffinity_ratings,
             filmaffinity::filmaffinity_rating,
             filmaffinity::filmaffinity_clear_queue,
+            letterboxd::letterboxd_ratings,
+            letterboxd::letterboxd_rating,
+            letterboxd::letterboxd_clear_queue,
             nyaa::nyaa_subtitles,
             tmdb::tmdb_has_key,
             tmdb::tmdb_save_key,
@@ -63,6 +67,11 @@ pub fn run() {
             let fa_handle = handle.clone();
             tauri::async_runtime::spawn(async move {
                 fa_handle.state::<AppState>().filmaffinity.run_worker(fa_handle.clone()).await;
+            });
+            tauri::async_runtime::block_on(handle.state::<AppState>().letterboxd.load(&handle));
+            let lb_handle = handle.clone();
+            tauri::async_runtime::spawn(async move {
+                lb_handle.state::<AppState>().letterboxd.run_worker(lb_handle.clone()).await;
             });
             tauri::async_runtime::spawn(async move {
                 let state = handle.state::<AppState>();
