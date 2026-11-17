@@ -118,7 +118,7 @@ export const es = {
     importHint: "Puedes borrar el archivo después de importarlo: las claves quedan guardadas en el Administrador de credenciales.",
     seriesDefaults: "Series y anime",
     ratings: "Notas",
-    ratingsHint: "Qué notas se muestran en las fichas. FilmAffinity también sale sobre los pósters; si la quitas, Dasharr deja de consultarla.",
+    ratingsHint: "Qué notas se muestran en los pósters y en las fichas. FilmAffinity y Letterboxd se consultan en sus webs: si las quitas, Dasharr deja de consultarlas.",
     seriesDefaultsHint: "Carpeta y perfil de calidad de Sonarr con los que se añade cada tipo. Puedes cambiarlos al añadir.",
     movieDefaults: "Películas",
     movieDefaultsHint: "Carpeta y perfil de calidad de Radarr con los que se añaden las películas. Puedes cambiarlos al añadir.",

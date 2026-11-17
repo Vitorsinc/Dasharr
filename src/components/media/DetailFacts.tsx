@@ -11,11 +11,14 @@ export function FactSection({ title, children }: { title: string; children: Reac
 }
 
 /** Una línea «etiqueta … valor» de la columna del póster. No pinta nada sin valor. */
-export function Fact({ label, value, title }: { label: string; value?: ReactNode; title?: string }) {
+export function Fact({ label, value, title, icon }: { label: string; value?: ReactNode; title?: string; /** Icono delante de la etiqueta. */ icon?: ReactNode }) {
   if (value == null || value === "" || value === false) return null;
   return (
     <div className="flex items-baseline justify-between gap-3 text-sm" title={title}>
-      <dt className="shrink-0 text-xs text-muted">{label}</dt>
+      <dt className={icon ? "flex shrink-0 items-center gap-1.5 self-center text-xs text-muted" : "shrink-0 text-xs text-muted"}>
+        {icon}
+        {label}
+      </dt>
       <dd className="min-w-0 text-right">{value}</dd>
     </div>
   );

@@ -5,6 +5,7 @@ import { usePrefs } from "@/hooks/usePrefs";
 import { cn } from "@/lib/cn";
 import { formatCount, formatCountShort, formatRating } from "@/lib/format";
 import { Fact } from "./DetailFacts";
+import { RatingIcon } from "./RatingBadges";
 import { t } from "@/i18n/es";
 
 export function tone(rating: number) {
@@ -40,10 +41,13 @@ export function FaInfo({ item, list }: { item: FaItem; list?: boolean }) {
         <ExternalLink className="h-3.5 w-3.5 text-muted" aria-hidden />
       </a>
     );
-  if (list) return <Fact label={t.filmaffinity.label} value={value} />;
+  if (list) return <Fact label={t.filmaffinity.label} value={value} icon={<RatingIcon source="filmaffinity" />} />;
   return (
     <div>
-      <div className="text-xs text-muted">{t.filmaffinity.label}</div>
+      <div className="flex items-center gap-1.5 text-xs text-muted">
+        <RatingIcon source="filmaffinity" className="h-3.5 w-3.5" />
+        {t.filmaffinity.label}
+      </div>
       <div className="text-sm">{value}</div>
     </div>
   );
