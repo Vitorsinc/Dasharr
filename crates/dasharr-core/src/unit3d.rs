@@ -28,41 +28,26 @@ pub struct Unit3dSource {
 
 impl std::fmt::Debug for Unit3dSource {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Unit3dSource")
-            .field("indexer_id", &self.indexer_id)
-            .field("name", &self.name)
-            .finish()
+        f.debug_struct("Unit3dSource").field("indexer_id", &self.indexer_id).field("name", &self.name).finish()
     }
 }
 
 fn field<'a>(indexer: &'a Value, name: &str) -> Option<&'a Value> {
-    indexer["fields"]
-        .as_array()?
-        .iter()
-        .find(|f| f["name"] == name)
-        .map(|f| &f["value"])
+    indexer["fields"].as_array()?.iter().find(|f| f["name"] == name).map(|f| &f["value"])
 }
 
 fn non_empty(v: Option<&Value>) -> Option<String> {
-    v.and_then(Value::as_str)
-        .map(str::trim)
-        .filter(|s| !s.is_empty())
-        .map(String::from)
+    v.and_then(Value::as_str).map(str::trim).filter(|s| !s.is_empty()).map(String::from)
 }
 
 /// Saca de `GET /api/v1/indexer` de Prowlarr los indexadores habilitados que guardan un token `apikey` en claro.
 pub fn unit3d_sources(indexers: &Value) -> Vec<Unit3dSource> {
-    let Some(list) = indexers.as_array() else {
-        return Vec::new();
-    };
+    let Some(list) = indexers.as_array() else { return Vec::new() };
     list.iter()
-        .filter(|i| {
-            i["enable"] == true && i["implementation"] == "Cardigann" && i["protocol"] == "torrent"
-        })
+        .filter(|i| i["enable"] == true && i["implementation"] == "Cardigann" && i["protocol"] == "torrent")
         .filter_map(|i| {
             let api_key = non_empty(field(i, "apikey")).filter(|k| k != MASKED)?;
-            let base_url =
-                non_empty(field(i, "baseUrl")).or_else(|| non_empty(i["indexerUrls"].get(0)))?;
+            let base_url = non_empty(field(i, "baseUrl")).or_else(|| non_empty(i["indexerUrls"].get(0)))?;
             Some(Unit3dSource {
                 indexer_id: i["id"].as_i64()?,
                 name: i["name"].as_str().unwrap_or("?").to_string(),
@@ -150,8 +135,7 @@ pub fn parse_size(v: &Value) -> Option<i64> {
 }
 
 fn is_infinite(v: &Value) -> bool {
-    v.as_str()
-        .is_some_and(|s| s.trim() == "∞" || s.trim().eq_ignore_ascii_case("inf"))
+    v.as_str().is_some_and(|s| s.trim() == "∞" || s.trim().eq_ignore_ascii_case("inf"))
 }
 
 /// Interpreta la respuesta de `GET /api/user`. `None` si no tiene pinta de UNIT3D.
@@ -164,11 +148,7 @@ pub fn parse_user(body: &Value) -> Option<TrackerUser> {
         group: text("group"),
         uploaded: parse_size(&body["uploaded"]).map(|b| b.max(0) as u64),
         downloaded: parse_size(&body["downloaded"]).map(|b| b.max(0) as u64),
-        ratio: if is_infinite(&body["ratio"]) {
-            None
-        } else {
-            number(&body["ratio"])
-        },
+        ratio: if is_infinite(&body["ratio"]) { None } else { number(&body["ratio"]) },
         buffer_infinite: is_infinite(&body["buffer"]),
         buffer: parse_size(&body["buffer"]),
         seeding: count(&body["seeding"]),
@@ -197,35 +177,13 @@ pub async fn fetch_stats(http: &reqwest::Client, src: &Unit3dSource) -> TrackerS
     // Solo nombre y resultado: la URL y el token no van al registro.
     match status {
         TrackerStatus::Ok => log::debug!("unit3d {}: estadísticas leídas", src.name),
-        _ => log::warn!(
-            "unit3d {}: {:?} ({})",
-            src.name,
-            status,
-            message.as_deref().unwrap_or("")
-        ),
+        _ => log::warn!("unit3d {}: {:?} ({})", src.name, status, message.as_deref().unwrap_or("")),
     }
-    TrackerStats {
-        indexer_id: src.indexer_id,
-        name: src.name.clone(),
-        site_url: src.base_url.clone(),
-        status,
-        message,
-        user,
-    }
+    TrackerStats { indexer_id: src.indexer_id, name: src.name.clone(), site_url: src.base_url.clone(), status, message, user }
 }
 
-async fn query(
-    http: &reqwest::Client,
-    src: &Unit3dSource,
-) -> Result<TrackerUser, (TrackerStatus, String)> {
-    let body = get_json(
-        http,
-        src,
-        "/api/user",
-        &[],
-        "este tracker no ofrece estadísticas por la API",
-    )
-    .await?;
+async fn query(http: &reqwest::Client, src: &Unit3dSource) -> Result<TrackerUser, (TrackerStatus, String)> {
+    let body = get_json(http, src, "/api/user", &[], "este tracker no ofrece estadísticas por la API").await?;
     parse_user(&body).ok_or((TrackerStatus::Unsupported, NOT_UNIT3D.into()))
 }
 
@@ -251,38 +209,15 @@ async fn get_json(
         .map_err(|e| (Unavailable, format!("no responde: {}", e.without_url())))?;
     let status = res.status();
     match status {
-        StatusCode::UNAUTHORIZED => {
-            return Err((
-                Unauthorized,
-                "el tracker no acepta el token guardado en Prowlarr".into(),
-            ))
-        }
+        StatusCode::UNAUTHORIZED => return Err((Unauthorized, "el tracker no acepta el token guardado en Prowlarr".into())),
         StatusCode::NOT_FOUND => return Err((Unsupported, missing.into())),
-        StatusCode::TOO_MANY_REQUESTS => {
-            return Err((
-                RateLimited,
-                "demasiadas peticiones, prueba en unos minutos".into(),
-            ))
-        }
-        StatusCode::FORBIDDEN => {
-            return Err((
-                Unavailable,
-                "el tracker ha rechazado el acceso (403)".into(),
-            ))
-        }
-        s if s.is_redirection() => {
-            return Err((
-                Unavailable,
-                "el tracker redirige a su web en vez de responder la API".into(),
-            ))
-        }
+        StatusCode::TOO_MANY_REQUESTS => return Err((RateLimited, "demasiadas peticiones, prueba en unos minutos".into())),
+        StatusCode::FORBIDDEN => return Err((Unavailable, "el tracker ha rechazado el acceso (403)".into())),
+        s if s.is_redirection() => return Err((Unavailable, "el tracker redirige a su web en vez de responder la API".into())),
         s if !s.is_success() => return Err((Unavailable, format!("error HTTP {}", s.as_u16()))),
         _ => {}
     }
-    let text = res
-        .text()
-        .await
-        .map_err(|e| (Unavailable, e.without_url().to_string()))?;
+    let text = res.text().await.map_err(|e| (Unavailable, e.without_url().to_string()))?;
     serde_json::from_str(&text).map_err(|_| (Unsupported, NOT_UNIT3D.to_string()))
 }
 
@@ -339,10 +274,7 @@ fn truthy(v: &Value) -> bool {
 }
 
 fn text_opt(v: &Value) -> Option<String> {
-    v.as_str()
-        .map(str::trim)
-        .filter(|s| !s.is_empty())
-        .map(String::from)
+    v.as_str().map(str::trim).filter(|s| !s.is_empty()).map(String::from)
 }
 
 /// ID de TMDB/TVDB/IMDb: UNIT3D pone 0 cuando no lo tiene; IMDb va sin el `tt`.
@@ -399,57 +331,29 @@ pub fn parse_deals(body: &Value) -> Option<Vec<Unit3dDeal>> {
                     tmdb_id: id_of(&a["tmdb_id"]),
                     tvdb_id: id_of(&a["tvdb_id"]),
                     imdb_id: id_of(&a["imdb_id"]),
-                    details_url: text_opt(&a["details_link"])
-                        .filter(|u| u.starts_with("http://") || u.starts_with("https://")),
+                    details_url: text_opt(&a["details_link"]).filter(|u| u.starts_with("http://") || u.starts_with("https://")),
                 })
             })
             .collect(),
     )
 }
 
-async fn deals_page(
-    http: &reqwest::Client,
-    src: &Unit3dSource,
-    filter: &[(&str, &str)],
-) -> Result<Vec<Unit3dDeal>, (TrackerStatus, String)> {
-    let mut query = vec![
-        ("perPage", DEALS_PER_PAGE),
-        ("sortField", "created_at"),
-        ("sortDirection", "desc"),
-    ];
+async fn deals_page(http: &reqwest::Client, src: &Unit3dSource, filter: &[(&str, &str)]) -> Result<Vec<Unit3dDeal>, (TrackerStatus, String)> {
+    let mut query = vec![("perPage", DEALS_PER_PAGE), ("sortField", "created_at"), ("sortDirection", "desc")];
     query.extend_from_slice(filter);
-    let body = get_json(
-        http,
-        src,
-        "/api/torrents/filter",
-        &query,
-        "este tracker no permite buscar torrents por la API",
-    )
-    .await?;
+    let body = get_json(http, src, "/api/torrents/filter", &query, "este tracker no permite buscar torrents por la API").await?;
     parse_deals(&body).ok_or((TrackerStatus::Unsupported, NOT_UNIT3D.into()))
 }
 
 /// Torrents en freeleech (cualquier porcentaje) y con doble subida de un tracker: dos peticiones, sin repetidos.
 pub async fn fetch_deals(http: &reqwest::Client, src: &Unit3dSource) -> TrackerDeals {
-    let free = [
-        ("free[]", "25"),
-        ("free[]", "50"),
-        ("free[]", "75"),
-        ("free[]", "100"),
-    ];
-    let (free, double) = tokio::join!(
-        deals_page(http, src, &free),
-        deals_page(http, src, &[("doubleup", "1")])
-    );
+    let free = [("free[]", "25"), ("free[]", "50"), ("free[]", "75"), ("free[]", "100")];
+    let (free, double) = tokio::join!(deals_page(http, src, &free), deals_page(http, src, &[("doubleup", "1")]));
     let (status, message, torrents) = match (free, double) {
         (Err((status, message)), Err(_)) => (status, Some(message), Vec::new()),
         (a, b) => {
             let mut out: Vec<Unit3dDeal> = Vec::new();
-            for d in a
-                .unwrap_or_default()
-                .into_iter()
-                .chain(b.unwrap_or_default())
-            {
+            for d in a.unwrap_or_default().into_iter().chain(b.unwrap_or_default()) {
                 if !out.iter().any(|x| x.id == d.id) {
                     out.push(d);
                 }
@@ -458,25 +362,10 @@ pub async fn fetch_deals(http: &reqwest::Client, src: &Unit3dSource) -> TrackerD
         }
     };
     match status {
-        TrackerStatus::Ok => log::debug!(
-            "unit3d {}: {} torrents en freeleech o doble subida",
-            src.name,
-            torrents.len()
-        ),
-        _ => log::warn!(
-            "unit3d {}: freeleech {:?} ({})",
-            src.name,
-            status,
-            message.as_deref().unwrap_or("")
-        ),
+        TrackerStatus::Ok => log::debug!("unit3d {}: {} torrents en freeleech o doble subida", src.name, torrents.len()),
+        _ => log::warn!("unit3d {}: freeleech {:?} ({})", src.name, status, message.as_deref().unwrap_or("")),
     }
-    TrackerDeals {
-        indexer_id: src.indexer_id,
-        name: src.name.clone(),
-        status,
-        message,
-        torrents,
-    }
+    TrackerDeals { indexer_id: src.indexer_id, name: src.name.clone(), status, message, torrents }
 }
 
 fn api_error((status, message): (TrackerStatus, String)) -> ApiError {
@@ -486,10 +375,7 @@ fn api_error((status, message): (TrackerStatus, String)) -> ApiError {
         TrackerStatus::RateLimited => 429,
         _ => 502,
     };
-    ApiError::Http {
-        status: code,
-        message,
-    }
+    ApiError::Http { status: code, message }
 }
 
 fn same_host(a: &url::Url, b: &url::Url) -> bool {
@@ -498,78 +384,37 @@ fn same_host(a: &url::Url, b: &url::Url) -> bool {
 
 /// Descarga el .torrent de un torrent del tracker para subirlo a qBittorrent: lee su enlace de descarga
 /// (`GET /api/torrents/{id}`) y lo baja. El enlace lleva la clave RSS del usuario y no sale de aquí.
-pub async fn fetch_torrent_file(
-    http: &reqwest::Client,
-    src: &Unit3dSource,
-    torrent_id: i64,
-) -> Result<FetchedTorrent, ApiError> {
-    let body = get_json(
-        http,
-        src,
-        &format!("/api/torrents/{torrent_id}"),
-        &[],
-        "el torrent ya no existe en el tracker",
-    )
-    .await
-    .map_err(api_error)?;
-    let attrs = body
-        .get("attributes")
-        .or_else(|| body["data"].get("attributes"));
+pub async fn fetch_torrent_file(http: &reqwest::Client, src: &Unit3dSource, torrent_id: i64) -> Result<FetchedTorrent, ApiError> {
+    let body = get_json(http, src, &format!("/api/torrents/{torrent_id}"), &[], "el torrent ya no existe en el tracker")
+        .await
+        .map_err(api_error)?;
+    let attrs = body.get("attributes").or_else(|| body["data"].get("attributes"));
     let link = attrs
         .and_then(|a| text_opt(&a["download_link"]))
-        .ok_or_else(|| ApiError::Http {
-            status: 502,
-            message: "el tracker no da enlace de descarga para este torrent".into(),
-        })?;
-    let link =
-        url::Url::parse(&link).map_err(|e| ApiError::network(format!("enlace no válido: {e}")))?;
+        .ok_or_else(|| ApiError::Http { status: 502, message: "el tracker no da enlace de descarga para este torrent".into() })?;
+    let link = url::Url::parse(&link).map_err(|e| ApiError::network(format!("enlace no válido: {e}")))?;
     let base = join_url(&src.base_url, "").map_err(ApiError::network)?;
     // El enlace va a la web del propio tracker; si apuntase a otro sitio no se sigue.
     if !same_host(&link, &base) {
-        return Err(ApiError::Http {
-            status: 502,
-            message: "el enlace de descarga no apunta al tracker".into(),
-        });
+        return Err(ApiError::Http { status: 502, message: "el enlace de descarga no apunta al tracker".into() });
     }
-    let res = http
-        .get(link)
-        .send()
-        .await
-        .map_err(|e| ApiError::network(e.without_url()))?;
+    let res = http.get(link).send().await.map_err(|e| ApiError::network(e.without_url()))?;
     let status = res.status();
     if status.is_redirection() {
-        let location = res
-            .headers()
-            .get(header::LOCATION)
-            .and_then(|v| v.to_str().ok())
-            .unwrap_or_default();
+        let location = res.headers().get(header::LOCATION).and_then(|v| v.to_str().ok()).unwrap_or_default();
         if location.starts_with("magnet:") {
             return Ok(FetchedTorrent::Magnet(location.to_string()));
         }
-        return Err(ApiError::Http {
-            status: status.as_u16(),
-            message: "el tracker redirige a su web en vez de dar el torrent".into(),
-        });
+        return Err(ApiError::Http { status: status.as_u16(), message: "el tracker redirige a su web en vez de dar el torrent".into() });
     }
     if !status.is_success() {
-        return Err(ApiError::Http {
-            status: status.as_u16(),
-            message: "el tracker no ha dado el archivo .torrent".into(),
-        });
+        return Err(ApiError::Http { status: status.as_u16(), message: "el tracker no ha dado el archivo .torrent".into() });
     }
-    let bytes = res
-        .bytes()
-        .await
-        .map_err(|e| ApiError::network(e.without_url()))?;
+    let bytes = res.bytes().await.map_err(|e| ApiError::network(e.without_url()))?;
     // Un .torrent es un diccionario bencode: empieza por "d".
     if bytes.first() != Some(&b'd') {
-        return Err(ApiError::Http {
-            status: 502,
-            message: "el tracker no ha devuelto un archivo .torrent".into(),
-        });
+        return Err(ApiError::Http { status: 502, message: "el tracker no ha devuelto un archivo .torrent".into() });
     }
     use base64::Engine;
-    Ok(FetchedTorrent::File(
-        base64::engine::general_purpose::STANDARD.encode(&bytes),
-    ))
+    Ok(FetchedTorrent::File(base64::engine::general_purpose::STANDARD.encode(&bytes)))
 }

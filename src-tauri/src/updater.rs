@@ -33,11 +33,7 @@ pub struct UpdateInfo {
 }
 
 fn parse_version(v: &str) -> Option<(u64, u64, u64)> {
-    let mut it = v
-        .trim()
-        .trim_start_matches('v')
-        .split(['.', '-', '+'])
-        .map(|p| p.parse::<u64>().ok());
+    let mut it = v.trim().trim_start_matches('v').split(['.', '-', '+']).map(|p| p.parse::<u64>().ok());
     Some((it.next()??, it.next()??, it.next()??))
 }
 
@@ -50,14 +46,8 @@ fn pick_update(release: GhRelease, current: &str) -> Option<UpdateInfo> {
     if compare_versions(&release.tag_name, current)? != Ordering::Greater {
         return None;
     }
-    let installer = release
-        .assets
-        .iter()
-        .find(|a| a.name.ends_with("-setup.exe"))?;
-    let checksum = release
-        .assets
-        .iter()
-        .find(|a| a.name == format!("{}.sha256", installer.name));
+    let installer = release.assets.iter().find(|a| a.name.ends_with("-setup.exe"))?;
+    let checksum = release.assets.iter().find(|a| a.name == format!("{}.sha256", installer.name));
     Some(UpdateInfo {
         version: release.tag_name.trim_start_matches('v').to_string(),
         notes: release.body.unwrap_or_default(),
@@ -78,36 +68,20 @@ fn http() -> Result<reqwest::Client, String> {
 pub async fn check_update<R: Runtime>(app: AppHandle<R>) -> Result<Option<UpdateInfo>, String> {
     let current = app.package_info().version.to_string();
     let url = format!("https://api.github.com/repos/{RELEASES_REPO}/releases/latest");
-    let res = http()?
-        .get(url)
-        .header("Accept", "application/vnd.github+json")
-        .send()
-        .await
-        .map_err(|e| e.to_string())?;
+    let res = http()?.get(url).header("Accept", "application/vnd.github+json").send().await.map_err(|e| e.to_string())?;
     if res.status() == reqwest::StatusCode::NOT_FOUND {
         return Ok(None); // aún no hay versiones publicadas (o el repositorio no es público)
     }
-    let release: GhRelease = res
-        .error_for_status()
-        .map_err(|e| e.to_string())?
-        .json()
-        .await
-        .map_err(|e| e.to_string())?;
+    let release: GhRelease = res.error_for_status().map_err(|e| e.to_string())?.json().await.map_err(|e| e.to_string())?;
     Ok(pick_update(release, &current))
 }
 
 fn allowed(url: &str) -> bool {
-    url.starts_with(&format!(
-        "https://github.com/{RELEASES_REPO}/releases/download/"
-    ))
+    url.starts_with(&format!("https://github.com/{RELEASES_REPO}/releases/download/"))
 }
 
 #[tauri::command]
-pub async fn install_update<R: Runtime>(
-    app: AppHandle<R>,
-    installer_url: String,
-    checksum_url: Option<String>,
-) -> Result<(), String> {
+pub async fn install_update<R: Runtime>(app: AppHandle<R>, installer_url: String, checksum_url: Option<String>) -> Result<(), String> {
     if !allowed(&installer_url) || checksum_url.as_deref().is_some_and(|u| !allowed(u)) {
         return Err("dirección de descarga no permitida".into());
     }
@@ -122,38 +96,19 @@ pub async fn install_update<R: Runtime>(
         .await
         .map_err(|e| e.to_string())?;
     if let Some(url) = checksum_url {
-        let expected = client
-            .get(url)
-            .send()
-            .await
-            .map_err(|e| e.to_string())?
-            .text()
-            .await
-            .map_err(|e| e.to_string())?;
-        let expected = expected
-            .split_whitespace()
-            .next()
-            .unwrap_or_default()
-            .to_ascii_lowercase();
+        let expected = client.get(url).send().await.map_err(|e| e.to_string())?.text().await.map_err(|e| e.to_string())?;
+        let expected = expected.split_whitespace().next().unwrap_or_default().to_ascii_lowercase();
         let actual = format!("{:x}", Sha256::digest(&bytes));
         if expected != actual {
             log::error!("Actualización descartada: el SHA-256 no coincide");
             return Err("el instalador descargado no coincide con su suma de comprobación".into());
         }
     }
-    let path = std::env::temp_dir().join(
-        installer_url
-            .rsplit('/')
-            .next()
-            .unwrap_or("dasharr-setup.exe"),
-    );
+    let path = std::env::temp_dir().join(installer_url.rsplit('/').next().unwrap_or("dasharr-setup.exe"));
     std::fs::write(&path, &bytes).map_err(|e| e.to_string())?;
     log::info!("Instalando actualización desde {}", installer_url);
     // /P = instalación pasiva de NSIS (solo barra de progreso); /R vuelve a abrir Dasharr al terminar.
-    std::process::Command::new(&path)
-        .args(["/P", "/R"])
-        .spawn()
-        .map_err(|e| e.to_string())?;
+    std::process::Command::new(&path).args(["/P", "/R"]).spawn().map_err(|e| e.to_string())?;
     app.exit(0);
     Ok(())
 }
@@ -167,28 +122,16 @@ mod tests {
             tag_name: tag.into(),
             body: Some("notas".into()),
             assets: vec![
-                GhAsset {
-                    name: "Dasharr_0.2.0_x64-setup.exe".into(),
-                    browser_download_url: "https://github.com/x/setup.exe".into(),
-                },
-                GhAsset {
-                    name: "Dasharr_0.2.0_x64-setup.exe.sha256".into(),
-                    browser_download_url: "https://github.com/x/sha".into(),
-                },
-                GhAsset {
-                    name: "Dasharr_0.2.0_x64_en-US.msi".into(),
-                    browser_download_url: "https://github.com/x/msi".into(),
-                },
+                GhAsset { name: "Dasharr_0.2.0_x64-setup.exe".into(), browser_download_url: "https://github.com/x/setup.exe".into() },
+                GhAsset { name: "Dasharr_0.2.0_x64-setup.exe.sha256".into(), browser_download_url: "https://github.com/x/sha".into() },
+                GhAsset { name: "Dasharr_0.2.0_x64_en-US.msi".into(), browser_download_url: "https://github.com/x/msi".into() },
             ],
         }
     }
 
     #[test]
     fn compares_semver() {
-        assert_eq!(
-            compare_versions("v0.10.0", "0.9.3"),
-            Some(Ordering::Greater)
-        );
+        assert_eq!(compare_versions("v0.10.0", "0.9.3"), Some(Ordering::Greater));
         assert_eq!(compare_versions("v0.2.0", "0.2.0"), Some(Ordering::Equal));
         assert_eq!(compare_versions("v1.0.0", "1.0.1"), Some(Ordering::Less));
         assert_eq!(compare_versions("nightly", "1.0.0"), None);
@@ -205,9 +148,7 @@ mod tests {
 
     #[test]
     fn only_downloads_from_own_releases() {
-        assert!(allowed(&format!(
-            "https://github.com/{RELEASES_REPO}/releases/download/v0.2.0/a.exe"
-        )));
+        assert!(allowed(&format!("https://github.com/{RELEASES_REPO}/releases/download/v0.2.0/a.exe")));
         assert!(!allowed("https://evil.example/releases/download/a.exe"));
     }
 }

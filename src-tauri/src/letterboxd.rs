@@ -31,11 +31,7 @@ struct Entry {
 impl Entry {
     /// Con nota se revisa cada semana; sin ficha o sin nota todavía, cada tres días.
     fn is_fresh(&self, now: u64) -> bool {
-        let ttl = if self.found.as_ref().is_some_and(|m| m.rating.is_some()) {
-            7 * DAY
-        } else {
-            3 * DAY
-        };
+        let ttl = if self.found.as_ref().is_some_and(|m| m.rating.is_some()) { 7 * DAY } else { 3 * DAY };
         now.saturating_sub(self.checked) < ttl
     }
 }
@@ -66,10 +62,7 @@ pub struct Letterboxd {
 }
 
 fn now_secs() -> u64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|d| d.as_secs())
-        .unwrap_or_default()
+    SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or_default()
 }
 
 impl Letterboxd {
@@ -103,25 +96,19 @@ impl Letterboxd {
 
     async fn blocked(&self) -> Option<Duration> {
         let block = self.block.lock().await;
-        block
-            .until
-            .and_then(|t| t.checked_duration_since(Instant::now()))
+        block.until.and_then(|t| t.checked_duration_since(Instant::now()))
     }
 
     async fn fetch(&self, tmdb_id: u64, gap: Duration) -> Result<Option<LbMatch>, LbError> {
         if self.blocked().await.is_some() {
             return Err(LbError::Blocked);
         }
-        let result =
-            letterboxd::lookup(self.http(), &self.throttle, gap, letterboxd::BASE, tmdb_id).await;
+        let result = letterboxd::lookup(self.http(), &self.throttle, gap, letterboxd::BASE, tmdb_id).await;
         let mut block = self.block.lock().await;
         match &result {
             Err(LbError::Blocked) => {
                 let wait = block.next.unwrap_or(FIRST_BLOCK);
-                log::warn!(
-                    "Letterboxd ha limitado las consultas; se reintentará en {} min",
-                    wait.as_secs() / 60
-                );
+                log::warn!("Letterboxd ha limitado las consultas; se reintentará en {} min", wait.as_secs() / 60);
                 block.until = Some(Instant::now() + wait);
                 block.next = Some((wait * 2).min(MAX_BLOCK));
             }
@@ -133,22 +120,10 @@ impl Letterboxd {
 
     async fn store<R: Runtime>(&self, app: &AppHandle<R>, tmdb_id: u64, found: Option<LbMatch>) {
         let mut cache = self.cache.lock().await;
-        cache.insert(
-            tmdb_id,
-            Entry {
-                found: found.clone(),
-                checked: now_secs(),
-            },
-        );
+        cache.insert(tmdb_id, Entry { found: found.clone(), checked: now_secs() });
         self.save(&cache).await;
         drop(cache);
-        let _ = app.emit(
-            RATING_EVENT,
-            RatingEvent {
-                tmdb_id,
-                rating: found,
-            },
-        );
+        let _ = app.emit(RATING_EVENT, RatingEvent { tmdb_id, rating: found });
     }
 
     /// Bucle en segundo plano que va vaciando la cola.
@@ -161,13 +136,7 @@ impl Letterboxd {
                 self.wake.notified().await;
                 continue;
             };
-            if self
-                .cache
-                .lock()
-                .await
-                .get(&id)
-                .is_some_and(|e| e.is_fresh(now_secs()))
-            {
+            if self.cache.lock().await.get(&id).is_some_and(|e| e.is_fresh(now_secs())) {
                 continue;
             }
             match self.fetch(id, BACKGROUND_GAP).await {
@@ -182,10 +151,7 @@ impl Letterboxd {
 /// Notas guardadas de una lista (aunque estén caducadas) y, las que falten, a la cola en segundo plano.
 /// Las de la última lista pedida pasan por delante.
 #[tauri::command]
-pub async fn letterboxd_ratings(
-    state: State<'_, AppState>,
-    tmdb_ids: Vec<u64>,
-) -> Result<HashMap<u64, LbMatch>, ()> {
+pub async fn letterboxd_ratings(state: State<'_, AppState>, tmdb_ids: Vec<u64>) -> Result<HashMap<u64, LbMatch>, ()> {
     let lb = &state.letterboxd;
     let now = now_secs();
     let mut out = HashMap::new();
@@ -223,11 +189,7 @@ pub async fn letterboxd_clear_queue(state: State<'_, AppState>) -> Result<(), ()
 
 /// Nota de una ficha: de la caché si está al día, si no se consulta ya.
 #[tauri::command]
-pub async fn letterboxd_rating<R: Runtime>(
-    app: AppHandle<R>,
-    state: State<'_, AppState>,
-    tmdb_id: u64,
-) -> Result<Option<LbMatch>, String> {
+pub async fn letterboxd_rating<R: Runtime>(app: AppHandle<R>, state: State<'_, AppState>, tmdb_id: u64) -> Result<Option<LbMatch>, String> {
     let lb = &state.letterboxd;
     let cached = lb.cache.lock().await.get(&tmdb_id).cloned();
     if let Some(e) = &cached {
@@ -241,9 +203,7 @@ pub async fn letterboxd_rating<R: Runtime>(
             Ok(found)
         }
         // Mejor una nota de hace unos días que ninguna.
-        Err(_) if cached.as_ref().is_some_and(|e| e.found.is_some()) => {
-            Ok(cached.and_then(|e| e.found))
-        }
+        Err(_) if cached.as_ref().is_some_and(|e| e.found.is_some()) => Ok(cached.and_then(|e| e.found)),
         Err(e) => Err(e.to_string()),
     }
 }
@@ -253,16 +213,8 @@ mod tests {
     use super::*;
 
     fn entry(rating: Option<f32>, found: bool, age_days: u64) -> Entry {
-        let m = LbMatch {
-            url: String::new(),
-            title: "x".into(),
-            rating,
-            votes: None,
-        };
-        Entry {
-            found: found.then_some(m),
-            checked: 100 * DAY - age_days * DAY,
-        }
+        let m = LbMatch { url: String::new(), title: "x".into(), rating, votes: None };
+        Entry { found: found.then_some(m), checked: 100 * DAY - age_days * DAY }
     }
 
     #[test]

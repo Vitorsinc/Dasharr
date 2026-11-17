@@ -24,10 +24,7 @@ pub fn run() {
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_opener::init())
-        .plugin(tauri_plugin_autostart::init(
-            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
-            None,
-        ))
+        .plugin(tauri_plugin_autostart::init(tauri_plugin_autostart::MacosLauncher::LaunchAgent, None))
         .manage(AppState::default())
         .register_asynchronous_uri_scheme_protocol(images::SCHEME, images::handle)
         .invoke_handler(tauri::generate_handler![
@@ -69,20 +66,12 @@ pub fn run() {
             tauri::async_runtime::block_on(handle.state::<AppState>().filmaffinity.load(&handle));
             let fa_handle = handle.clone();
             tauri::async_runtime::spawn(async move {
-                fa_handle
-                    .state::<AppState>()
-                    .filmaffinity
-                    .run_worker(fa_handle.clone())
-                    .await;
+                fa_handle.state::<AppState>().filmaffinity.run_worker(fa_handle.clone()).await;
             });
             tauri::async_runtime::block_on(handle.state::<AppState>().letterboxd.load(&handle));
             let lb_handle = handle.clone();
             tauri::async_runtime::spawn(async move {
-                lb_handle
-                    .state::<AppState>()
-                    .letterboxd
-                    .run_worker(lb_handle.clone())
-                    .await;
+                lb_handle.state::<AppState>().letterboxd.run_worker(lb_handle.clone()).await;
             });
             tauri::async_runtime::spawn(async move {
                 let state = handle.state::<AppState>();

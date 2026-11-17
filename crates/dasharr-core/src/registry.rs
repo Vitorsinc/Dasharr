@@ -18,10 +18,7 @@ impl Registry {
     }
 
     pub async fn set(&self, client: ServiceClient) {
-        self.clients
-            .write()
-            .await
-            .insert(client.kind(), Arc::new(client));
+        self.clients.write().await.insert(client.kind(), Arc::new(client));
     }
 
     pub async fn get(&self, kind: ServiceKind) -> Option<Arc<ServiceClient>> {

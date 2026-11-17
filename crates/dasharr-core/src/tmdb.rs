@@ -56,10 +56,7 @@ struct Release {
 }
 
 pub fn http_client() -> reqwest::Client {
-    reqwest::Client::builder()
-        .timeout(TIMEOUT)
-        .build()
-        .unwrap_or_default()
+    reqwest::Client::builder().timeout(TIMEOUT).build().unwrap_or_default()
 }
 
 /// La clave de la API v3 va en la URL; el token de lectura (v4, un JWT) va como Bearer.
@@ -71,12 +68,7 @@ fn authorize(req: reqwest::RequestBuilder, key: &str) -> reqwest::RequestBuilder
     }
 }
 
-async fn get(
-    http: &reqwest::Client,
-    base: &str,
-    path: &str,
-    key: &str,
-) -> Result<Option<String>, TmdbError> {
+async fn get(http: &reqwest::Client, base: &str, path: &str, key: &str) -> Result<Option<String>, TmdbError> {
     let res = authorize(http.get(format!("{base}{path}")), key)
         .send()
         .await
@@ -84,11 +76,7 @@ async fn get(
     match res.status() {
         StatusCode::UNAUTHORIZED => Err(TmdbError::InvalidKey),
         StatusCode::NOT_FOUND => Ok(None),
-        s if s.is_success() => res
-            .text()
-            .await
-            .map(Some)
-            .map_err(|e| TmdbError::Network(e.to_string())),
+        s if s.is_success() => res.text().await.map(Some).map_err(|e| TmdbError::Network(e.to_string())),
         s => Err(TmdbError::Network(format!("HTTP {}", s.as_u16()))),
     }
 }
@@ -99,12 +87,7 @@ pub async fn check_key(http: &reqwest::Client, base: &str, key: &str) -> Result<
 }
 
 /// Fechas de estreno de una película. Si TMDB no la conoce, devuelve un mapa vacío.
-pub async fn release_dates(
-    http: &reqwest::Client,
-    base: &str,
-    key: &str,
-    tmdb_id: u64,
-) -> Result<CountryDates, TmdbError> {
+pub async fn release_dates(http: &reqwest::Client, base: &str, key: &str, tmdb_id: u64) -> Result<CountryDates, TmdbError> {
     match get(http, base, &format!("/movie/{tmdb_id}/release_dates"), key).await? {
         Some(body) => parse(&body).map_err(|e| TmdbError::Network(e.to_string())),
         None => Ok(CountryDates::new()),
@@ -161,11 +144,7 @@ mod tests {
         let d = parse(BODY).unwrap();
         assert_eq!(
             d["ES"],
-            ReleaseDates {
-                cinema: Some("2024-03-08".into()),
-                digital: Some("2024-04-16".into()),
-                physical: None
-            }
+            ReleaseDates { cinema: Some("2024-03-08".into()), digital: Some("2024-04-16".into()), physical: None }
         );
         assert_eq!(d["US"].cinema.as_deref(), Some("2024-02-29"));
         assert_eq!(d["US"].physical.as_deref(), Some("2024-05-14"));
@@ -195,17 +174,9 @@ mod tests {
             .mount(&server)
             .await;
         let http = http_client();
-        let d = release_dates(&http, &server.uri(), "abc", 693134)
-            .await
-            .unwrap();
+        let d = release_dates(&http, &server.uri(), "abc", 693134).await.unwrap();
         assert_eq!(d["ES"].cinema.as_deref(), Some("2024-03-08"));
-        assert!(release_dates(&http, &server.uri(), "abc", 1)
-            .await
-            .unwrap()
-            .is_empty());
-        assert_eq!(
-            check_key(&http, &server.uri(), "bad").await,
-            Err(TmdbError::InvalidKey)
-        );
+        assert!(release_dates(&http, &server.uri(), "abc", 1).await.unwrap().is_empty());
+        assert_eq!(check_key(&http, &server.uri(), "bad").await, Err(TmdbError::InvalidKey));
     }
 }

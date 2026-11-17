@@ -12,11 +12,7 @@ const BASE: &str = "https://www.filmaffinity.com/es/";
 const TIMEOUT: Duration = Duration::from_secs(15);
 // Un agente sencillo que se identifica, como el script de Ant Movie Catalog, que FilmAffinity deja pasar en 2026.
 // Uno de Chrome sin el resto de cabeceras del navegador es lo que suelen marcar como robot.
-const USER_AGENT: &str = concat!(
-    "Mozilla/5.0 (compatible; Dasharr/",
-    env!("CARGO_PKG_VERSION"),
-    ")"
-);
+const USER_AGENT: &str = concat!("Mozilla/5.0 (compatible; Dasharr/", env!("CARGO_PKG_VERSION"), ")");
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -85,12 +81,7 @@ pub fn http_client() -> reqwest::Client {
 }
 
 /// Busca la ficha que mejor encaja y devuelve su nota. `Ok(None)` si no hay coincidencia clara.
-pub async fn lookup(
-    http: &reqwest::Client,
-    throttle: &Throttle,
-    gap: Duration,
-    q: &FaQuery<'_>,
-) -> Result<Option<FaMatch>, FaError> {
+pub async fn lookup(http: &reqwest::Client, throttle: &Throttle, gap: Duration, q: &FaQuery<'_>) -> Result<Option<FaMatch>, FaError> {
     let mut tried: Vec<String> = Vec::new();
     for title in &q.titles {
         let norm = normalize(title);
@@ -98,8 +89,7 @@ pub async fn lookup(
             continue;
         }
         tried.push(norm);
-        let (html, final_url) =
-            get(http, throttle, gap, &search_url(title, q.year), q.dump_dir).await?;
+        let (html, final_url) = get(http, throttle, gap, &search_url(title, q.year), q.dump_dir).await?;
         // Con un único resultado la web salta directamente a la ficha.
         let candidates = match film_id(&final_url).or_else(|| detail_id(&html)) {
             Some(id) => parse_detail(&html, id).into_iter().collect(),
@@ -130,42 +120,22 @@ pub async fn lookup(
     Ok(None)
 }
 
-async fn get(
-    http: &reqwest::Client,
-    throttle: &Throttle,
-    gap: Duration,
-    url: &str,
-    dump_dir: Option<&Path>,
-) -> Result<(String, String), FaError> {
+async fn get(http: &reqwest::Client, throttle: &Throttle, gap: Duration, url: &str, dump_dir: Option<&Path>) -> Result<(String, String), FaError> {
     throttle.wait(gap).await;
     let res = http
         .get(url)
-        .header(
-            "Accept",
-            "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        )
+        .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
         .header("Accept-Language", "es-ES,es;q=0.9")
         .send()
         .await
         .map_err(|e| FaError::Network(e.to_string()))?;
     let status = res.status();
     let final_url = res.url().to_string();
-    let body = res
-        .text()
-        .await
-        .map_err(|e| FaError::Network(e.to_string()))?;
+    let body = res.text().await.map_err(|e| FaError::Network(e.to_string()))?;
     // Cuando limita, FilmAffinity puede responder 200 con una página de aviso.
-    let blocked = matches!(
-        status,
-        StatusCode::TOO_MANY_REQUESTS | StatusCode::FORBIDDEN
-    ) || is_rate_limited(&body);
+    let blocked = matches!(status, StatusCode::TOO_MANY_REQUESTS | StatusCode::FORBIDDEN) || is_rate_limited(&body);
     if blocked {
-        log::warn!(
-            "FilmAffinity respondió HTTP {} ({} bytes) a {}",
-            status.as_u16(),
-            body.len(),
-            url_path(url)
-        );
+        log::warn!("FilmAffinity respondió HTTP {} ({} bytes) a {}", status.as_u16(), body.len(), url_path(url));
         if let Some(dir) = dump_dir {
             let _ = std::fs::write(dir.join(BLOCK_DUMP_FILE), &body);
         }
@@ -181,11 +151,9 @@ pub fn search_url(title: &str, year: Option<i32>) -> String {
     let mut url = url::Url::parse(&format!("{BASE}advsearch.php")).expect("url base");
     {
         let mut qp = url.query_pairs_mut();
-        qp.append_pair("stext", title)
-            .append_pair("stype[]", "title");
+        qp.append_pair("stext", title).append_pair("stype[]", "title");
         if let Some(y) = year {
-            qp.append_pair("fromyear", &(y - 1).to_string())
-                .append_pair("toyear", &(y + 1).to_string());
+            qp.append_pair("fromyear", &(y - 1).to_string()).append_pair("toyear", &(y + 1).to_string());
         }
     }
     url.to_string()
@@ -197,10 +165,7 @@ fn film_url(id: u64) -> String {
 
 fn film_id(url: &str) -> Option<u64> {
     let name = url.rsplit('/').next()?.split(['?', '#']).next()?;
-    name.strip_prefix("film")?
-        .strip_suffix(".html")?
-        .parse()
-        .ok()
+    name.strip_prefix("film")?.strip_suffix(".html")?.parse().ok()
 }
 
 /// La página de aviso lleva `<meta name="description" content="Too many request">`.
@@ -213,8 +178,7 @@ fn is_rate_limited(html: &str) -> bool {
 
 /// Ruta y consulta, sin el dominio, para el registro.
 fn url_path(url: &str) -> &str {
-    url.strip_prefix("https://www.filmaffinity.com")
-        .unwrap_or(url)
+    url.strip_prefix("https://www.filmaffinity.com").unwrap_or(url)
 }
 
 /// Id de la ficha si la página es una ficha (enlace canónico u og:url).
@@ -230,18 +194,11 @@ fn sel(s: &str) -> Selector {
 }
 
 fn text(e: ElementRef) -> String {
-    e.text()
-        .collect::<String>()
-        .split_whitespace()
-        .collect::<Vec<_>>()
-        .join(" ")
+    e.text().collect::<String>().split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
 fn first_text(root: ElementRef, s: &str) -> Option<String> {
-    root.select(&sel(s))
-        .next()
-        .map(text)
-        .filter(|t| !t.is_empty())
+    root.select(&sel(s)).next().map(text).filter(|t| !t.is_empty())
 }
 
 /// El primer selector, en orden de preferencia, que tenga texto.
@@ -252,10 +209,7 @@ fn first_of(root: ElementRef, selectors: &[&str]) -> Option<String> {
 /// "8,1" → 8.1; "--" o vacío → None. Si llega "7,6 58.120 votos" se queda con la primera cifra.
 fn parse_rating(s: &str) -> Option<f32> {
     let s = s.split_whitespace().next()?;
-    let cleaned: String = s
-        .chars()
-        .filter(|c| c.is_ascii_digit() || *c == ',' || *c == '.')
-        .collect();
+    let cleaned: String = s.chars().filter(|c| c.is_ascii_digit() || *c == ',' || *c == '.').collect();
     let v: f32 = cleaned.replace(',', ".").parse().ok()?;
     (0.0..=10.0).contains(&v).then_some(v)
 }
@@ -282,23 +236,13 @@ pub fn parse_search(html: &str) -> Vec<FaMatch> {
     // Del contenedor más externo al más interno: el primero que aparece se queda con el resultado.
     doc.select(&sel(".se-it, .item-search, .fa-card, .movie-card"))
         .filter_map(|c| {
-            let film_link = c
-                .select(&link_sel)
-                .find(|a| a.value().attr("href").and_then(film_id).is_some());
+            let film_link = c.select(&link_sel).find(|a| a.value().attr("href").and_then(film_id).is_some());
             let id = c
                 .value()
                 .attr("data-movie-id")
-                .or_else(|| {
-                    c.select(&sel("[data-movie-id]"))
-                        .next()
-                        .and_then(|e| e.value().attr("data-movie-id"))
-                })
+                .or_else(|| c.select(&sel("[data-movie-id]")).next().and_then(|e| e.value().attr("data-movie-id")))
                 .and_then(|v| v.parse().ok())
-                .or_else(|| {
-                    film_link
-                        .and_then(|a| a.value().attr("href"))
-                        .and_then(film_id)
-                })?;
+                .or_else(|| film_link.and_then(|a| a.value().attr("href")).and_then(film_id))?;
             if seen.contains(&id) {
                 return None;
             }
@@ -311,48 +255,20 @@ pub fn parse_search(html: &str) -> Vec<FaMatch> {
                         .filter(|a| a.value().attr("href").and_then(film_id) == Some(id))
                         .map(|a| {
                             let t = text(a);
-                            if t.is_empty() {
-                                a.value()
-                                    .attr("title")
-                                    .unwrap_or_default()
-                                    .trim()
-                                    .to_string()
-                            } else {
-                                t
-                            }
+                            if t.is_empty() { a.value().attr("title").unwrap_or_default().trim().to_string() } else { t }
                         })
                         .find(|t| !t.is_empty())
                 })?;
-            let year = first_text(c, ".mc-year, .ye-w")
-                .and_then(|y| year_in(&y))
-                .or_else(|| year_in(&title));
+            let year = first_text(c, ".mc-year, .ye-w").and_then(|y| year_in(&y)).or_else(|| year_in(&title));
             Some(FaMatch {
                 id,
                 url: film_url(id),
                 title,
                 year,
-                rating: first_of(
-                    c,
-                    &[
-                        ".avgrat-box",
-                        ".avg",
-                        ".avg-rating",
-                        "[class*='avgrat']",
-                        "[class*='avg-rat']",
-                    ],
-                )
-                .and_then(|r| parse_rating(&r)),
-                votes: first_of(
-                    c,
-                    &[
-                        ".ratcount-box",
-                        ".count",
-                        ".rat-count",
-                        "[class*='ratcount']",
-                        "[class*='rat-count']",
-                    ],
-                )
-                .and_then(|v| parse_votes(&v)),
+                rating: first_of(c, &[".avgrat-box", ".avg", ".avg-rating", "[class*='avgrat']", "[class*='avg-rat']"])
+                    .and_then(|r| parse_rating(&r)),
+                votes: first_of(c, &[".ratcount-box", ".count", ".rat-count", "[class*='ratcount']", "[class*='rat-count']"])
+                    .and_then(|v| parse_votes(&v)),
             })
         })
         .collect()
@@ -362,12 +278,7 @@ pub fn parse_detail(html: &str, id: u64) -> Option<FaMatch> {
     let doc = Html::parse_document(html);
     let root = doc.root_element();
     let attr_or_text = |s: &str| {
-        root.select(&sel(s)).next().map(|e| {
-            e.value()
-                .attr("content")
-                .map(str::to_string)
-                .unwrap_or_else(|| text(e))
-        })
+        root.select(&sel(s)).next().map(|e| e.value().attr("content").map(str::to_string).unwrap_or_else(|| text(e)))
     };
     let title = first_text(root, "#main-title span[itemprop='name']")
         .or_else(|| first_text(root, "#main-title"))
@@ -412,17 +323,8 @@ fn is_series_title(title: &str) -> bool {
 }
 
 /// Elige la tarjeta más parecida. Exige que el título encaje salvo que solo haya un resultado del mismo año.
-pub fn best_match(
-    candidates: Vec<FaMatch>,
-    titles: &[&str],
-    year: Option<i32>,
-    series: bool,
-) -> Option<FaMatch> {
-    let wanted: Vec<String> = titles
-        .iter()
-        .map(|t| normalize(t))
-        .filter(|t| !t.is_empty())
-        .collect();
+pub fn best_match(candidates: Vec<FaMatch>, titles: &[&str], year: Option<i32>, series: bool) -> Option<FaMatch> {
+    let wanted: Vec<String> = titles.iter().map(|t| normalize(t)).filter(|t| !t.is_empty()).collect();
     let only_one = candidates.len() == 1;
     candidates
         .into_iter()
@@ -430,10 +332,7 @@ pub fn best_match(
             let name = normalize(&c.title);
             let title_score = if wanted.contains(&name) {
                 3
-            } else if wanted
-                .iter()
-                .any(|w| name.contains(w.as_str()) || w.contains(name.as_str()))
-            {
+            } else if wanted.iter().any(|w| name.contains(w.as_str()) || w.contains(name.as_str())) {
                 1
             } else {
                 0
@@ -534,12 +433,7 @@ mod tests {
         assert_eq!(r[0].votes, Some(58120));
         assert_eq!(r[1].id, 999);
         assert_eq!(r[1].rating, None);
-        assert_eq!(
-            best_match(r, &["Oppenheimer"], Some(2023), false)
-                .unwrap()
-                .id,
-            872585
-        );
+        assert_eq!(best_match(r, &["Oppenheimer"], Some(2023), false).unwrap().id, 872585);
     }
 
     #[test]
@@ -547,14 +441,10 @@ mod tests {
         let html = r#"<html><head><link rel="canonical" href="https://www.filmaffinity.com/es/film123.html"></head></html>"#;
         assert_eq!(detail_id(html), Some(123));
         assert_eq!(detail_id(SEARCH_2026), None);
-        assert!(is_rate_limited(
-            r#"<html><head><meta name="description" content="Too many request"></head></html>"#
-        ));
+        assert!(is_rate_limited(r#"<html><head><meta name="description" content="Too many request"></head></html>"#));
         assert!(!is_rate_limited(SEARCH_2026));
         // El texto puede aparecer en scripts de la página normal sin ser el aviso.
-        assert!(!is_rate_limited(
-            r#"<html><head><script>var e = "Too many requests";</script></head></html>"#
-        ));
+        assert!(!is_rate_limited(r#"<html><head><script>var e = "Too many requests";</script></head></html>"#));
     }
 
     #[test]
@@ -568,60 +458,28 @@ mod tests {
 
     #[test]
     fn picks_exact_title_and_year() {
-        let m = best_match(
-            parse_search(SEARCH),
-            &["The Dark Knight", "El caballero oscuro"],
-            Some(2008),
-            false,
-        )
-        .unwrap();
+        let m = best_match(parse_search(SEARCH), &["The Dark Knight", "El caballero oscuro"], Some(2008), false).unwrap();
         assert_eq!(m.id, 867354);
     }
 
     #[test]
     fn rejects_other_years_and_unrelated_titles() {
-        assert!(best_match(
-            parse_search(SEARCH),
-            &["El caballero oscuro"],
-            Some(2012),
-            false
-        )
-        .is_none());
+        assert!(best_match(parse_search(SEARCH), &["El caballero oscuro"], Some(2012), false).is_none());
         assert!(best_match(parse_search(SEARCH), &["Amélie"], Some(2008), false).is_none());
     }
 
     #[test]
     fn prefers_series_cards_for_series() {
-        let c = |id, title: &str| FaMatch {
-            id,
-            url: film_url(id),
-            title: title.into(),
-            year: Some(2016),
-            rating: None,
-            votes: None,
-        };
+        let c = |id, title: &str| FaMatch { id, url: film_url(id), title: title.into(), year: Some(2016), rating: None, votes: None };
         let list = vec![c(1, "The Office"), c(2, "The Office (Serie de TV)")];
-        assert_eq!(
-            best_match(list.clone(), &["The Office"], Some(2016), true)
-                .unwrap()
-                .id,
-            2
-        );
-        assert_eq!(
-            best_match(list, &["The Office"], Some(2016), false)
-                .unwrap()
-                .id,
-            1
-        );
+        assert_eq!(best_match(list.clone(), &["The Office"], Some(2016), true).unwrap().id, 2);
+        assert_eq!(best_match(list, &["The Office"], Some(2016), false).unwrap().id, 1);
     }
 
     #[test]
     fn normalizes_titles() {
         assert_eq!(normalize("Amélie (Le fabuleux destin) "), "amelie");
-        assert_eq!(
-            normalize("Señor de los Anillos: La Comunidad"),
-            "senor de los anillos la comunidad"
-        );
+        assert_eq!(normalize("Señor de los Anillos: La Comunidad"), "senor de los anillos la comunidad");
         assert_eq!(normalize("Fast & Furious"), "fast and furious");
     }
 
@@ -630,14 +488,8 @@ mod tests {
         let u = search_url("El caballero oscuro", Some(2008));
         assert!(u.starts_with("https://www.filmaffinity.com/es/advsearch.php?stext=El+caballero+oscuro&stype%5B%5D=title"));
         assert!(u.ends_with("fromyear=2007&toyear=2009"));
-        assert_eq!(
-            film_id("https://www.filmaffinity.com/es/film867354.html"),
-            Some(867354)
-        );
-        assert_eq!(
-            film_id("https://www.filmaffinity.com/es/advsearch.php?x=1"),
-            None
-        );
+        assert_eq!(film_id("https://www.filmaffinity.com/es/film867354.html"), Some(867354));
+        assert_eq!(film_id("https://www.filmaffinity.com/es/advsearch.php?x=1"), None);
     }
 
     #[test]

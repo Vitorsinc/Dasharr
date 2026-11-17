@@ -15,9 +15,7 @@ const MAX_LINES: usize = 2000;
 pub fn plugin<R: Runtime>() -> tauri::plugin::TauriPlugin<R> {
     tauri_plugin_log::Builder::new()
         .clear_targets()
-        .target(Target::new(TargetKind::LogDir {
-            file_name: Some(FILE_NAME.into()),
-        }))
+        .target(Target::new(TargetKind::LogDir { file_name: Some(FILE_NAME.into()) }))
         .target(Target::new(TargetKind::Stdout))
         .level(log::LevelFilter::Info)
         // reqwest/hyper son muy verbosos y podrían mostrar cabeceras.
@@ -31,11 +29,7 @@ pub fn plugin<R: Runtime>() -> tauri::plugin::TauriPlugin<R> {
 }
 
 fn log_path<R: Runtime>(app: &AppHandle<R>) -> Result<PathBuf, String> {
-    Ok(app
-        .path()
-        .app_log_dir()
-        .map_err(|e| e.to_string())?
-        .join(format!("{FILE_NAME}.log")))
+    Ok(app.path().app_log_dir().map_err(|e| e.to_string())?.join(format!("{FILE_NAME}.log")))
 }
 
 #[derive(Serialize)]
@@ -50,14 +44,8 @@ pub fn read_log<R: Runtime>(app: AppHandle<R>) -> Result<LogFile, String> {
     let path = log_path(&app)?;
     let text = fs::read_to_string(&path).unwrap_or_default();
     let all: Vec<&str> = text.lines().collect();
-    let lines = all[all.len().saturating_sub(MAX_LINES)..]
-        .iter()
-        .map(|l| l.to_string())
-        .collect();
-    Ok(LogFile {
-        path: path.display().to_string(),
-        lines,
-    })
+    let lines = all[all.len().saturating_sub(MAX_LINES)..].iter().map(|l| l.to_string()).collect();
+    Ok(LogFile { path: path.display().to_string(), lines })
 }
 
 #[tauri::command]

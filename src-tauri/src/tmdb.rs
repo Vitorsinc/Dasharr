@@ -36,13 +36,8 @@ impl Tmdb {
 
     async fn key(&self) -> Option<String> {
         let mut key = self.key.lock().await;
-        key.get_or_insert_with(|| {
-            entry()
-                .ok()
-                .and_then(|e| e.get_password().ok())
-                .filter(|k| !k.is_empty())
-        })
-        .clone()
+        key.get_or_insert_with(|| entry().ok().and_then(|e| e.get_password().ok()).filter(|k| !k.is_empty()))
+            .clone()
     }
 }
 
@@ -63,9 +58,7 @@ pub async fn tmdb_save_key(state: State<'_, AppState>, key: String) -> Result<()
         }
         *tmdb.key.lock().await = Some(None);
     } else {
-        tmdb::check_key(&tmdb.http(), tmdb::BASE, &key)
-            .await
-            .map_err(|e| e.to_string())?;
+        tmdb::check_key(&tmdb.http(), tmdb::BASE, &key).await.map_err(|e| e.to_string())?;
         entry()?
             .set_password(&key)
             .map_err(|e| format!("No se pudo guardar en el Administrador de credenciales: {e}"))?;
@@ -77,15 +70,9 @@ pub async fn tmdb_save_key(state: State<'_, AppState>, key: String) -> Result<()
 
 /// Fechas de cada película en un país. Las películas que TMDB no tiene, o sin fechas en ese país, no aparecen.
 #[tauri::command]
-pub async fn tmdb_release_dates(
-    state: State<'_, AppState>,
-    ids: Vec<u64>,
-    country: String,
-) -> Result<HashMap<u64, ReleaseDates>, String> {
+pub async fn tmdb_release_dates(state: State<'_, AppState>, ids: Vec<u64>, country: String) -> Result<HashMap<u64, ReleaseDates>, String> {
     let tmdb = &state.tmdb;
-    let Some(key) = tmdb.key().await else {
-        return Ok(HashMap::new());
-    };
+    let Some(key) = tmdb.key().await else { return Ok(HashMap::new()) };
     let country = country.to_uppercase();
     let mut found: HashMap<u64, CountryDates> = HashMap::new();
     let mut missing = Vec::new();
@@ -111,10 +98,7 @@ pub async fn tmdb_release_dates(
         while let Some(Ok((id, res))) = set.join_next().await {
             match res {
                 Ok(dates) => {
-                    tmdb.cache
-                        .lock()
-                        .await
-                        .insert(id, (Instant::now(), dates.clone()));
+                    tmdb.cache.lock().await.insert(id, (Instant::now(), dates.clone()));
                     found.insert(id, dates);
                 }
                 Err(e) => failure = Some(e),
@@ -132,8 +116,5 @@ pub async fn tmdb_release_dates(
     } else if let Some(e) = failure {
         log::warn!("TMDB: faltan fechas de algunas películas ({e})");
     }
-    Ok(found
-        .into_iter()
-        .filter_map(|(id, mut d)| d.remove(&country).map(|r| (id, r)))
-        .collect())
+    Ok(found.into_iter().filter_map(|(id, mut d)| d.remove(&country).map(|r| (id, r))).collect())
 }

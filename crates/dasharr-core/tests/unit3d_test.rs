@@ -1,7 +1,4 @@
-use dasharr_core::unit3d::{
-    fetch_deals, fetch_stats, fetch_torrent_file, http_client, parse_deals, parse_size, parse_user,
-    unit3d_sources, TrackerStatus,
-};
+use dasharr_core::unit3d::{fetch_deals, fetch_stats, fetch_torrent_file, http_client, parse_deals, parse_size, parse_user, unit3d_sources, TrackerStatus};
 use dasharr_core::{ApiError, FetchedTorrent};
 use serde_json::{json, Value};
 use wiremock::matchers::{header, method, path, query_param};
@@ -25,14 +22,7 @@ fn sources_keep_only_enabled_cardigann_with_clear_key() {
     let empty = indexer(5, "https://e/", "");
     let mut no_base = indexer(6, "", "k");
     no_base["fields"][0]["value"] = Value::Null;
-    let list = json!([
-        indexer(1, "https://a/", "k1"),
-        disabled,
-        native,
-        masked,
-        empty,
-        no_base
-    ]);
+    let list = json!([indexer(1, "https://a/", "k1"), disabled, native, masked, empty, no_base]);
     let got = unit3d_sources(&list);
     let ids: Vec<i64> = got.iter().map(|s| s.indexer_id).collect();
     assert_eq!(ids, vec![1, 6]);
@@ -102,10 +92,7 @@ async fn fetch_classifies_failures() {
         (503, TrackerStatus::Unavailable),
     ] {
         let s = MockServer::start().await;
-        Mock::given(path("/api/user"))
-            .respond_with(ResponseTemplate::new(code))
-            .mount(&s)
-            .await;
+        Mock::given(path("/api/user")).respond_with(ResponseTemplate::new(code)).mount(&s).await;
         let st = fetch_stats(&http_client(), &source_for(&s).await).await;
         assert_eq!(st.status, expected, "HTTP {code}");
         assert!(st.user.is_none());
@@ -115,28 +102,12 @@ async fn fetch_classifies_failures() {
 #[tokio::test]
 async fn html_or_foreign_json_is_unsupported() {
     let s = MockServer::start().await;
-    Mock::given(path("/api/user"))
-        .respond_with(ResponseTemplate::new(200).set_body_string("<html>login</html>"))
-        .mount(&s)
-        .await;
-    assert_eq!(
-        fetch_stats(&http_client(), &source_for(&s).await)
-            .await
-            .status,
-        TrackerStatus::Unsupported
-    );
+    Mock::given(path("/api/user")).respond_with(ResponseTemplate::new(200).set_body_string("<html>login</html>")).mount(&s).await;
+    assert_eq!(fetch_stats(&http_client(), &source_for(&s).await).await.status, TrackerStatus::Unsupported);
 
     let s = MockServer::start().await;
-    Mock::given(path("/api/user"))
-        .respond_with(ResponseTemplate::new(200).set_body_json(json!({"id": 1})))
-        .mount(&s)
-        .await;
-    assert_eq!(
-        fetch_stats(&http_client(), &source_for(&s).await)
-            .await
-            .status,
-        TrackerStatus::Unsupported
-    );
+    Mock::given(path("/api/user")).respond_with(ResponseTemplate::new(200).set_body_json(json!({"id": 1}))).mount(&s).await;
+    assert_eq!(fetch_stats(&http_client(), &source_for(&s).await).await.status, TrackerStatus::Unsupported);
 }
 
 fn torrent(id: &str, free: &str, double: bool) -> Value {
@@ -154,10 +125,7 @@ fn torrent(id: &str, free: &str, double: bool) -> Value {
 fn deals_keep_only_freeleech_or_double_upload_without_download_links() {
     let body = json!({"data": [torrent("1", "100%", false), torrent("2", "0%", true), torrent("3", "0%", false), torrent("4", "50%", false)]});
     let deals = parse_deals(&body).unwrap();
-    assert_eq!(
-        deals.iter().map(|d| d.id).collect::<Vec<_>>(),
-        vec![1, 2, 4]
-    );
+    assert_eq!(deals.iter().map(|d| d.id).collect::<Vec<_>>(), vec![1, 2, 4]);
     assert_eq!(deals[0].freeleech, 100);
     assert!(deals[1].double_upload);
     assert_eq!(deals[2].freeleech, 50);
@@ -165,10 +133,7 @@ fn deals_keep_only_freeleech_or_double_upload_without_download_links() {
     assert_eq!(deals[0].tmdb_id, Some(603));
     assert_eq!(deals[0].tvdb_id, None);
     assert_eq!(deals[0].imdb_id, Some(133093));
-    assert_eq!(
-        deals[0].poster.as_deref(),
-        Some("https://image.tmdb.org/t/p/w92/a.jpg")
-    );
+    assert_eq!(deals[0].poster.as_deref(), Some("https://image.tmdb.org/t/p/w92/a.jpg"));
     // La clave RSS del enlace de descarga no llega a la interfaz.
     assert!(!serde_json::to_string(&deals).unwrap().contains("SECRETRSS"));
     assert!(parse_deals(&json!({"id": 1})).is_none());
@@ -180,18 +145,12 @@ async fn fetch_deals_merges_freeleech_and_double_upload() {
     Mock::given(path("/api/torrents/filter"))
         .and(query_param("doubleup", "1"))
         .and(header("Authorization", "Bearer tok"))
-        .respond_with(
-            ResponseTemplate::new(200).set_body_json(
-                json!({"data": [torrent("1", "100%", true), torrent("2", "0%", true)]}),
-            ),
-        )
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({"data": [torrent("1", "100%", true), torrent("2", "0%", true)]})))
         .mount(&s)
         .await;
     Mock::given(path("/api/torrents/filter"))
         .and(query_param("free[]", "100"))
-        .respond_with(ResponseTemplate::new(200).set_body_json(
-            json!({"data": [torrent("1", "100%", true), torrent("5", "25%", false)]}),
-        ))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({"data": [torrent("1", "100%", true), torrent("5", "25%", false)]})))
         .mount(&s)
         .await;
     let d = fetch_deals(&http_client(), &source_for(&s).await).await;
@@ -204,10 +163,7 @@ async fn fetch_deals_merges_freeleech_and_double_upload() {
 #[tokio::test]
 async fn fetch_deals_reports_failure() {
     let s = MockServer::start().await;
-    Mock::given(path("/api/torrents/filter"))
-        .respond_with(ResponseTemplate::new(401))
-        .mount(&s)
-        .await;
+    Mock::given(path("/api/torrents/filter")).respond_with(ResponseTemplate::new(401)).mount(&s).await;
     let d = fetch_deals(&http_client(), &source_for(&s).await).await;
     assert_eq!(d.status, TrackerStatus::Unauthorized);
     assert!(d.torrents.is_empty());
@@ -219,18 +175,11 @@ async fn grab_downloads_the_torrent_from_the_tracker() {
     let link = format!("{}/torrent/download/9.rss", s.uri());
     Mock::given(path("/api/torrents/9"))
         .and(header("Authorization", "Bearer tok"))
-        .respond_with(ResponseTemplate::new(200).set_body_json(
-            json!({"type": "torrent", "id": "9", "attributes": {"download_link": link}}),
-        ))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({"type": "torrent", "id": "9", "attributes": {"download_link": link}})))
         .mount(&s)
         .await;
-    Mock::given(path("/torrent/download/9.rss"))
-        .respond_with(ResponseTemplate::new(200).set_body_string("d8:announce3:urle"))
-        .mount(&s)
-        .await;
-    let got = fetch_torrent_file(&http_client(), &source_for(&s).await, 9)
-        .await
-        .unwrap();
+    Mock::given(path("/torrent/download/9.rss")).respond_with(ResponseTemplate::new(200).set_body_string("d8:announce3:urle")).mount(&s).await;
+    let got = fetch_torrent_file(&http_client(), &source_for(&s).await, 9).await.unwrap();
     assert_eq!(got, FetchedTorrent::File("ZDg6YW5ub3VuY2UzOnVybGU=".into()));
 }
 
@@ -238,40 +187,23 @@ async fn grab_downloads_the_torrent_from_the_tracker() {
 async fn grab_refuses_links_to_other_hosts_and_html() {
     let s = MockServer::start().await;
     Mock::given(path("/api/torrents/9"))
-        .respond_with(ResponseTemplate::new(200).set_body_json(
-            json!({"attributes": {"download_link": "https://otro.example/x.torrent"}}),
-        ))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({"attributes": {"download_link": "https://otro.example/x.torrent"}})))
         .mount(&s)
         .await;
-    let err = fetch_torrent_file(&http_client(), &source_for(&s).await, 9)
-        .await
-        .unwrap_err();
+    let err = fetch_torrent_file(&http_client(), &source_for(&s).await, 9).await.unwrap_err();
     assert!(matches!(err, ApiError::Http { status: 502, .. }));
 
     let s = MockServer::start().await;
     let link = format!("{}/dl", s.uri());
     Mock::given(path("/api/torrents/9"))
-        .respond_with(
-            ResponseTemplate::new(200)
-                .set_body_json(json!({"attributes": {"download_link": link}})),
-        )
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({"attributes": {"download_link": link}})))
         .mount(&s)
         .await;
-    Mock::given(path("/dl"))
-        .respond_with(ResponseTemplate::new(200).set_body_string("<html>login</html>"))
-        .mount(&s)
-        .await;
-    assert!(fetch_torrent_file(&http_client(), &source_for(&s).await, 9)
-        .await
-        .is_err());
+    Mock::given(path("/dl")).respond_with(ResponseTemplate::new(200).set_body_string("<html>login</html>")).mount(&s).await;
+    assert!(fetch_torrent_file(&http_client(), &source_for(&s).await, 9).await.is_err());
 
     let s = MockServer::start().await;
-    Mock::given(path("/api/torrents/9"))
-        .respond_with(ResponseTemplate::new(404))
-        .mount(&s)
-        .await;
-    let err = fetch_torrent_file(&http_client(), &source_for(&s).await, 9)
-        .await
-        .unwrap_err();
+    Mock::given(path("/api/torrents/9")).respond_with(ResponseTemplate::new(404)).mount(&s).await;
+    let err = fetch_torrent_file(&http_client(), &source_for(&s).await, 9).await.unwrap_err();
     assert!(matches!(err, ApiError::Http { status: 404, .. }));
 }
