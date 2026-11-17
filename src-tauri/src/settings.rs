@@ -33,10 +33,19 @@ impl SecretsPatch {
     pub fn merge(&self, existing: &ServiceSecrets) -> ServiceSecrets {
         let mut s = existing.clone();
         // Las claves copiadas de la web suelen arrastrar espacios o saltos de línea.
-        apply(&mut s.api_key, &self.api_key.as_ref().map(|v| v.trim().to_string()));
-        apply(&mut s.username, &self.username.as_ref().map(|v| v.trim().to_string()));
+        apply(
+            &mut s.api_key,
+            &self.api_key.as_ref().map(|v| v.trim().to_string()),
+        );
+        apply(
+            &mut s.username,
+            &self.username.as_ref().map(|v| v.trim().to_string()),
+        );
         apply(&mut s.password, &self.password);
-        apply(&mut s.proxy_username, &self.proxy_username.as_ref().map(|v| v.trim().to_string()));
+        apply(
+            &mut s.proxy_username,
+            &self.proxy_username.as_ref().map(|v| v.trim().to_string()),
+        );
         apply(&mut s.proxy_password, &self.proxy_password);
         s
     }
@@ -69,18 +78,27 @@ impl ServiceSettingsView {
 }
 
 pub fn load_configs<R: Runtime>(app: &AppHandle<R>) -> HashMap<ServiceKind, ServiceConfig> {
-    let Ok(store) = app.store(STORE_FILE) else { return HashMap::new() };
+    let Ok(store) = app.store(STORE_FILE) else {
+        return HashMap::new();
+    };
     store
         .get(SERVICES_KEY)
         .and_then(|v| serde_json::from_value::<HashMap<ServiceKind, ServiceConfig>>(v).ok())
         .unwrap_or_default()
 }
 
-pub fn save_config<R: Runtime>(app: &AppHandle<R>, kind: ServiceKind, config: &ServiceConfig) -> Result<(), String> {
+pub fn save_config<R: Runtime>(
+    app: &AppHandle<R>,
+    kind: ServiceKind,
+    config: &ServiceConfig,
+) -> Result<(), String> {
     let store = app.store(STORE_FILE).map_err(|e| e.to_string())?;
     let mut all = load_configs(app);
     all.insert(kind, config.clone());
-    store.set(SERVICES_KEY, serde_json::to_value(all).map_err(|e| e.to_string())?);
+    store.set(
+        SERVICES_KEY,
+        serde_json::to_value(all).map_err(|e| e.to_string())?,
+    );
     store.save().map_err(|e| e.to_string())
 }
 
@@ -98,7 +116,9 @@ pub fn load_secrets(kind: ServiceKind) -> ServiceSecrets {
 
 pub fn save_secrets(kind: ServiceKind, secrets: &ServiceSecrets) -> Result<(), String> {
     let json = serde_json::to_string(secrets).map_err(|e| e.to_string())?;
-    entry(kind)?.set_password(&json).map_err(|e| format!("No se pudo guardar en el Administrador de credenciales: {e}"))
+    entry(kind)?
+        .set_password(&json)
+        .map_err(|e| format!("No se pudo guardar en el Administrador de credenciales: {e}"))
 }
 
 #[cfg(test)]
@@ -107,11 +127,24 @@ mod tests {
 
     #[test]
     fn patch_keeps_clears_and_sets() {
-        let existing = ServiceSecrets { api_key: Some("old".into()), password: Some("p".into()), ..Default::default() };
-        let patch = SecretsPatch { api_key: None, password: Some("".into()), username: Some("admin".into()), ..Default::default() };
+        let existing = ServiceSecrets {
+            api_key: Some("old".into()),
+            password: Some("p".into()),
+            ..Default::default()
+        };
+        let patch = SecretsPatch {
+            api_key: None,
+            password: Some("".into()),
+            username: Some("admin".into()),
+            ..Default::default()
+        };
         let merged = patch.merge(&existing);
         assert_eq!(merged.api_key.as_deref(), Some("old"));
-        let trimmed = SecretsPatch { api_key: Some("  abc123\n".into()), ..Default::default() }.merge(&existing);
+        let trimmed = SecretsPatch {
+            api_key: Some("  abc123\n".into()),
+            ..Default::default()
+        }
+        .merge(&existing);
         assert_eq!(trimmed.api_key.as_deref(), Some("abc123"));
         assert_eq!(merged.password, None);
         assert_eq!(merged.username.as_deref(), Some("admin"));

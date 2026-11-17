@@ -7,7 +7,7 @@ export function isLibSort(v: unknown): v is LibSort {
   if (v === "title" || v === "added" || v === "year") return true;
   return v.startsWith("rating:") && (RATING_SOURCES as readonly string[]).includes(v.slice("rating:".length));
 }
-/** Notas de un elemento por fuente (Rotten Tomatoes y Metacritic en %, el resto sobre 10). */
+/** Notas de un elemento por fuente (Rotten Tomatoes y Metacritic en %, Letterboxd sobre 5, el resto sobre 10). */
 export type Scores = Partial<Record<RatingSource, number>>;
 /** Filtro por lo que has visto tú (Tracearr). */
 export type WatchFilter = "all" | "seen" | "started" | "unseen";
@@ -79,7 +79,7 @@ export function libState(i: LibItem): LibState {
 }
 
 /** Notas por las que se puede ordenar cada biblioteca. */
-export const MOVIE_SOURCES: RatingSource[] = ["filmaffinity", "imdb", "tmdb", "rottenTomatoes", "metacritic", "trakt"];
+export const MOVIE_SOURCES: RatingSource[] = ["filmaffinity", "letterboxd", "imdb", "tmdb", "rottenTomatoes", "metacritic", "trakt"];
 export const SERIES_SOURCES: RatingSource[] = ["filmaffinity", "tvdb"];
 
 /** Si la nota del orden elegido se ha ocultado en Ajustes, se vuelve a ordenar por título. */
@@ -87,7 +87,7 @@ export function isAvailable(sort: LibSort, sources: RatingSource[]) {
   return !sort.startsWith("rating:") || sources.includes(sort.slice("rating:".length) as RatingSource);
 }
 
-/** Orden en que se piden las notas de FilmAffinity: el de la lista, salvo al ordenar por nota (por título). */
+/** Orden en que se piden las notas de FilmAffinity y Letterboxd: el de la lista, salvo al ordenar por nota (por título). */
 export function fetchOrder(sort: LibSort): LibSort {
   return sort.startsWith("rating:") ? "title" : sort;
 }

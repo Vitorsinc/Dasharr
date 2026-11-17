@@ -73,10 +73,16 @@ fn default_true() -> bool {
 
 impl ServiceConfig {
     pub fn local(&self) -> Option<&str> {
-        self.local_url.as_deref().map(str::trim).filter(|s| !s.is_empty())
+        self.local_url
+            .as_deref()
+            .map(str::trim)
+            .filter(|s| !s.is_empty())
     }
     pub fn external(&self) -> Option<&str> {
-        self.external_url.as_deref().map(str::trim).filter(|s| !s.is_empty())
+        self.external_url
+            .as_deref()
+            .map(str::trim)
+            .filter(|s| !s.is_empty())
     }
     pub fn is_configured(&self) -> bool {
         self.enabled && (self.local().is_some() || self.external().is_some())
@@ -116,7 +122,10 @@ pub struct FilePart {
 pub enum ApiBody {
     Json(Value),
     Form(Vec<(String, String)>),
-    Multipart { fields: Vec<(String, String)>, files: Vec<FilePart> },
+    Multipart {
+        fields: Vec<(String, String)>,
+        files: Vec<FilePart>,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -136,7 +145,12 @@ fn default_get() -> String {
 
 impl ApiRequest {
     pub fn get(path: impl Into<String>) -> Self {
-        ApiRequest { method: "GET".into(), path: path.into(), query: vec![], body: None }
+        ApiRequest {
+            method: "GET".into(),
+            path: path.into(),
+            query: vec![],
+            body: None,
+        }
     }
 }
 

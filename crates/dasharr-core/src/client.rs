@@ -6,7 +6,10 @@ use serde_json::Value;
 use tokio::sync::Mutex;
 
 use crate::error::ApiError;
-use crate::model::{ApiBody, ApiRequest, ApiResponse, FetchedTorrent, Route, ServiceConfig, ServiceKind, ServiceSecrets};
+use crate::model::{
+    ApiBody, ApiRequest, ApiResponse, FetchedTorrent, Route, ServiceConfig, ServiceKind,
+    ServiceSecrets,
+};
 use crate::url::join_url;
 
 const LOCAL_PROBE_TIMEOUT: Duration = Duration::from_millis(1500);
@@ -53,7 +56,14 @@ impl ServiceClient {
             }))
             .build()
             .expect("cliente HTTP");
-        ServiceClient { kind, config, secrets, http, resolved: Mutex::new(None), sid: Mutex::new(None) }
+        ServiceClient {
+            kind,
+            config,
+            secrets,
+            http,
+            resolved: Mutex::new(None),
+            sid: Mutex::new(None),
+        }
     }
 
     pub fn kind(&self) -> ServiceKind {
@@ -71,19 +81,50 @@ impl ServiceClient {
 
     /// Comprueba qué dirección responde. Cualquier respuesta HTTP (incluso 401/403) cuenta como alcanzable.
     pub async fn probe(&self) -> Route {
-        let resolved = if let Some(base) = self.reachable(self.config.local(), LOCAL_PROBE_TIMEOUT).await {
-            Resolved { route: Route::Local, base: Some(base) }
-        } else if let Some(base) = self.reachable(self.config.external(), REMOTE_PROBE_TIMEOUT).await {
-            Resolved { route: Route::Remote, base: Some(base) }
+        let resolved = if let Some(base) = self
+            .reachable(self.config.local(), LOCAL_PROBE_TIMEOUT)
+            .await
+        {
+            Resolved {
+                route: Route::Local,
+                base: Some(base),
+            }
+        } else if let Some(base) = self
+            .reachable(self.config.external(), REMOTE_PROBE_TIMEOUT)
+            .await
+        {
+            Resolved {
+                route: Route::Remote,
+                base: Some(base),
+            }
         } else {
-            Resolved { route: Route::Offline, base: None }
+            Resolved {
+                route: Route::Offline,
+                base: None,
+            }
         };
         let route = resolved.route;
-        let previous = self.resolved.lock().await.replace(resolved).map(|r| r.route);
+        let previous = self
+            .resolved
+            .lock()
+            .await
+            .replace(resolved)
+            .map(|r| r.route);
         if previous != Some(route) {
             match route {
-                Route::Offline => log::warn!("{}: sin conexión (no responde ni la dirección local ni la externa)", self.kind.as_str()),
-                _ => log::info!("{}: conectado por la dirección {}", self.kind.as_str(), if route == Route::Local { "local" } else { "externa" }),
+                Route::Offline => log::warn!(
+                    "{}: sin conexión (no responde ni la dirección local ni la externa)",
+                    self.kind.as_str()
+                ),
+                _ => log::info!(
+                    "{}: conectado por la dirección {}",
+                    self.kind.as_str(),
+                    if route == Route::Local {
+                        "local"
+                    } else {
+                        "externa"
+                    }
+                ),
             }
         }
         route
@@ -92,7 +133,9 @@ impl ServiceClient {
     async fn reachable(&self, base: Option<&str>, timeout: Duration) -> Option<String> {
         let base = base?;
         let url = join_url(base, self.kind.probe_path()).ok()?;
-        let req = self.with_proxy_auth(self.http.get(url), base).timeout(timeout);
+        let req = self
+            .with_proxy_auth(self.http.get(url), base)
+            .timeout(timeout);
         req.send().await.ok().map(|_| base.to_string())
     }
 
@@ -105,10 +148,16 @@ impl ServiceClient {
             Some(r) if !force_probe && r.base.is_some() => r,
             _ => {
                 self.probe().await;
-                self.resolved.lock().await.clone().expect("probe guarda el resultado")
+                self.resolved
+                    .lock()
+                    .await
+                    .clone()
+                    .expect("probe guarda el resultado")
             }
         };
-        resolved.base.ok_or_else(|| ApiError::network("no responde ni la dirección local ni la externa"))
+        resolved
+            .base
+            .ok_or_else(|| ApiError::network("no responde ni la dirección local ni la externa"))
     }
 
     /// Usuario y contraseña del proxy inverso, solo hacia la dirección externa: en local no hay proxy, y
@@ -125,21 +174,34 @@ impl ServiceClient {
     }
 
     fn qbit_api_key(&self) -> Option<&str> {
-        self.secrets.api_key.as_deref().filter(|k| self.kind == ServiceKind::Qbittorrent && !k.is_empty())
+        self.secrets
+            .api_key
+            .as_deref()
+            .filter(|k| self.kind == ServiceKind::Qbittorrent && !k.is_empty())
     }
 
     /// qBittorrent 5.2+ acepta una API key sin sesión; si no la hay, se inicia sesión con usuario y contraseña.
     fn uses_qbit_login(&self) -> bool {
         self.kind == ServiceKind::Qbittorrent
             && self.qbit_api_key().is_none()
-            && self.secrets.username.as_deref().is_some_and(|u| !u.is_empty())
+            && self
+                .secrets
+                .username
+                .as_deref()
+                .is_some_and(|u| !u.is_empty())
     }
 
     async fn qbit_login(&self, base: &str) -> Result<String, ApiError> {
         let url = join_url(base, "/api/v2/auth/login")?;
         let form = [
-            ("username", self.secrets.username.clone().unwrap_or_default()),
-            ("password", self.secrets.password.clone().unwrap_or_default()),
+            (
+                "username",
+                self.secrets.username.clone().unwrap_or_default(),
+            ),
+            (
+                "password",
+                self.secrets.password.clone().unwrap_or_default(),
+            ),
         ];
         let res = self
             .with_proxy_auth(self.http.post(url), base)
@@ -156,11 +218,17 @@ impl ServiceClient {
             .find_map(|c| session_cookie(c.split(';').next()?.trim()));
         let status = res.status();
         let text = res.text().await.unwrap_or_default();
-        if status == StatusCode::FORBIDDEN || status == StatusCode::UNAUTHORIZED || text.trim() == "Fails." {
+        if status == StatusCode::FORBIDDEN
+            || status == StatusCode::UNAUTHORIZED
+            || text.trim() == "Fails."
+        {
             return Err(ApiError::Unauthorized);
         }
         if !status.is_success() {
-            return Err(ApiError::Http { status: status.as_u16(), message: text });
+            return Err(ApiError::Http {
+                status: status.as_u16(),
+                message: text,
+            });
         }
         // Sin cookie pero con "Ok.": qBittorrent no exige sesión (p. ej. red en lista blanca). Se guarda vacía.
         let sid = sid.unwrap_or_default();
@@ -168,9 +236,15 @@ impl ServiceClient {
         Ok(sid)
     }
 
-    async fn send_once(&self, base: &str, req: &ApiRequest, sid: Option<&str>) -> Result<reqwest::Response, ApiError> {
+    async fn send_once(
+        &self,
+        base: &str,
+        req: &ApiRequest,
+        sid: Option<&str>,
+    ) -> Result<reqwest::Response, ApiError> {
         let mut url = join_url(base, &req.path)?;
-        let method = Method::from_bytes(req.method.to_uppercase().as_bytes()).unwrap_or(Method::GET);
+        let method =
+            Method::from_bytes(req.method.to_uppercase().as_bytes()).unwrap_or(Method::GET);
         // Seerr valida la consulta con express-openapi-validator, que rechaza el «+» de los espacios
         // («must be url encoded»): se codifican como %20.
         if self.kind == ServiceKind::Seerr && !req.query.is_empty() {
@@ -181,14 +255,26 @@ impl ServiceClient {
             b = b.query(&req.query);
         }
         b = match self.kind {
-            ServiceKind::Radarr | ServiceKind::Sonarr | ServiceKind::Prowlarr => {
-                b.header("X-Api-Key", self.secrets.api_key.clone().unwrap_or_default())
+            ServiceKind::Radarr | ServiceKind::Sonarr | ServiceKind::Prowlarr => b.header(
+                "X-Api-Key",
+                self.secrets.api_key.clone().unwrap_or_default(),
+            ),
+            ServiceKind::Bazarr => b.header(
+                "X-API-KEY",
+                self.secrets.api_key.clone().unwrap_or_default(),
+            ),
+            ServiceKind::Seerr => b.header(
+                "X-Api-Key",
+                self.secrets.api_key.clone().unwrap_or_default(),
+            ),
+            ServiceKind::Tracearr => {
+                b.bearer_auth(self.secrets.api_key.as_deref().unwrap_or_default())
             }
-            ServiceKind::Bazarr => b.header("X-API-KEY", self.secrets.api_key.clone().unwrap_or_default()),
-            ServiceKind::Seerr => b.header("X-Api-Key", self.secrets.api_key.clone().unwrap_or_default()),
-            ServiceKind::Tracearr => b.bearer_auth(self.secrets.api_key.as_deref().unwrap_or_default()),
             ServiceKind::Plex => crate::plex::identify(b, self.secrets.client_id.as_deref())
-                .header("X-Plex-Token", self.secrets.api_key.clone().unwrap_or_default()),
+                .header(
+                    "X-Plex-Token",
+                    self.secrets.api_key.clone().unwrap_or_default(),
+                ),
             ServiceKind::Qbittorrent => {
                 let b = b.header(header::REFERER, base);
                 match (self.qbit_api_key(), sid) {
@@ -208,8 +294,13 @@ impl ServiceClient {
                     form = form.text(k.clone(), v.clone());
                 }
                 for f in files {
-                    let bytes = base64::engine::general_purpose::STANDARD.decode(&f.base64).unwrap_or_default();
-                    form = form.part(f.field.clone(), reqwest::multipart::Part::bytes(bytes).file_name(f.filename.clone()));
+                    let bytes = base64::engine::general_purpose::STANDARD
+                        .decode(&f.base64)
+                        .unwrap_or_default();
+                    form = form.part(
+                        f.field.clone(),
+                        reqwest::multipart::Part::bytes(bytes).file_name(f.filename.clone()),
+                    );
                 }
                 b.multipart(form)
             }
@@ -242,7 +333,11 @@ impl ServiceClient {
         Ok(res)
     }
 
-    fn check_status(status: StatusCode, headers: &header::HeaderMap, text: &str) -> Result<(), ApiError> {
+    fn check_status(
+        status: StatusCode,
+        headers: &header::HeaderMap,
+        text: &str,
+    ) -> Result<(), ApiError> {
         // Un 401 con "WWW-Authenticate: Basic" viene del proxy inverso, no del servicio.
         let basic = headers
             .get(header::WWW_AUTHENTICATE)
@@ -259,7 +354,10 @@ impl ServiceClient {
         }
         if status.is_client_error() || status.is_server_error() {
             let message: String = text.chars().take(500).collect();
-            return Err(ApiError::Http { status: status.as_u16(), message });
+            return Err(ApiError::Http {
+                status: status.as_u16(),
+                message,
+            });
         }
         Ok(())
     }
@@ -270,8 +368,19 @@ impl ServiceClient {
         let ms = started.elapsed().as_millis();
         // Solo método y ruta: la consulta y el cuerpo pueden llevar datos sensibles.
         match &result {
-            Ok(r) => log::debug!("{} {} {} -> {} ({ms} ms)", self.kind.as_str(), req.method.to_uppercase(), req.path, r.status),
-            Err(e) => log::error!("{} {} {} -> {e} ({ms} ms)", self.kind.as_str(), req.method.to_uppercase(), req.path),
+            Ok(r) => log::debug!(
+                "{} {} {} -> {} ({ms} ms)",
+                self.kind.as_str(),
+                req.method.to_uppercase(),
+                req.path,
+                r.status
+            ),
+            Err(e) => log::error!(
+                "{} {} {} -> {e} ({ms} ms)",
+                self.kind.as_str(),
+                req.method.to_uppercase(),
+                req.path
+            ),
         }
         result
     }
@@ -297,7 +406,10 @@ impl ServiceClient {
         } else {
             serde_json::from_str(&text).unwrap_or(Value::String(text))
         };
-        Ok(ApiResponse { status: status.as_u16(), body })
+        Ok(ApiResponse {
+            status: status.as_u16(),
+            body,
+        })
     }
 
     /// Descarga binaria (pósters). Devuelve bytes y tipo de contenido.
@@ -305,7 +417,9 @@ impl ServiceClient {
         // La consulta va aparte: `join_url` solo fija la ruta (p. ej. el proxy de imágenes de Tracearr, `/api/v1/images/proxy?server=…`).
         let (path, query) = path.split_once('?').unwrap_or((path, ""));
         let mut req = ApiRequest::get(path);
-        req.query = url::form_urlencoded::parse(query.as_bytes()).into_owned().collect();
+        req.query = url::form_urlencoded::parse(query.as_bytes())
+            .into_owned()
+            .collect();
         let res = self.send(&req).await?;
         let status = res.status();
         let ctype = res
@@ -329,7 +443,8 @@ impl ServiceClient {
         bases.into_iter().flatten().find_map(|b| {
             let b = join_url(b, "").ok()?;
             let prefix = b.path().trim_end_matches('/');
-            let same_host = b.host_str() == link.host_str() && b.port_or_known_default() == link.port_or_known_default();
+            let same_host = b.host_str() == link.host_str()
+                && b.port_or_known_default() == link.port_or_known_default();
             let rest = link.path().strip_prefix(prefix)?;
             (same_host && (rest.is_empty() || rest.starts_with('/'))).then(|| rest.to_string())
         })
@@ -338,25 +453,39 @@ impl ServiceClient {
     /// Descarga un enlace del propio servicio con el cliente autenticado (proxy incluido), para entregar a qBittorrent
     /// el .torrent en vez de un enlace al que quizá no llega. Si el servicio redirige a un magnet, devuelve el magnet.
     pub async fn fetch_torrent(&self, link: &str) -> Result<FetchedTorrent, ApiError> {
-        let parsed = url::Url::parse(link).map_err(|e| ApiError::network(format!("enlace no válido: {e}")))?;
+        let parsed = url::Url::parse(link)
+            .map_err(|e| ApiError::network(format!("enlace no válido: {e}")))?;
         let base = self.base(false).await?;
         let path = self
             .relative_link(&parsed, &base)
-            .ok_or_else(|| ApiError::Http { status: 400, message: "el enlace no apunta a este servicio".into() })?;
+            .ok_or_else(|| ApiError::Http {
+                status: 400,
+                message: "el enlace no apunta a este servicio".into(),
+            })?;
         let req = ApiRequest {
             method: "GET".into(),
             path,
-            query: parsed.query_pairs().map(|(k, v)| (k.into_owned(), v.into_owned())).collect(),
+            query: parsed
+                .query_pairs()
+                .map(|(k, v)| (k.into_owned(), v.into_owned()))
+                .collect(),
             body: None,
         };
         let res = self.send(&req).await?;
         let status = res.status();
         if status.is_redirection() {
-            let location = res.headers().get(header::LOCATION).and_then(|v| v.to_str().ok()).unwrap_or_default();
+            let location = res
+                .headers()
+                .get(header::LOCATION)
+                .and_then(|v| v.to_str().ok())
+                .unwrap_or_default();
             if location.starts_with("magnet:") {
                 return Ok(FetchedTorrent::Magnet(location.to_string()));
             }
-            return Err(ApiError::Http { status: status.as_u16(), message: "redirección inesperada al descargar el torrent".into() });
+            return Err(ApiError::Http {
+                status: status.as_u16(),
+                message: "redirección inesperada al descargar el torrent".into(),
+            });
         }
         let headers = res.headers().clone();
         let bytes = res.bytes().await.map_err(ApiError::network)?;
@@ -369,9 +498,14 @@ impl ServiceClient {
         }
         // Un .torrent es un diccionario bencode: empieza por "d". Si no, es una página de error del indexador.
         if bytes.first() != Some(&b'd') {
-            return Err(ApiError::Http { status: status.as_u16(), message: "el indexador no ha devuelto un archivo .torrent".into() });
+            return Err(ApiError::Http {
+                status: status.as_u16(),
+                message: "el indexador no ha devuelto un archivo .torrent".into(),
+            });
         }
-        Ok(FetchedTorrent::File(base64::engine::general_purpose::STANDARD.encode(&bytes)))
+        Ok(FetchedTorrent::File(
+            base64::engine::general_purpose::STANDARD.encode(&bytes),
+        ))
     }
 
     /// Comprueba credenciales y devuelve la versión del servicio.
@@ -391,13 +525,25 @@ impl ServiceClient {
             }
         };
         let body = self.request(ApiRequest::get(path)).await?.body;
-        let v = if pointer.is_empty() { Some(&body) } else { body.pointer(pointer) };
+        let v = if pointer.is_empty() {
+            Some(&body)
+        } else {
+            body.pointer(pointer)
+        };
         Ok(v.and_then(Value::as_str).unwrap_or("?").to_string())
     }
 }
 
 /// Consulta `clave=valor&…` con los espacios como %20 en lugar de «+».
 fn encode_query_pct20(pairs: &[(String, String)]) -> String {
-    let enc = |s: &str| url::form_urlencoded::byte_serialize(s.as_bytes()).collect::<String>().replace('+', "%20");
-    pairs.iter().map(|(k, v)| format!("{}={}", enc(k), enc(v))).collect::<Vec<_>>().join("&")
+    let enc = |s: &str| {
+        url::form_urlencoded::byte_serialize(s.as_bytes())
+            .collect::<String>()
+            .replace('+', "%20")
+    };
+    pairs
+        .iter()
+        .map(|(k, v)| format!("{}={}", enc(k), enc(v)))
+        .collect::<Vec<_>>()
+        .join("&")
 }

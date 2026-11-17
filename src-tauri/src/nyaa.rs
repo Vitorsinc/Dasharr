@@ -35,19 +35,37 @@ impl Nyaa {
         if let Some(found) = self.cache.lock().await.get(url) {
             return Ok(found.clone());
         }
-        if self.block.lock().await.until.is_some_and(|t| t > Instant::now()) {
+        if self
+            .block
+            .lock()
+            .await
+            .until
+            .is_some_and(|t| t > Instant::now())
+        {
             return Err(NyaaError::Blocked);
         }
-        let result = nyaa::subtitles(self.http.get_or_init(nyaa::http_client), &self.throttle, GAP, url).await;
+        let result = nyaa::subtitles(
+            self.http.get_or_init(nyaa::http_client),
+            &self.throttle,
+            GAP,
+            url,
+        )
+        .await;
         let mut block = self.block.lock().await;
         match &result {
             Ok(found) => {
                 *block = Block::default();
-                self.cache.lock().await.insert(url.to_string(), found.clone());
+                self.cache
+                    .lock()
+                    .await
+                    .insert(url.to_string(), found.clone());
             }
             Err(NyaaError::Blocked) => {
                 let wait = block.next.unwrap_or(FIRST_BLOCK);
-                log::warn!("Nyaa ha limitado las consultas; se reintentará en {} min", wait.as_secs() / 60);
+                log::warn!(
+                    "Nyaa ha limitado las consultas; se reintentará en {} min",
+                    wait.as_secs() / 60
+                );
                 block.until = Some(Instant::now() + wait);
                 block.next = Some((wait * 2).min(MAX_BLOCK));
             }
@@ -60,7 +78,17 @@ impl Nyaa {
 /// Idiomas de subtítulos (códigos como «es», «es-419», «en») de una release de Nyaa; vacío si la página
 /// no los indica. `None` si la URL no es de Nyaa.
 #[tauri::command]
-pub async fn nyaa_subtitles(state: State<'_, AppState>, url: String) -> Result<Option<Vec<String>>, String> {
-    let Some(view) = nyaa::view_url(&url) else { return Ok(None) };
-    state.nyaa.languages(&view).await.map(Some).map_err(|e| e.to_string())
+pub async fn nyaa_subtitles(
+    state: State<'_, AppState>,
+    url: String,
+) -> Result<Option<Vec<String>>, String> {
+    let Some(view) = nyaa::view_url(&url) else {
+        return Ok(None);
+    };
+    state
+        .nyaa
+        .languages(&view)
+        .await
+        .map(Some)
+        .map_err(|e| e.to_string())
 }

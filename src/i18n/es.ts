@@ -886,6 +886,10 @@ export const es = {
     unavailable: "No disponible ahora",
     open: "Ver en FilmAffinity",
   },
+  letterboxd: {
+    label: "Letterboxd",
+    open: "Ver en Letterboxd",
+  },
   releases: {
     manual: "Búsqueda manual",
     manualShort: "Manual",

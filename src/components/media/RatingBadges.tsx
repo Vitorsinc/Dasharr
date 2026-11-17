@@ -11,6 +11,7 @@ import type { Scores } from "./library";
 export const PERCENT_SOURCES: RatingSource[] = ["metacritic", "rottenTomatoes"];
 const SHORT: Record<RatingSource, string> = {
   filmaffinity: "FA",
+  letterboxd: "LB",
   imdb: "IMDb",
   tmdb: "TMDb",
   rottenTomatoes: "RT",
@@ -20,15 +21,26 @@ const SHORT: Record<RatingSource, string> = {
 };
 
 export function ratingName(source: RatingSource) {
-  return source === "filmaffinity" ? t.filmaffinity.label : t.arrRatings[source];
+  if (source === "filmaffinity") return t.filmaffinity.label;
+  if (source === "letterboxd") return t.letterboxd.label;
+  return t.arrRatings[source];
 }
+
+/** Letterboxd puntúa sobre 5 (de media en media estrella). */
+export const FIVE_STAR_SOURCES: RatingSource[] = ["letterboxd"];
 
 export function formatScore(source: RatingSource, value: number) {
-  return PERCENT_SOURCES.includes(source) ? `${Math.round(value)} %` : formatRating(value);
+  if (PERCENT_SOURCES.includes(source)) return `${Math.round(value)} %`;
+  // Con dos decimales, como en Letterboxd («3,90»), para no confundirla con una nota sobre 10.
+  if (FIVE_STAR_SOURCES.includes(source)) return value.toLocaleString("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return formatRating(value);
 }
 
+/** Color según la nota llevada a una escala sobre 10. */
 export function scoreTone(source: RatingSource, value: number) {
-  return tone(PERCENT_SOURCES.includes(source) ? value / 10 : value);
+  if (PERCENT_SOURCES.includes(source)) return tone(value / 10);
+  if (FIVE_STAR_SOURCES.includes(source)) return tone(value * 2);
+  return tone(value);
 }
 
 /** Notas de Radarr/Sonarr con valor (las vacías o a cero no cuentan). */

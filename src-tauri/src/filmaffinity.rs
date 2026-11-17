@@ -61,7 +61,11 @@ struct Entry {
 impl Entry {
     /// Con nota se revisa cada semana; sin coincidencia o sin nota todavía, cada tres días.
     fn is_fresh(&self, now: u64) -> bool {
-        let ttl = if self.found.as_ref().is_some_and(|m| m.rating.is_some()) { 7 * DAY } else { 3 * DAY };
+        let ttl = if self.found.as_ref().is_some_and(|m| m.rating.is_some()) {
+            7 * DAY
+        } else {
+            3 * DAY
+        };
         now.saturating_sub(self.checked) < ttl
     }
 }
@@ -92,7 +96,10 @@ pub struct FilmAffinity {
 }
 
 fn now_secs() -> u64 {
-    SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or_default()
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or_default()
 }
 
 impl FilmAffinity {
@@ -105,7 +112,9 @@ impl FilmAffinity {
             let _ = std::fs::create_dir_all(&logs);
             let _ = self.dump_dir.set(logs);
         }
-        let Ok(dir) = app.path().app_data_dir() else { return };
+        let Ok(dir) = app.path().app_data_dir() else {
+            return;
+        };
         for old in OLD_CACHE_FILES {
             let _ = std::fs::remove_file(dir.join(old));
         }
@@ -131,7 +140,9 @@ impl FilmAffinity {
 
     async fn blocked(&self) -> Option<Duration> {
         let block = self.block.lock().await;
-        block.until.and_then(|t| t.checked_duration_since(Instant::now()))
+        block
+            .until
+            .and_then(|t| t.checked_duration_since(Instant::now()))
     }
 
     async fn on_result(&self, result: &Result<Option<FaMatch>, FaError>) {
@@ -139,7 +150,10 @@ impl FilmAffinity {
         match result {
             Err(FaError::Blocked) => {
                 let wait = block.next.unwrap_or(FIRST_BLOCK);
-                log::warn!("FilmAffinity ha limitado las consultas; se reintentará en {} min", wait.as_secs() / 60);
+                log::warn!(
+                    "FilmAffinity ha limitado las consultas; se reintentará en {} min",
+                    wait.as_secs() / 60
+                );
                 block.until = Some(Instant::now() + wait);
                 block.next = Some((wait * 2).min(MAX_BLOCK));
             }
@@ -157,7 +171,12 @@ impl FilmAffinity {
             titles.push(t);
         }
         titles.push(item.title.as_str());
-        let q = FaQuery { titles, year: item.year, series: item.kind == MediaKind::Series, dump_dir: self.dump_dir.get().map(PathBuf::as_path) };
+        let q = FaQuery {
+            titles,
+            year: item.year,
+            series: item.kind == MediaKind::Series,
+            dump_dir: self.dump_dir.get().map(PathBuf::as_path),
+        };
         let result = filmaffinity::lookup(self.http(), &self.throttle, gap, &q).await;
         self.on_result(&result).await;
         result
@@ -165,7 +184,13 @@ impl FilmAffinity {
 
     async fn store<R: Runtime>(&self, app: &AppHandle<R>, key: String, found: Option<FaMatch>) {
         let mut cache = self.cache.lock().await;
-        cache.insert(key.clone(), Entry { found: found.clone(), checked: now_secs() });
+        cache.insert(
+            key.clone(),
+            Entry {
+                found: found.clone(),
+                checked: now_secs(),
+            },
+        );
         self.save(&cache).await;
         drop(cache);
         let _ = app.emit(RATING_EVENT, RatingEvent { key, rating: found });
@@ -182,7 +207,13 @@ impl FilmAffinity {
                 continue;
             };
             let key = item.key();
-            if self.cache.lock().await.get(&key).is_some_and(|e| e.is_fresh(now_secs())) {
+            if self
+                .cache
+                .lock()
+                .await
+                .get(&key)
+                .is_some_and(|e| e.is_fresh(now_secs()))
+            {
                 continue;
             }
             match self.fetch(&item, BACKGROUND_GAP).await {
@@ -197,7 +228,10 @@ impl FilmAffinity {
 /// Notas guardadas de una lista (aunque estén caducadas) y, las que falten, a la cola en segundo plano.
 /// Las de la última lista pedida pasan por delante.
 #[tauri::command]
-pub async fn filmaffinity_ratings(state: State<'_, AppState>, items: Vec<FaItem>) -> Result<HashMap<String, FaMatch>, ()> {
+pub async fn filmaffinity_ratings(
+    state: State<'_, AppState>,
+    items: Vec<FaItem>,
+) -> Result<HashMap<String, FaMatch>, ()> {
     let fa = &state.filmaffinity;
     let now = now_secs();
     let mut out = HashMap::new();
@@ -217,7 +251,10 @@ pub async fn filmaffinity_ratings(state: State<'_, AppState>, items: Vec<FaItem>
     if !pending.is_empty() {
         let mut queue = fa.queue.lock().await;
         let keys: HashSet<String> = pending.iter().map(FaItem::key).collect();
-        let rest: Vec<FaItem> = queue.drain(..).filter(|i| !keys.contains(&i.key())).collect();
+        let rest: Vec<FaItem> = queue
+            .drain(..)
+            .filter(|i| !keys.contains(&i.key()))
+            .collect();
         queue.extend(pending);
         queue.extend(rest);
         drop(queue);
@@ -235,7 +272,11 @@ pub async fn filmaffinity_clear_queue(state: State<'_, AppState>) -> Result<(), 
 
 /// Nota de una ficha: de la caché si está al día, si no se consulta ya.
 #[tauri::command]
-pub async fn filmaffinity_rating<R: Runtime>(app: AppHandle<R>, state: State<'_, AppState>, item: FaItem) -> Result<Option<FaMatch>, String> {
+pub async fn filmaffinity_rating<R: Runtime>(
+    app: AppHandle<R>,
+    state: State<'_, AppState>,
+    item: FaItem,
+) -> Result<Option<FaMatch>, String> {
     let fa = &state.filmaffinity;
     let key = item.key();
     let cached = fa.cache.lock().await.get(&key).cloned();
@@ -250,7 +291,9 @@ pub async fn filmaffinity_rating<R: Runtime>(app: AppHandle<R>, state: State<'_,
             Ok(found)
         }
         // Mejor una nota de hace unos días que ninguna.
-        Err(_) if cached.as_ref().is_some_and(|e| e.found.is_some()) => Ok(cached.and_then(|e| e.found)),
+        Err(_) if cached.as_ref().is_some_and(|e| e.found.is_some()) => {
+            Ok(cached.and_then(|e| e.found))
+        }
         Err(e) => Err(e.to_string()),
     }
 }
@@ -260,8 +303,18 @@ mod tests {
     use super::*;
 
     fn entry(rating: Option<f32>, found: bool, age_days: u64) -> Entry {
-        let m = FaMatch { id: 1, url: String::new(), title: "x".into(), year: None, rating, votes: None };
-        Entry { found: found.then_some(m), checked: 100 * DAY - age_days * DAY }
+        let m = FaMatch {
+            id: 1,
+            url: String::new(),
+            title: "x".into(),
+            year: None,
+            rating,
+            votes: None,
+        };
+        Entry {
+            found: found.then_some(m),
+            checked: 100 * DAY - age_days * DAY,
+        }
     }
 
     #[test]

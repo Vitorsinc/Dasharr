@@ -8,6 +8,7 @@ import { ConfirmDialog, Dialog } from "@/components/Dialog";
 import { RenameDialog } from "@/components/media/RenameDialog";
 import { ArrRatings } from "@/components/media/ArrRatings";
 import { FaInfo } from "@/components/media/FilmAffinity";
+import { LbInfo } from "@/components/media/Letterboxd";
 import { Poster } from "@/components/media/PosterCard";
 import { FactSection } from "@/components/media/DetailFacts";
 import { ReleaseSearchDialog } from "@/components/media/ReleaseSearchDialog";
@@ -85,6 +86,7 @@ export function MovieDetail({ movie, onClose }: { movie: Movie | null; onClose: 
             <Poster src={posterUrl("radarr", movie)} title={movie.title} className="w-full" />
             <FactSection title={t.detail.ratings}>
               <FaInfo item={movieItem(movie)} list />
+              <LbInfo tmdbId={movie.tmdbId} />
               <ArrRatings ratings={movie.ratings} list />
             </FactSection>
             {movie.genres?.length ? (

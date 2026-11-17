@@ -34,6 +34,7 @@ import { movieReleaseDate, radarr, type Movie } from "@/api/radarr";
 import { deleteWithTorrents } from "@/api/mediaTorrents";
 import { useMovies, useRadarrMeta, useRadarrQueue, useRadarrWanted } from "@/hooks/useArr";
 import { useFaRatings } from "@/hooks/useFilmAffinity";
+import { useLbRatings } from "@/hooks/useLetterboxd";
 import { useRun, useTags } from "@/hooks/useArrManage";
 import { BulkEditBar } from "@/components/media/BulkEditBar";
 import { usePrefs } from "@/hooks/usePrefs";
@@ -81,29 +82,40 @@ export default function MoviesPage() {
   const [{ hiddenRatings, movieDefaults }] = usePrefs();
   const preset = movieDefaultsFor(meta.roots.data ?? [], meta.profiles.data ?? [], movieDefaults);
   const showFa = !hiddenRatings.includes("filmaffinity");
+  const showLb = !hiddenRatings.includes("letterboxd");
   const sortSources = MOVIE_SOURCES.filter((s) => !hiddenRatings.includes(s));
   const activeSort = isAvailable(sort, sortSources) ? sort : "title";
   const base = useMemo(
     () => (movies.data ?? []).map((m) => ({ ...m, downloaded: m.hasFile, missing: m.monitored && !m.hasFile })),
     [movies.data],
   );
-  // FilmAffinity se pide en el orden en que se ve la lista (o por título al ordenar por nota).
-  const faItems = useMemo(
-    () => (tab === "library" && showFa ? filterSort(base, { query, filter, tag: activeTag, sort: fetchOrder(activeSort) }).map(movieItem) : []),
-    [base, tab, showFa, query, filter, activeTag, activeSort],
+  // FilmAffinity y Letterboxd se piden en el orden en que se ve la lista (o por título al ordenar por nota).
+  const shown = useMemo(
+    () => (tab === "library" ? filterSort(base, { query, filter, tag: activeTag, sort: fetchOrder(activeSort) }) : []),
+    [base, tab, query, filter, activeTag, activeSort],
   );
+  const faItems = useMemo(() => (showFa ? shown.map(movieItem) : []), [shown, showFa]);
+  const lbIds = useMemo(() => (showLb ? shown.map((m) => m.tmdbId).filter(Boolean) : []), [shown, showLb]);
   const ratings = useFaRatings(faItems);
+  const lb = useLbRatings(lbIds);
   const items = useMemo(
     () =>
       filterSort(
         base.map((m) => ({
           ...m,
-          scores: visibleScores({ ...arrScores(m.ratings), filmaffinity: ratings[faKey(movieItem(m))]?.rating ?? undefined }, hiddenRatings),
+          scores: visibleScores(
+            {
+              ...arrScores(m.ratings),
+              filmaffinity: ratings[faKey(movieItem(m))]?.rating ?? undefined,
+              letterboxd: lb[m.tmdbId]?.rating ?? undefined,
+            },
+            hiddenRatings,
+          ),
           watch: myWatched?.get({ tmdbId: m.tmdbId, imdbId: m.imdbId }),
         })),
         { query, filter, tag: activeTag, sort: activeSort },
       ).filter((m) => !myWatched || matchesWatch(m.watch?.state, watchFilter)),
-    [base, ratings, hiddenRatings, query, filter, activeTag, activeSort, myWatched, watchFilter],
+    [base, ratings, lb, hiddenRatings, query, filter, activeTag, activeSort, myWatched, watchFilter],
   );
   const existing = useMemo(() => new Set((movies.data ?? []).map((m) => m.tmdbId)), [movies.data]);
   const selected = movies.data?.find((m) => m.id === selectedId) ?? null;

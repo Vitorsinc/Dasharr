@@ -15,6 +15,8 @@ pub enum ApiError {
 
 impl ApiError {
     pub fn network(e: impl std::fmt::Display) -> Self {
-        ApiError::Network { message: e.to_string() }
+        ApiError::Network {
+            message: e.to_string(),
+        }
     }
 }

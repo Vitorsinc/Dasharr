@@ -6,6 +6,7 @@ use tokio::sync::Mutex;
 
 use crate::commands::PlexLogin;
 use crate::filmaffinity::FilmAffinity;
+use crate::letterboxd::Letterboxd;
 use crate::nyaa::Nyaa;
 use crate::settings;
 use crate::tmdb::Tmdb;
@@ -16,6 +17,7 @@ pub const CONNECTION_EVENT: &str = "connection-changed";
 pub struct AppState {
     pub registry: Registry,
     pub filmaffinity: FilmAffinity,
+    pub letterboxd: Letterboxd,
     pub nyaa: Nyaa,
     pub tmdb: Tmdb,
     last_routes: Mutex<HashMap<ServiceKind, Option<Route>>>,
@@ -29,14 +31,24 @@ impl AppState {
         let configs = settings::load_configs(app);
         for kind in ServiceKind::ALL {
             let config = configs.get(&kind).cloned().unwrap_or_default();
-            self.registry.set(ServiceClient::new(kind, config, settings::load_secrets(kind))).await;
+            self.registry
+                .set(ServiceClient::new(
+                    kind,
+                    config,
+                    settings::load_secrets(kind),
+                ))
+                .await;
         }
     }
 
     pub async fn routes(&self) -> HashMap<ServiceKind, Option<Route>> {
         let mut out = HashMap::new();
         for c in self.registry.all().await {
-            let route = if c.config().is_configured() { c.route().await } else { None };
+            let route = if c.config().is_configured() {
+                c.route().await
+            } else {
+                None
+            };
             out.insert(c.kind(), route);
         }
         out
