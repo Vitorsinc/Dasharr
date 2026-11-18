@@ -66,7 +66,7 @@ function OpenWebButton({ service, url }: { service: ServiceKind; url: string }) 
   return (
     <button
       type="button"
-      className="absolute right-1.5 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-md text-muted transition-colors hover:bg-surface-2 hover:text-accent focus-visible:text-accent"
+      className="absolute right-1 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-md text-muted transition-colors hover:bg-surface-2 hover:text-accent focus-visible:text-accent"
       onClick={() => void openExternal(url)}
       title={`${label}\n${url}`}
       aria-label={label}
@@ -111,7 +111,7 @@ function ServiceCard({ service, route }: { service: ServiceKind; route: Paramete
         className={cn(
           "card group flex h-full min-w-0 items-center gap-2.5 px-3 py-2 transition-colors hover:bg-surface-2",
           notConfigured && "border-dashed bg-transparent",
-          webUrl && "pr-9",
+          webUrl && "pr-8",
         )}
         aria-label={name}
       >
@@ -250,7 +250,7 @@ export default function HomePage() {
   const { data: routes } = useConnectionStates();
   return (
     <Page title={t.nav.home}>
-      <section className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 min-[1800px]:grid-cols-8" aria-label={t.home.services}>
+      <section className="grid grid-cols-[repeat(auto-fill,minmax(10.5rem,1fr))] gap-2" aria-label={t.home.services}>
         {SERVICE_KINDS.map((s) => (
           <ServiceCard key={s} service={s} route={routes?.[s]} />
         ))}
