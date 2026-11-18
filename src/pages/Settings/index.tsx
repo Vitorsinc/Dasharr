@@ -20,6 +20,7 @@ import qbittorrentLogo from "@/assets/services/qbittorrent.svg";
 import tracearrLogo from "@/assets/services/tracearr.svg";
 import plexLogo from "@/assets/services/plex.svg";
 import seerrLogo from "@/assets/services/seerr.svg";
+import beszelLogo from "@/assets/services/beszel.svg";
 import { useConnectionStates } from "@/hooks/useConnectionStates";
 import { faClearQueue } from "@/api/filmaffinity";
 import { lbClearQueue } from "@/api/letterboxd";
@@ -470,6 +471,7 @@ const serviceLogos: Record<ServiceKind, string> = {
   tracearr: tracearrLogo,
   plex: plexLogo,
   seerr: seerrLogo,
+  beszel: beszelLogo,
 };
 
 const serviceTabs = SERVICE_KINDS.map((s) => ({ id: s, label: t.services[s], logo: serviceLogos[s] }));

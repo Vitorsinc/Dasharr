@@ -499,3 +499,16 @@ Verificado con el código de Radarr (`src/Radarr.Api.V3/Collections`, rama devel
 - Cada película trae `isExisting` (ya en la biblioteca) e `isExcluded` (en exclusiones). `missingMovies` cuenta solo las que no existen ni están excluidas.
 - Las imágenes de la colección y de sus películas solo traen `remoteUrl` de TMDb: no usar `/mediacover/{id}` (ese id es de película, no de colección).
 - `GET /movie` trae `collection: { title, tmdbId }` en cada película.
+
+## 16. Beszel: estado del servidor
+
+Hub de Beszel = PocketBase (puerto 8090). Referencia: `internal/hub/api.go` e `internal/entities/system/system.go` en henrygd/beszel.
+
+- Salud: `GET /api/health` (pública, PocketBase).
+- Sesión: `POST /api/collections/users/auth-with-password` `{identity, password}` → `{token}`; 400 si las credenciales no valen. El token va tal cual en `Authorization` (sin «Bearer», aunque también lo acepta). Choca con el Basic del proxy inverso, como Tracearr.
+- PocketBase **no** rechaza un token caducado al listar: devuelve la lista vacía. Dasharr renueva la sesión cada hora y vuelve a entrar ante un 401.
+- API key (Beszel 0.21+): token estático creado desde la cuenta (`POST /api/beszel/api-keys`); se usa igual que el token de sesión.
+- Versión (y prueba de credenciales): `GET /api/beszel/info` → `{v}` (requiere sesión).
+- Equipos: `GET /api/collections/systems/records?sort=name` → `items[]` con `name`, `status` (up/down/paused/pending) e `info`: `cpu`, `mp` (memoria %), `dp` (disco %), `u` (segundos encendido), `dt` (temperatura del panel), `la` (carga 1/5/15), `bb` (bytes/s de red), `efs` (% de discos extra), `g` (GPU %), `v` (agente). Agentes antiguos: `h` (host), `k` (kernel), `m` (CPU), `c` (núcleos), `os`.
+- Medidas del último minuto: `GET /api/collections/system_stats/records?filter=system='ID' && type='1m'&sort=-created&perPage=1` → `stats`: `mem` [total, usada, caché, ARC] en bytes (antes `m`/`mu` en GB), `swap` [total, usada], `d`/`du` (GB), `t` (sensores °C), `efs` {nombre: {d, du}}, `b` [subida, bajada] bytes/s.
+- Datos fijos (0.15+): `GET /api/collections/system_details/records/{id del sistema}` → `hostname`, `kernel`, `os_name`, `arch`, `cpu`, `cores`, `threads`, `memory`. 404 en versiones anteriores.

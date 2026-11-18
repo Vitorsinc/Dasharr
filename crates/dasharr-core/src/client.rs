@@ -13,6 +13,8 @@ const LOCAL_PROBE_TIMEOUT: Duration = Duration::from_millis(1500);
 const REMOTE_PROBE_TIMEOUT: Duration = Duration::from_secs(8);
 // La búsqueda manual de releases en Radarr/Sonarr puede tardar más de un minuto.
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(120);
+/// El token de sesión de Beszel dura días; se pide otro cada hora para no usar nunca uno caducado.
+const BESZEL_SESSION_TTL: Duration = Duration::from_secs(3600);
 
 #[derive(Debug, Clone)]
 struct Resolved {
@@ -35,7 +37,8 @@ pub struct ServiceClient {
     secrets: ServiceSecrets,
     http: reqwest::Client,
     resolved: Mutex<Option<Resolved>>,
-    sid: Mutex<Option<String>>,
+    /// Sesión: cookie de qBittorrent o token de Beszel, con la hora en que se obtuvo.
+    sid: Mutex<Option<(String, Instant)>>,
 }
 
 impl ServiceClient {
@@ -114,8 +117,8 @@ impl ServiceClient {
     /// Usuario y contraseña del proxy inverso, solo hacia la dirección externa: en local no hay proxy, y
     /// qBittorrent 5.2+ interpretaría esa cabecera Basic como sus propias credenciales.
     fn with_proxy_auth(&self, req: reqwest::RequestBuilder, base: &str) -> reqwest::RequestBuilder {
-        // Tracearr se autentica con `Authorization: Bearer`, que no puede convivir con el Basic del proxy.
-        if self.config.external() != Some(base) || self.kind == ServiceKind::Tracearr {
+        // Tracearr y Beszel se autentican con `Authorization`, que no puede convivir con el Basic del proxy.
+        if self.config.external() != Some(base) || matches!(self.kind, ServiceKind::Tracearr | ServiceKind::Beszel) {
             return req;
         }
         match (&self.secrets.proxy_username, &self.secrets.proxy_password) {
@@ -128,11 +131,52 @@ impl ServiceClient {
         self.secrets.api_key.as_deref().filter(|k| self.kind == ServiceKind::Qbittorrent && !k.is_empty())
     }
 
-    /// qBittorrent 5.2+ acepta una API key sin sesión; si no la hay, se inicia sesión con usuario y contraseña.
-    fn uses_qbit_login(&self) -> bool {
-        self.kind == ServiceKind::Qbittorrent
-            && self.qbit_api_key().is_none()
-            && self.secrets.username.as_deref().is_some_and(|u| !u.is_empty())
+    /// API key de Beszel (0.21+, token estático); sin ella se inicia sesión con correo y contraseña.
+    fn beszel_api_key(&self) -> Option<&str> {
+        self.secrets.api_key.as_deref().filter(|k| self.kind == ServiceKind::Beszel && !k.is_empty())
+    }
+
+    /// qBittorrent 5.2+ y Beszel aceptan una API key sin sesión; si no la hay, se inicia sesión con usuario y contraseña.
+    fn uses_login(&self) -> bool {
+        let no_key = match self.kind {
+            ServiceKind::Qbittorrent => self.qbit_api_key().is_none(),
+            ServiceKind::Beszel => self.beszel_api_key().is_none(),
+            _ => return false,
+        };
+        no_key && self.secrets.username.as_deref().is_some_and(|u| !u.is_empty())
+    }
+
+    async fn login(&self, base: &str) -> Result<String, ApiError> {
+        let session = match self.kind {
+            ServiceKind::Beszel => self.beszel_login(base).await?,
+            _ => self.qbit_login(base).await?,
+        };
+        *self.sid.lock().await = Some((session.clone(), Instant::now()));
+        Ok(session)
+    }
+
+    /// Inicio de sesión de PocketBase (el hub de Beszel): devuelve el token de la cuenta.
+    async fn beszel_login(&self, base: &str) -> Result<String, ApiError> {
+        let url = join_url(base, "/api/collections/users/auth-with-password")?;
+        let body = serde_json::json!({
+            "identity": self.secrets.username.clone().unwrap_or_default(),
+            "password": self.secrets.password.clone().unwrap_or_default(),
+        });
+        let res = self.http.post(url).json(&body).send().await.map_err(ApiError::network)?;
+        let status = res.status();
+        let text = res.text().await.unwrap_or_default();
+        // PocketBase responde 400 («Failed to authenticate») si el correo o la contraseña no son correctos.
+        if status == StatusCode::BAD_REQUEST || status == StatusCode::UNAUTHORIZED || status == StatusCode::FORBIDDEN {
+            return Err(ApiError::Unauthorized);
+        }
+        if !status.is_success() {
+            return Err(ApiError::Http { status: status.as_u16(), message: text.chars().take(500).collect() });
+        }
+        serde_json::from_str::<Value>(&text)
+            .ok()
+            .and_then(|v| v.get("token").and_then(Value::as_str).map(str::to_string))
+            .filter(|t| !t.is_empty())
+            .ok_or_else(|| ApiError::Http { status: status.as_u16(), message: "Beszel no ha devuelto un token".into() })
     }
 
     async fn qbit_login(&self, base: &str) -> Result<String, ApiError> {
@@ -163,9 +207,7 @@ impl ServiceClient {
             return Err(ApiError::Http { status: status.as_u16(), message: text });
         }
         // Sin cookie pero con "Ok.": qBittorrent no exige sesión (p. ej. red en lista blanca). Se guarda vacía.
-        let sid = sid.unwrap_or_default();
-        *self.sid.lock().await = Some(sid.clone());
-        Ok(sid)
+        Ok(sid.unwrap_or_default())
     }
 
     async fn send_once(&self, base: &str, req: &ApiRequest, sid: Option<&str>) -> Result<reqwest::Response, ApiError> {
@@ -187,6 +229,10 @@ impl ServiceClient {
             ServiceKind::Bazarr => b.header("X-API-KEY", self.secrets.api_key.clone().unwrap_or_default()),
             ServiceKind::Seerr => b.header("X-Api-Key", self.secrets.api_key.clone().unwrap_or_default()),
             ServiceKind::Tracearr => b.bearer_auth(self.secrets.api_key.as_deref().unwrap_or_default()),
+            ServiceKind::Beszel => match self.beszel_api_key().or(sid) {
+                Some(token) if !token.is_empty() => b.header(header::AUTHORIZATION, token),
+                _ => b,
+            },
             ServiceKind::Plex => crate::plex::identify(b, self.secrets.client_id.as_deref())
                 .header("X-Plex-Token", self.secrets.api_key.clone().unwrap_or_default()),
             ServiceKind::Qbittorrent => {
@@ -217,15 +263,16 @@ impl ServiceClient {
         b.send().await.map_err(ApiError::network)
     }
 
-    /// Envía la petición con autenticación, reintentando una vez tras error de red (re-probe) o sesión caducada de qBittorrent.
+    /// Envía la petición con autenticación, reintentando una vez tras error de red (re-probe) o sesión caducada.
     async fn send(&self, req: &ApiRequest) -> Result<reqwest::Response, ApiError> {
         let mut base = self.base(false).await?;
         let mut sid = None;
-        if self.uses_qbit_login() {
+        if self.uses_login() {
             let cached = self.sid.lock().await.clone();
             sid = Some(match cached {
-                Some(s) => s,
-                None => self.qbit_login(&base).await?,
+                // PocketBase no rechaza un token caducado al listar: devuelve la lista vacía. Se renueva antes.
+                Some((s, at)) if self.kind != ServiceKind::Beszel || at.elapsed() < BESZEL_SESSION_TTL => s,
+                _ => self.login(&base).await?,
             });
         }
         let res = match self.send_once(&base, req, sid.as_deref()).await {
@@ -235,8 +282,12 @@ impl ServiceClient {
                 self.send_once(&base, req, sid.as_deref()).await?
             }
         };
-        if res.status() == StatusCode::FORBIDDEN && self.uses_qbit_login() {
-            let fresh = self.qbit_login(&base).await?;
+        let expired = match self.kind {
+            ServiceKind::Beszel => res.status() == StatusCode::UNAUTHORIZED,
+            _ => res.status() == StatusCode::FORBIDDEN,
+        };
+        if expired && self.uses_login() {
+            let fresh = self.login(&base).await?;
             return self.send_once(&base, req, Some(&fresh)).await;
         }
         Ok(res)
@@ -389,6 +440,8 @@ impl ServiceClient {
                 self.request(ApiRequest::get("/api/v1/auth/me")).await?;
                 ("/api/v1/status", "/version")
             }
+            // Pide sesión: comprueba las credenciales.
+            ServiceKind::Beszel => ("/api/beszel/info", "/v"),
         };
         let body = self.request(ApiRequest::get(path)).await?.body;
         let v = if pointer.is_empty() { Some(&body) } else { body.pointer(pointer) };

@@ -28,6 +28,7 @@ export function allConfigured(): Record<ServiceKind, ServiceSettingsView> {
     tracearr: view({ local: "http://h:3000" }),
     plex: view({ local: "http://h:32400" }),
     seerr: view({ local: "http://h:5055" }),
+    beszel: view({ local: "http://h:8090" }),
   };
 }
 
@@ -44,7 +45,7 @@ export function mockBackend(
         return settings;
       case "get_connection_states":
       case "refresh_connections":
-        return { radarr: "local", sonarr: "local", prowlarr: "local", bazarr: "local", qbittorrent: "local", tracearr: "local", plex: "local", seerr: "local" };
+        return { radarr: "local", sonarr: "local", prowlarr: "local", bazarr: "local", qbittorrent: "local", tracearr: "local", plex: "local", seerr: "local", beszel: "local" };
       case "api_request": {
         const h = opts.api?.[args.service as ServiceKind];
         if (!h) throw { kind: "NotConfigured" };

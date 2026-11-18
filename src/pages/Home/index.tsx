@@ -37,6 +37,8 @@ import qbittorrentLogo from "@/assets/services/qbittorrent.svg";
 import tracearrLogo from "@/assets/services/tracearr.svg";
 import plexLogo from "@/assets/services/plex.svg";
 import seerrLogo from "@/assets/services/seerr.svg";
+import beszelLogo from "@/assets/services/beszel.svg";
+import { ServerStats } from "@/components/ServerStats";
 
 const servicePage: Record<ServiceKind, string> = {
   radarr: "/peliculas",
@@ -47,6 +49,8 @@ const servicePage: Record<ServiceKind, string> = {
   tracearr: "/historial",
   plex: "/plex",
   seerr: "/solicitudes",
+  // Sin página propia: sus datos están en la propia Inicio («Servidor»).
+  beszel: "/",
 };
 
 const serviceLogo: Record<ServiceKind, string> = {
@@ -58,6 +62,7 @@ const serviceLogo: Record<ServiceKind, string> = {
   tracearr: tracearrLogo,
   plex: plexLogo,
   seerr: seerrLogo,
+  beszel: beszelLogo,
 };
 
 /** Botón a la derecha de la tarjeta que abre la web del servicio en el navegador (externa, si no local). */
@@ -256,6 +261,7 @@ export default function HomePage() {
         ))}
       </section>
       <HealthList services={HEALTH_SERVICES} hideWhenOk />
+      <ServerStats />
       <DuplicatesNotice />
       <PendingRequests />
       <NowWatching title={t.home.nowPlaying} hideWhenEmpty />
