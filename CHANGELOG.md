@@ -12,6 +12,8 @@ También se puede lanzar a mano en Actions → Release → «Run workflow» indi
 
 ## [Sin publicar]
 
+## [0.5.0] - 2026-11-18
+
 ### Cambiado
 - Seed mínimo por tracker: ahora se pone en horas al editar cada indexador (Indexadores → editar), y se guarda en Prowlarr, que lo pasa a Radarr y Sonarr. Duplicados lo usa para avisar del H&R; desaparece la sección de Ajustes.
 
