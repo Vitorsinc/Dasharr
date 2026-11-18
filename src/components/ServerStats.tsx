@@ -1,13 +1,10 @@
 import type { ReactNode } from "react";
-import { ArrowDown, ArrowUp, Cpu, ExternalLink, HardDrive, MemoryStick, Server, Thermometer } from "lucide-react";
+import { ArrowDown, ArrowUp, Cpu, HardDrive, MemoryStick, Server, Thermometer } from "lucide-react";
 import { t } from "@/i18n/es";
 import { cn } from "@/lib/cn";
 import { formatAge, formatBytes, formatDuration, formatSpeed } from "@/lib/format";
 import { ErrorPanel } from "@/components/ErrorPanel";
 import { useServerSystems } from "@/hooks/useBeszel";
-import { useSettings } from "@/hooks/useSettings";
-import { serviceWebUrl } from "@/lib/webUrl";
-import { openExternal } from "@/lib/tauri";
 import type { ServerSystem, SystemStatus, Usage } from "@/api/beszel";
 
 type Tone = "accent" | "warning" | "danger";
@@ -243,21 +240,11 @@ function LiveStats({ sys, cpuSub }: { sys: ServerSystem; cpuSub: string }) {
 /** Inicio → estado del servidor, sacado de Beszel. No aparece si Beszel no está configurado. */
 export function ServerStats() {
   const q = useServerSystems();
-  const { data: settings } = useSettings();
-  const webUrl = serviceWebUrl("beszel", settings?.beszel?.config);
   if (q.configured !== true) return null;
   const systems = q.data ?? [];
   return (
     <section className="flex flex-col gap-3" data-service="beszel" aria-label={t.server.title(systems.length || 1)}>
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">{t.server.title(systems.length || 1)}</h2>
-        {webUrl && (
-          <button type="button" className="flex items-center gap-1 text-sm text-accent hover:underline" onClick={() => void openExternal(webUrl)}>
-            {t.server.open}
-            <ExternalLink className="h-3.5 w-3.5" aria-hidden />
-          </button>
-        )}
-      </div>
+      <h2 className="text-lg font-semibold">{t.server.title(systems.length || 1)}</h2>
       {q.isLoading ? (
         <div className="card h-40 animate-pulse" aria-busy />
       ) : q.isError ? (
