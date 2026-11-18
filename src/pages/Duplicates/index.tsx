@@ -23,7 +23,7 @@ import { t } from "@/i18n/es";
 import { planRemoval, qbit, sharedContent, type Torrent } from "@/api/qbit";
 import { seedGoal, trackerHost, type DuplicateGroup, type DuplicateRole, type DuplicateTorrent, type SeedGoal } from "@/api/duplicates";
 import { useDuplicates } from "@/hooks/useDuplicates";
-import { usePrefs } from "@/hooks/usePrefs";
+import { ruleFor } from "@/api/seedRules";
 import { errorMessage } from "@/lib/errors";
 import { formatBytes, formatDate, formatDuration } from "@/lib/format";
 import { cn } from "@/lib/cn";
@@ -69,14 +69,14 @@ type GoalOf = (i: DuplicateTorrent) => SeedGoal | undefined;
 export default function DuplicatesPage() {
   const qc = useQueryClient();
   const dup = useDuplicates();
-  const [{ seedMinDays }] = usePrefs();
   const [filter, setFilter] = useState<Filter>("all");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [toDelete, setToDelete] = useState<DuplicateTorrent[] | null>(null);
 
   const torrents = dup.data?.torrents ?? [];
   const shared = useMemo(() => sharedContent(dup.data?.torrents ?? []), [dup.data]);
-  const goalOf: GoalOf = (i) => seedGoal(i.torrent, seedMinDays[trackerHost(i.torrent.tracker) ?? ""]);
+  const rules = dup.data?.rules ?? [];
+  const goalOf: GoalOf = (i) => seedGoal(i.torrent, ruleFor(rules, i.indexer, i.torrent.tracker), i.pack);
   const groups = useMemo(() => (dup.data?.groups ?? []).filter((g) => filter === "all" || g.service === filter), [dup.data, filter]);
   const orphans = filter === "all" || filter === "orphans" ? (dup.data?.orphans ?? []) : [];
   const leftovers = useMemo(() => groups.flatMap((g) => g.items.filter((i) => i.role === "leftover")), [groups]);
@@ -135,7 +135,7 @@ export default function DuplicatesPage() {
       title={title}
       actions={
         <>
-          <Link className="btn-ghost" to="/ajustes/contenido">
+          <Link className="btn-ghost" to="/indexadores" title={t.duplicates.seedSettingsHint}>
             <Hourglass className="h-4 w-4" /> {t.duplicates.seedSettings}
           </Link>
           <button className="btn-ghost" onClick={() => dup.refetch()} disabled={dup.isFetching}>
@@ -336,10 +336,7 @@ function SeedGoalChip({ goal: g, tracker }: { goal?: SeedGoal; tracker?: string 
     : g.remainingSecs != null
       ? t.duplicates.goalLeft(formatDuration(g.remainingSecs))
       : t.duplicates.goalRatio(nf.format(g.ratio ?? 0));
-  const title =
-    g.source === "tracker"
-      ? t.duplicates.goalTrackerTitle(tracker ?? "", formatDuration((g.minutes ?? 0) * 60))
-      : t.duplicates.goalTitle(parts);
+  const title = g.source === "prowlarr" ? t.duplicates.goalProwlarrTitle(g.indexer ?? tracker ?? "", parts) : t.duplicates.goalTitle(parts);
   return (
     <span className={cn("chip whitespace-nowrap", g.met ? "bg-success/15 text-success" : "bg-warning/15 text-warning")} title={title}>
       {label}

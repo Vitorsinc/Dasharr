@@ -210,6 +210,37 @@ test("muestra la nota de FilmAffinity en la lista y en la ficha", async () => {
   expect(screen.getByTitle("52.310 votos")).toBeInTheDocument();
 });
 
+test("muestra la nota de Letterboxd (sobre 5) en la lista y en la ficha, y ordena por ella", async () => {
+  const asked: number[] = [];
+  mockBackend({
+    api: { radarr: (req) => (req.path === "/api/v3/movie" && req.method === "GET" ? movies : []) },
+    commands: {
+      letterboxd_ratings: ({ tmdbIds }) => {
+        asked.push(...tmdbIds);
+        return {
+          "10": { url: "https://letterboxd.com/film/dune-2021/", title: "Dune (2021)", rating: 3.9 },
+          "11": { url: "https://letterboxd.com/film/arrival-2016/", title: "Arrival (2016)", rating: 4.1 },
+        };
+      },
+      letterboxd_rating: ({ tmdbId }) =>
+        tmdbId === 10 ? { url: "https://letterboxd.com/film/dune-2021/", title: "Dune (2021)", rating: 3.9, votes: 4644638 } : null,
+    },
+  });
+  renderApp("/peliculas");
+  expect(await screen.findByTitle("Nota de Letterboxd: 3,90")).toBeInTheDocument();
+  expect(asked.sort()).toEqual([10, 11, 12]);
+
+  const order = () => screen.getAllByRole("button", { name: /^(Dune|Arrival|Blade Runner)$/ }).map((b) => b.getAttribute("aria-label"));
+  await userEvent.selectOptions(screen.getByRole("combobox", { name: "Ordenar por" }), "Nota Letterboxd");
+  expect(order()).toEqual(["Arrival", "Dune", "Blade Runner"]);
+
+  await userEvent.click(screen.getByRole("button", { name: "Dune" }));
+  const d = within(await screen.findByRole("dialog", { name: "Dune (2021)" }));
+  const link = await d.findByRole("link", { name: /3,90/ });
+  expect(link).toHaveAttribute("href", "https://letterboxd.com/film/dune-2021/");
+  expect(link).toHaveTextContent("4,6 M");
+});
+
 test("la ficha muestra también las notas que trae Radarr", async () => {
   const rated = [
     {
@@ -236,7 +267,7 @@ test("la ficha muestra también las notas que trae Radarr", async () => {
 });
 
 test("las notas ocultas en Ajustes no se muestran ni se consultan", async () => {
-  setPrefs({ hiddenRatings: ["imdb", "filmaffinity"] });
+  setPrefs({ hiddenRatings: ["imdb", "filmaffinity", "letterboxd"] });
   const asked: string[] = [];
   const rated = [{ ...movies[0], ratings: { imdb: { value: 8.1 }, tmdb: { value: 7.8 } } }];
   mockBackend({
@@ -244,6 +275,8 @@ test("las notas ocultas en Ajustes no se muestran ni se consultan", async () => 
     commands: {
       filmaffinity_ratings: () => (asked.push("lista"), {}),
       filmaffinity_rating: () => (asked.push("ficha"), null),
+      letterboxd_ratings: () => (asked.push("lista lb"), {}),
+      letterboxd_rating: () => (asked.push("ficha lb"), null),
     },
   });
   renderApp("/peliculas");

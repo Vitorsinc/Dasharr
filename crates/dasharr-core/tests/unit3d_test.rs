@@ -115,7 +115,7 @@ fn torrent(id: &str, free: &str, double: bool) -> Value {
         "meta": {"poster": "https://image.tmdb.org/t/p/w92/a.jpg", "genres": "Drama"},
         "name": format!("Peli {id}"), "category": "Movies", "type": "Remux", "resolution": "2160p",
         "size": 53687091200u64, "freeleech": free, "double_upload": double, "seeders": 12, "leechers": 3,
-        "times_completed": 40, "tmdb_id": 603, "created_at": "2026-11-14T10:00:00.000000Z",
+        "times_completed": 40, "tmdb_id": 603, "tvdb_id": 0, "imdb_id": 133093, "created_at": "2026-11-14T10:00:00.000000Z",
         "details_link": format!("https://tracker/torrents/{id}"),
         "download_link": format!("https://tracker/torrent/download/{id}.SECRETRSS")
     }})
@@ -131,6 +131,8 @@ fn deals_keep_only_freeleech_or_double_upload_without_download_links() {
     assert_eq!(deals[2].freeleech, 50);
     assert_eq!(deals[0].size, Some(53687091200));
     assert_eq!(deals[0].tmdb_id, Some(603));
+    assert_eq!(deals[0].tvdb_id, None);
+    assert_eq!(deals[0].imdb_id, Some(133093));
     assert_eq!(deals[0].poster.as_deref(), Some("https://image.tmdb.org/t/p/w92/a.jpg"));
     // La clave RSS del enlace de descarga no llega a la interfaz.
     assert!(!serde_json::to_string(&deals).unwrap().contains("SECRETRSS"));

@@ -7,7 +7,7 @@ export interface LibraryDefaults {
   qualityProfileId?: number;
 }
 /** Fuentes de notas que se pueden mostrar u ocultar en Ajustes. */
-export const RATING_SOURCES = ["filmaffinity", "imdb", "tmdb", "rottenTomatoes", "metacritic", "trakt", "tvdb"] as const;
+export const RATING_SOURCES = ["filmaffinity", "letterboxd", "imdb", "tmdb", "rottenTomatoes", "metacritic", "trakt", "tvdb"] as const;
 export type RatingSource = (typeof RATING_SOURCES)[number];
 
 export interface Prefs {
@@ -34,8 +34,6 @@ export interface Prefs {
   watchUserId: string | null;
   /** Al borrar una película o serie, quitar también sus torrents de qBittorrent (se recuerda la última elección). */
   deleteTorrents: boolean;
-  /** Días mínimos de siembra que exige cada tracker (por su dominio), para avisar antes de borrar un torrent. */
-  seedMinDays: Record<string, number>;
 }
 
 const KEY = "dasharr.prefs";
@@ -53,7 +51,6 @@ const DEFAULTS: Prefs = {
   sorts: {},
   watchUserId: null,
   deleteTorrents: false,
-  seedMinDays: {},
 };
 const listeners = new Set<() => void>();
 let cache: Prefs | null = null;
@@ -65,7 +62,6 @@ function read(): Prefs {
     cache = { ...DEFAULTS, ...stored };
     // Un valor corrupto no debe romper las pantallas que leen el orden.
     if (!cache!.sorts || typeof cache!.sorts !== "object" || Array.isArray(cache!.sorts)) cache!.sorts = {};
-    if (!cache!.seedMinDays || typeof cache!.seedMinDays !== "object" || Array.isArray(cache!.seedMinDays)) cache!.seedMinDays = {};
   } catch {
     cache = DEFAULTS;
   }

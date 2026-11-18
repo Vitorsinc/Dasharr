@@ -78,6 +78,11 @@ export function posterUrl(service: ArrService, item: { id?: number; images?: Arr
   return coverUrl(service, item, "poster", size);
 }
 
+/** Fanart a tamaño grande para fondos (la original de TMDB/TVDB si la hay). Sin fanart, nada. */
+export function fanartUrl(service: ArrService, item: { id?: number; images?: ArrImage[] }): string | undefined {
+  return coverUrl(service, item, "fanart", 360);
+}
+
 /** Fondo horizontal: el fanart si lo hay; si no, el póster. */
 export function backdropUrl(service: ArrService, item: { id?: number; images?: ArrImage[] }): string | undefined {
   return coverUrl(service, item, "fanart", 360) ?? posterUrl(service, item, 250);

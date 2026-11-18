@@ -12,6 +12,17 @@ También se puede lanzar a mano en Actions → Release → «Run workflow» indi
 
 ## [Sin publicar]
 
+## [0.5.0] - 2026-11-18
+
+### Cambiado
+- Seed mínimo por tracker: ahora se pone en horas al editar cada indexador (Indexadores → editar), y se guarda en Prowlarr, que lo pasa a Radarr y Sonarr. Duplicados lo usa para avisar del H&R; desaparece la sección de Ajustes.
+
+### Añadido
+- Las valoraciones llevan el icono de cada web (FilmAffinity, Letterboxd, IMDb, TMDb, Rotten Tomatoes, Metacritic, Trakt, TVDB) en los pósters, en las fichas y en Ajustes → Notas, en vez de las abreviaturas.
+- Nota de Letterboxd (sobre 5) en las películas: en las portadas («LB»), en la ficha con enlace a Letterboxd y como orden «Nota Letterboxd». Se puede ocultar en Ajustes → Valoraciones.
+- Trackers: al mandar un freeleech a qBittorrent, la película o serie se añade también a Radarr o Sonarr (con la carpeta y el perfil de Ajustes, sin buscar) y el torrent va con su categoría para que lo importen al terminar.
+- Las fichas de película y serie llevan de fondo la imagen (fanart) de esa película o serie, difuminada para que se lea bien en tema claro y oscuro. La sinopsis va en el color de texto principal (blanco en oscuro) para leerse sobre cualquier fondo.
+
 ## [0.4.0] - 2026-11-14
 
 ### Añadido

@@ -22,9 +22,10 @@ import plexLogo from "@/assets/services/plex.svg";
 import seerrLogo from "@/assets/services/seerr.svg";
 import { useConnectionStates } from "@/hooks/useConnectionStates";
 import { faClearQueue } from "@/api/filmaffinity";
+import { lbClearQueue } from "@/api/letterboxd";
+import { RatingIcon, ratingName } from "@/components/media/RatingBadges";
 import { RATING_SOURCES, usePrefs, type RatingSource, type Theme } from "@/hooks/usePrefs";
 import { ServiceForm } from "./ServiceForm";
-import { SeedMinimums } from "./SeedMinimums";
 import { parseConfigFile } from "@/lib/importConfig";
 import { openExternal, saveService } from "@/lib/tauri";
 import { tmdbSaveKey } from "@/api/tmdb";
@@ -209,16 +210,20 @@ function Autostart() {
 
 function RatingsSettings() {
   const [prefs, setPrefs] = usePrefs();
-  const label = (s: RatingSource) => (s === "filmaffinity" ? t.filmaffinity.label : t.arrRatings[s]);
+  const label = ratingName;
   const toggle = (s: RatingSource, show: boolean) => {
     setPrefs({ hiddenRatings: show ? prefs.hiddenRatings.filter((h) => h !== s) : [...prefs.hiddenRatings, s] });
     if (s === "filmaffinity" && !show) faClearQueue().catch(() => {});
+    if (s === "letterboxd" && !show) lbClearQueue().catch(() => {});
   };
   return (
     <section className="card grid divide-border sm:grid-cols-2" aria-label={t.settings.ratings}>
       {RATING_SOURCES.map((s) => (
         <div key={s} className="flex items-center justify-between gap-4 p-4">
-          <span className="text-sm">{label(s)}</span>
+          <span className="flex items-center gap-2.5 text-sm">
+            <RatingIcon source={s} className="h-5 w-5" />
+            {label(s)}
+          </span>
           <Toggle label={label(s)} checked={!prefs.hiddenRatings.includes(s)} onChange={(v) => toggle(s, v)} />
         </div>
       ))}
@@ -534,9 +539,6 @@ const tabs: { id: string; label: string; icon: LucideIcon; wide?: boolean; rende
         </Section>
         <Section title={t.premieres.title}>
           <MovieReleasesSettings />
-        </Section>
-        <Section title={t.duplicates.seedMin.title} hint={t.duplicates.seedMin.hint}>
-          <SeedMinimums />
         </Section>
       </div>
     ),

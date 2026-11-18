@@ -13,7 +13,7 @@ import { EpisodeMark } from "@/components/media/EpisodeMark";
 import { MonitorIcon, MonitorToggle } from "@/components/media/MonitorToggle";
 
 import { Loading, ProgressBar } from "@/components/ui";
-import { posterUrl, type ReleaseQuery } from "@/api/arr";
+import { fanartUrl, posterUrl, type ReleaseQuery } from "@/api/arr";
 import { PlexBadge } from "@/components/plex/PlexBadge";
 import { RequestedBy } from "@/components/seerr/RequestedBy";
 import { seriesItem } from "@/api/filmaffinity";
@@ -197,7 +197,7 @@ export function SeriesDetail({ series, onClose }: { series: Series | null; onClo
   const st = series.statistics;
   return (
     <>
-      <Dialog open onOpenChange={(o) => !o && onClose()} title={series.title} wide>
+      <Dialog open onOpenChange={(o) => !o && onClose()} title={series.title} wide backdrop={fanartUrl("sonarr", series)}>
         <div className="flex flex-col gap-6">
           <div className="flex gap-6">
             <aside className="flex w-48 shrink-0 flex-col gap-5">
@@ -244,7 +244,7 @@ export function SeriesDetail({ series, onClose }: { series: Series | null; onClo
                 </select>
               </label>
               <MyWatchChip watch={myShow} />
-              {series.overview && <p className="text-sm leading-relaxed text-muted">{series.overview}</p>}
+              {series.overview && <p className="text-sm leading-relaxed text-fg">{series.overview}</p>}
               <PlexBadge kind="show" ids={{ tvdbId: series.tvdbId, tmdbId: series.tmdbId, imdbId: series.imdbId }} />
               <RequestedBy type="tv" tmdbId={series.tmdbId} />
               <MediaTags service="sonarr" value={series.tags ?? []} onChange={(tags) => run(() => sonarr.setTags(series, tags), t.manage.tags.saved)} />

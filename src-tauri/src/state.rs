@@ -6,6 +6,7 @@ use tokio::sync::Mutex;
 
 use crate::commands::PlexLogin;
 use crate::filmaffinity::FilmAffinity;
+use crate::letterboxd::Letterboxd;
 use crate::nyaa::Nyaa;
 use crate::settings;
 use crate::tmdb::Tmdb;
@@ -16,6 +17,7 @@ pub const CONNECTION_EVENT: &str = "connection-changed";
 pub struct AppState {
     pub registry: Registry,
     pub filmaffinity: FilmAffinity,
+    pub letterboxd: Letterboxd,
     pub nyaa: Nyaa,
     pub tmdb: Tmdb,
     last_routes: Mutex<HashMap<ServiceKind, Option<Route>>>,

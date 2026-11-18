@@ -8,6 +8,7 @@ import { ConfirmDialog, Dialog } from "@/components/Dialog";
 import { RenameDialog } from "@/components/media/RenameDialog";
 import { ArrRatings } from "@/components/media/ArrRatings";
 import { FaInfo } from "@/components/media/FilmAffinity";
+import { LbInfo } from "@/components/media/Letterboxd";
 import { Poster } from "@/components/media/PosterCard";
 import { FactSection } from "@/components/media/DetailFacts";
 import { ReleaseSearchDialog } from "@/components/media/ReleaseSearchDialog";
@@ -18,7 +19,7 @@ import { DeleteMediaDialog } from "@/components/media/DeleteMediaDialog";
 import { useRadarrMeta } from "@/hooks/useArr";
 import { useMovieReleases } from "@/hooks/useMovieReleases";
 import { RELEASE_KINDS } from "@/lib/releases";
-import { posterUrl } from "@/api/arr";
+import { fanartUrl, posterUrl } from "@/api/arr";
 import { movieRefs } from "@/api/tracearr";
 import { MovieWatchHistory } from "@/components/watch/WatchHistory";
 import { PlexBadge } from "@/components/plex/PlexBadge";
@@ -79,12 +80,13 @@ export function MovieDetail({ movie, onClose }: { movie: Movie | null; onClose: 
   const status = movie.hasFile ? t.library.statusDownloaded : movie.monitored ? t.library.statusMissing : t.library.statusUnmonitored;
   return (
     <>
-      <Dialog open onOpenChange={(o) => !o && onClose()} title={`${movie.title} (${movie.year})`} wide>
+      <Dialog open onOpenChange={(o) => !o && onClose()} title={`${movie.title} (${movie.year})`} wide backdrop={fanartUrl("radarr", movie)}>
         <div className="flex gap-6">
           <aside className="flex w-48 shrink-0 flex-col gap-5">
             <Poster src={posterUrl("radarr", movie)} title={movie.title} className="w-full" />
             <FactSection title={t.detail.ratings}>
               <FaInfo item={movieItem(movie)} list />
+              <LbInfo tmdbId={movie.tmdbId} />
               <ArrRatings ratings={movie.ratings} list />
             </FactSection>
             {movie.genres?.length ? (
@@ -98,7 +100,7 @@ export function MovieDetail({ movie, onClose }: { movie: Movie | null; onClose: 
             ) : null}
           </aside>
           <div className="flex min-w-0 flex-1 flex-col gap-5">
-            {movie.overview && <p className="text-sm leading-relaxed text-muted">{movie.overview}</p>}
+            {movie.overview && <p className="text-sm leading-relaxed text-fg">{movie.overview}</p>}
             <div className="grid grid-cols-4 gap-x-4 gap-y-3">
               <Info label={t.library.status} value={status} />
               <Info label={t.library.quality} value={movie.movieFile?.quality?.quality?.name} />
