@@ -1024,7 +1024,6 @@ export const es = {
   },
   server: {
     title: (n: number) => (n === 1 ? "Servidor" : "Servidores"),
-    open: "Abrir Beszel",
     none: "Beszel no tiene ningún sistema a tu nombre.",
     status: { up: "En marcha", down: "Caído", paused: "En pausa", pending: "Esperando" } as Record<string, string>,
     cpu: "CPU",
