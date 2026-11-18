@@ -37,6 +37,8 @@ import qbittorrentLogo from "@/assets/services/qbittorrent.svg";
 import tracearrLogo from "@/assets/services/tracearr.svg";
 import plexLogo from "@/assets/services/plex.svg";
 import seerrLogo from "@/assets/services/seerr.svg";
+import beszelLogo from "@/assets/services/beszel.svg";
+import { ServerStats } from "@/components/ServerStats";
 
 const servicePage: Record<ServiceKind, string> = {
   radarr: "/peliculas",
@@ -47,6 +49,8 @@ const servicePage: Record<ServiceKind, string> = {
   tracearr: "/historial",
   plex: "/plex",
   seerr: "/solicitudes",
+  // Sin página propia: sus datos están en la propia Inicio («Servidor»).
+  beszel: "/",
 };
 
 const serviceLogo: Record<ServiceKind, string> = {
@@ -58,6 +62,7 @@ const serviceLogo: Record<ServiceKind, string> = {
   tracearr: tracearrLogo,
   plex: plexLogo,
   seerr: seerrLogo,
+  beszel: beszelLogo,
 };
 
 /** Botón en la esquina de la tarjeta que abre la web del servicio en el navegador (externa, si no local). */
@@ -230,12 +235,13 @@ export default function HomePage() {
   const { data: routes } = useConnectionStates();
   return (
     <Page title={t.nav.home}>
-      <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 min-[1400px]:grid-cols-8" aria-label={t.home.services}>
+      <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5 min-[1700px]:grid-cols-9" aria-label={t.home.services}>
         {SERVICE_KINDS.map((s) => (
           <ServiceCard key={s} service={s} route={routes?.[s]} />
         ))}
       </section>
       <HealthList services={HEALTH_SERVICES} hideWhenOk />
+      <ServerStats />
       <DuplicatesNotice />
       <PendingRequests />
       <NowWatching title={t.home.nowPlaying} hideWhenEmpty />

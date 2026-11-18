@@ -20,6 +20,7 @@ const defaultPorts: Record<ServiceKind, number> = {
   tracearr: 3000,
   plex: 32400,
   seerr: 5055,
+  beszel: 8090,
 };
 
 function Field({ label, children, hint }: { label: string; children: React.ReactNode; hint?: string }) {
@@ -113,6 +114,11 @@ export function ServiceForm({ service, view, route }: { service: ServiceKind; vi
   const isQbit = service === "qbittorrent";
   const isTracearr = service === "tracearr";
   const isPlex = service === "plex";
+  const isBeszel = service === "beszel";
+  /** Servicios que se autentican con usuario y contraseña (y, opcionalmente, una API key). */
+  const usesLogin = isQbit || isBeszel;
+  /** Usan la cabecera Authorization, que choca con el Basic del proxy inverso. */
+  const noProxy = isTracearr || isBeszel;
   const [localUrl, setLocalUrl] = useState(view?.config.localUrl ?? "");
   const [externalUrl, setExternalUrl] = useState(view?.config.externalUrl ?? "");
   const [apiKey, setApiKey] = useState("");
@@ -127,9 +133,9 @@ export function ServiceForm({ service, view, route }: { service: ServiceKind; vi
   const config: ServiceConfig = { localUrl: localUrl.trim() || null, externalUrl: externalUrl.trim() || null, enabled: true };
   const patch = (): SecretsPatch => ({
     apiKey: apiKey || undefined,
-    username: isQbit ? username.trim() : undefined,
-    password: isQbit ? password || undefined : undefined,
-    proxyUsername: isTracearr ? undefined : proxyUsername.trim(),
+    username: usesLogin ? username.trim() : undefined,
+    password: usesLogin ? password || undefined : undefined,
+    proxyUsername: noProxy ? undefined : proxyUsername.trim(),
     proxyPassword: proxyPassword || undefined,
   });
   const hasUrl = !!(config.localUrl || config.externalUrl);
@@ -210,10 +216,16 @@ export function ServiceForm({ service, view, route }: { service: ServiceKind; vi
             placeholder={`https://${service}.midominio.com`}
           />
         </Field>
-        {isQbit ? (
+        {usesLogin ? (
           <>
-            <Field label={t.settings.username}>
-              <input className="input" value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="off" />
+            <Field label={isBeszel ? t.settings.email : t.settings.username}>
+              <input
+                className="input"
+                type={isBeszel ? "email" : "text"}
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                autoComplete="off"
+              />
             </Field>
             <Field label={t.settings.password}>
               <input
@@ -224,7 +236,10 @@ export function ServiceForm({ service, view, route }: { service: ServiceKind; vi
                 placeholder={view?.hasPassword ? t.settings.savedSecret : ""}
               />
             </Field>
-            <Field label={t.settings.qbitApiKey} hint={t.settings.qbitApiKeyHint}>
+            <Field
+              label={isBeszel ? t.settings.beszelApiKey : t.settings.qbitApiKey}
+              hint={isBeszel ? t.settings.beszelApiKeyHint : t.settings.qbitApiKeyHint}
+            >
               <input
                 className="input font-mono"
                 value={apiKey}
@@ -253,8 +268,8 @@ export function ServiceForm({ service, view, route }: { service: ServiceKind; vi
       </div>
       {isPlex && <PlexLogin onDone={onPlexServer} />}
 
-      {isTracearr ? (
-        <p className="mt-4 text-xs text-muted">{t.settings.tracearrNoProxy}</p>
+      {noProxy ? (
+        <p className="mt-4 text-xs text-muted">{isBeszel ? t.settings.beszelNoProxy : t.settings.tracearrNoProxy}</p>
       ) : (
         <button
           type="button"
@@ -266,7 +281,7 @@ export function ServiceForm({ service, view, route }: { service: ServiceKind; vi
           {t.settings.proxy}
         </button>
       )}
-      {showProxy && !isTracearr && (
+      {showProxy && !noProxy && (
         <div className="mt-3 grid gap-4 md:grid-cols-2">
           <Field label={t.settings.proxyUsername}>
             <input className="input" value={proxyUsername} onChange={(e) => setProxyUsername(e.target.value)} autoComplete="off" />

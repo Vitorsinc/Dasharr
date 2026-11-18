@@ -21,6 +21,8 @@ export async function serviceVersion(service: ServiceKind): Promise<string> {
       return str((await apiRequest<{ tracearr_version?: unknown } | null>(service, { path: "/api/v2/public/servers" }))?.tracearr_version);
     case "seerr":
       return str((await apiRequest<{ version?: unknown } | null>(service, { path: "/api/v1/status" }))?.version);
+    case "beszel":
+      return str((await apiRequest<{ v?: unknown } | null>(service, { path: "/api/beszel/info" }))?.v);
     case "plex":
       return str((await apiRequest<{ MediaContainer?: { version?: unknown } } | null>(service, { path: "/" }))?.MediaContainer?.version);
   }
