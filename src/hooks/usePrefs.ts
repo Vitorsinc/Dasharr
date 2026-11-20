@@ -31,6 +31,8 @@ export interface Prefs {
   weekStyle: "agenda" | "posters" | "strip";
   /** Instalar sola la versión nueva al encontrarla (avisando antes unos segundos). */
   autoUpdate: boolean;
+  /** Canal de actualizaciones. Sin elegir: las versiones de prueba (rama dev) siguen el canal dev y el resto, el estable. */
+  updateChannel?: "stable" | "dev";
   /** Último orden elegido en cada pantalla (clave de pantalla -> valor guardado por `usePersistedSort`). */
   sorts: Record<string, unknown>;
   /** Persona de Tracearr que eres tú (tu usuario de Plex): marca en el catálogo lo que ya has visto. */

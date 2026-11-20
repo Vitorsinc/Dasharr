@@ -32,6 +32,17 @@ Especificación: `docs/superpowers/specs/2026-10-27-dasharr-mvp-design.md`.
 
 Dasharr usa la dirección local cuando responde y cambia sola a la externa cuando no. Las API keys y contraseñas se guardan en el Administrador de credenciales de Windows.
 
+## Recibir las versiones de prueba (rama dev)
+
+Cada cambio que entra en la rama `dev` se compila solo y se publica como la Release
+[`dev`](https://github.com/Vitorsinc/Dasharr/releases/tag/dev) (marcada como versión preliminar).
+Una instalación que sigue el canal de prueba lo detecta en unos 10 minutos, avisa y se
+reinstala sola (con 30 segundos para dejarlo para más tarde).
+
+- Para empezar, instala una vez el `-setup.exe` de esa Release: ya viene en el canal de prueba.
+- También se puede activar o desactivar en **Ajustes → Sistema → Recibir las versiones de prueba**.
+  Al desactivarlo, Dasharr vuelve a la versión publicada cuando salga la siguiente.
+
 ## Probar cambios sin reinstalar (modo desarrollo)
 
 Requisitos (una sola vez): `winget install Git.Git OpenJS.NodeJS.LTS Rustlang.Rustup` y las
