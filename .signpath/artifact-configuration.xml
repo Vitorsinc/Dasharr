@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Configuración de artefacto de SignPath para las versiones publicadas de Dasharr (release.yml).
+  Se pega en SignPath → Project «dasharr» → Artifact Configurations. Este archivo es la copia de referencia.
+
+  El artefacto que sube GitHub Actions es un ZIP con:
+    nsis/Dasharr_X.Y.Z_x64-setup.exe   (instalador que usa la actualización automática)
+    msi/Dasharr_X.Y.Z_x64_en-US.msi
+-->
+<artifact-configuration xmlns="http://signpath.io/artifact-configuration/v1">
+  <zip-file>
+    <pe-file path="nsis/Dasharr_*_x64-setup.exe" product-name="Dasharr">
+      <authenticode-sign/>
+    </pe-file>
+    <msi-file path="msi/Dasharr_*.msi">
+      <authenticode-sign/>
+    </msi-file>
+  </zip-file>
+</artifact-configuration>
