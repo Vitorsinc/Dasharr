@@ -13,6 +13,8 @@ También se puede lanzar a mano en Actions → Release → «Run workflow» indi
 ## [Sin publicar]
 
 ### Cambiado
+- Las versiones publicadas se preparan para ir firmadas con el certificado gratuito de SignPath Foundation,
+  para que Windows deje de avisar de «Editor desconocido». Dasharr pasa a tener licencia MIT.
 - Inicio: la sección Servidor (Beszel) es más compacta, y en Ajustes → Servicios → Beszel se elige qué datos de cada servidor se ven.
 
 ### Añadido
