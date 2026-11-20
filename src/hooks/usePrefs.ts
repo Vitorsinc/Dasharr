@@ -34,6 +34,8 @@ export interface Prefs {
   watchUserId: string | null;
   /** Al borrar una película o serie, quitar también sus torrents de qBittorrent (se recuerda la última elección). */
   deleteTorrents: boolean;
+  /** Columnas visibles en Descargas (null = las de siempre). */
+  downloadColumns: string[] | null;
 }
 
 const KEY = "dasharr.prefs";
@@ -51,6 +53,7 @@ const DEFAULTS: Prefs = {
   sorts: {},
   watchUserId: null,
   deleteTorrents: false,
+  downloadColumns: null,
 };
 const listeners = new Set<() => void>();
 let cache: Prefs | null = null;

@@ -13,6 +13,8 @@ También se puede lanzar a mano en Actions → Release → «Run workflow» indi
 ## [Sin publicar]
 
 ### Añadido
+
+- Descargas: pulsa la cabecera de una columna para ordenar (otra vez para invertir) y elige qué columnas ver con el botón «Columnas» (ratio, subido, semillas/pares, categoría, tracker, añadido, completado…). Se recuerdan las dos cosas.
 - Beszel: nuevo servicio en Ajustes (correo y contraseña de Beszel, o una API key en Beszel 0.21+). Inicio muestra cada servidor con CPU, memoria, disco, temperatura, tiempo encendido, carga, red, swap, discos extra y sensores.
 
 ### Corregido
