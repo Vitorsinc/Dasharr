@@ -31,28 +31,53 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - run: npm ci
       - name: Comprobar versión y preparar notas
-        id: notes
         shell: bash
         run: |
           node scripts/release-notes.mjs "$TAG" > notes.md
-          { echo "body<<EOF"; cat notes.md; echo "EOF"; } >> "$GITHUB_OUTPUT"
-      - uses: tauri-apps/tauri-action@v0
-        id: tauri
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Compilar el instalador
+        run: npx tauri build
+      # Lo que se firma (y se publica) sale de aquí: SignPath solo acepta artefactos subidos por GitHub Actions.
+      - uses: actions/upload-artifact@v4
+        id: unsigned
         with:
-          tagName: ${{ env.TAG }}
-          releaseName: Dasharr ${{ env.TAG }}
-          releaseCommitish: ${{ github.sha }}
-          releaseBody: ${{ steps.notes.outputs.body }}
-          releaseDraft: false
-          prerelease: false
-      - name: Publicar la suma SHA-256 del instalador (la usa la actualización automática)
+          name: dasharr-sin-firmar
+          path: |
+            target/release/bundle/nsis/*-setup.exe
+            target/release/bundle/msi/*.msi
+          if-no-files-found: error
+      # Firma gratuita de SignPath Foundation (ver README → Code signing policy). Se activa sola cuando
+      # existen la variable SIGNPATH_ORGANIZATION_ID y el secreto SIGNPATH_API_TOKEN; sin ellos se publica
+      # sin firmar, como hasta ahora. Cada firma se aprueba a mano en signpath.io: el paso espera hasta 3 h.
+      - name: Firmar con SignPath (espera a que se apruebe en signpath.io)
+        if: vars.SIGNPATH_ORGANIZATION_ID != ''
+        uses: signpath/github-action-submit-signing-request@v3
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG || 'dasharr' }}
+          signing-policy-slug: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG || 'release-signing' }}
+          github-artifact-id: ${{ steps.unsigned.outputs.artifact-id }}
+          wait-for-completion: true
+          wait-for-completion-timeout-in-seconds: 10800
+          output-artifact-directory: signed
+      - name: Reunir los instaladores a publicar
+        shell: bash
+        run: |
+          mkdir -p dist-release
+          if [ -d signed ]; then
+            find signed -type f \( -name '*-setup.exe' -o -name '*.msi' \) -exec cp {} dist-release/ \;
+          else
+            echo "::warning::Sin SignPath configurado: se publica sin firmar."
+            cp target/release/bundle/nsis/*-setup.exe target/release/bundle/msi/*.msi dist-release/
+          fi
+          ls -l dist-release
+          test -n "$(ls dist-release/*-setup.exe)"
+          # La suma SHA-256 la usa la actualización automática: se calcula sobre el instalador ya firmado.
+          for exe in dist-release/*-setup.exe; do sha256sum "$exe" | cut -d' ' -f1 > "$exe.sha256"; done
+      - name: Publicar la Release
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # El proyecto es un workspace de Cargo: la compilación queda en target/ de la raíz.
-          exe=$(ls target/release/bundle/nsis/*-setup.exe)
-          sha256sum "$exe" | cut -d' ' -f1 > "$exe.sha256"
-          gh release upload "$TAG" "$exe.sha256" --clobber
+          gh release create "$TAG" dist-release/* --target "$GITHUB_SHA" \
+            --title "Dasharr $TAG" --notes-file notes.md --latest

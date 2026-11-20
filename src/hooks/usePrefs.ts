@@ -9,6 +9,9 @@ export interface LibraryDefaults {
 /** Fuentes de notas que se pueden mostrar u ocultar en Ajustes. */
 export const RATING_SOURCES = ["filmaffinity", "letterboxd", "imdb", "tmdb", "rottenTomatoes", "metacritic", "trakt", "tvdb"] as const;
 export type RatingSource = (typeof RATING_SOURCES)[number];
+/** Datos de Beszel que se pueden mostrar u ocultar en la sección Servidor de Inicio. */
+export const SERVER_FIELDS = ["cpu", "memory", "disk", "temp", "uptime", "system", "load", "network", "gpu", "swap", "agent", "disks", "sensors"] as const;
+export type ServerField = (typeof SERVER_FIELDS)[number];
 
 export interface Prefs {
   theme: Theme;
@@ -36,6 +39,8 @@ export interface Prefs {
   deleteTorrents: boolean;
   /** Columnas visibles en Descargas (null = las de siempre). */
   downloadColumns: string[] | null;
+  /** Datos de Beszel que no se quieren ver en Inicio (los nuevos salen por defecto). */
+  hiddenServerFields: ServerField[];
 }
 
 const KEY = "dasharr.prefs";
@@ -54,6 +59,7 @@ const DEFAULTS: Prefs = {
   watchUserId: null,
   deleteTorrents: false,
   downloadColumns: null,
+  hiddenServerFields: [],
 };
 const listeners = new Set<() => void>();
 let cache: Prefs | null = null;

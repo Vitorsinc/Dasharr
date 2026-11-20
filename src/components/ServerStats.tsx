@@ -6,6 +6,32 @@ import { formatAge, formatBytes, formatDuration, formatSpeed } from "@/lib/forma
 import { ErrorPanel } from "@/components/ErrorPanel";
 import { useServerSystems } from "@/hooks/useBeszel";
 import type { ServerSystem, SystemStatus, Usage } from "@/api/beszel";
+import { usePrefs, type ServerField } from "@/hooks/usePrefs";
+
+/** Quita del equipo los datos que el usuario ha ocultado en Ajustes → Beszel. */
+export function hideFields(sys: ServerSystem, hidden: readonly ServerField[]): ServerSystem {
+  if (!hidden.length) return sys;
+  const h = new Set(hidden);
+  return {
+    ...sys,
+    cpu: h.has("cpu") ? null : sys.cpu,
+    memory: h.has("memory") ? null : sys.memory,
+    disk: h.has("disk") ? null : sys.disk,
+    temp: h.has("temp") ? null : sys.temp,
+    uptime: h.has("uptime") ? null : sys.uptime,
+    hostname: h.has("system") ? null : sys.hostname,
+    os: h.has("system") ? null : sys.os,
+    load: h.has("load") ? null : sys.load,
+    netUp: h.has("network") ? null : sys.netUp,
+    netDown: h.has("network") ? null : sys.netDown,
+    net: h.has("network") ? null : sys.net,
+    gpu: h.has("gpu") ? null : sys.gpu,
+    swap: h.has("swap") ? null : sys.swap,
+    agent: h.has("agent") ? null : sys.agent,
+    disks: h.has("disks") ? [] : sys.disks,
+    sensors: h.has("sensors") ? sys.sensors.slice(0, 1) : sys.sensors,
+  };
+}
 
 type Tone = "accent" | "warning" | "danger";
 
@@ -25,7 +51,7 @@ const statusStyle: Record<SystemStatus, string> = {
 
 function Bar({ pct, tone }: { pct: number; tone: Tone }) {
   return (
-    <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-2" aria-hidden>
+    <div className="h-1 w-full overflow-hidden rounded-full bg-surface-2" aria-hidden>
       <div className={cn("h-full rounded-full transition-[width] duration-700", toneBar[tone])} style={{ width: `${Math.max(2, pct)}%` }} />
     </div>
   );
@@ -50,19 +76,24 @@ function Gauge({
   detail?: string | null;
 }) {
   return (
-    <div className="flex min-w-0 flex-col gap-2 rounded-lg bg-surface-2/60 p-3" role="group" aria-label={`${label}: ${value} ${unit}`}>
-      <div className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-muted">
-        {icon}
-        {label}
-      </div>
-      <div className={cn("font-display text-3xl font-bold leading-none tabular-nums", toneText[tone])} style={{ fontStretch: "78%" }}>
-        {value}
-        <span className="ml-0.5 text-base font-semibold text-muted">{unit}</span>
+    <div
+      className="flex min-w-0 flex-col gap-1.5 rounded-lg bg-surface-2/60 px-2.5 py-2"
+      role="group"
+      aria-label={`${label}: ${value} ${unit}`}
+      title={detail ?? undefined}
+    >
+      <div className="flex items-baseline justify-between gap-2">
+        <span className="flex min-w-0 items-center gap-1.5 truncate text-xs font-medium text-muted">
+          {icon}
+          {label}
+        </span>
+        <span className={cn("text-base font-semibold leading-none tabular-nums", toneText[tone])}>
+          {value}
+          <span className="ml-0.5 text-xs font-medium text-muted">{unit}</span>
+        </span>
       </div>
       <Bar pct={pct} tone={tone} />
-      <div className="truncate text-xs tabular-nums text-muted" title={detail ?? undefined}>
-        {detail || " "}
-      </div>
+      {detail && <div className="truncate text-[11px] leading-4 tabular-nums text-muted">{detail}</div>}
     </div>
   );
 }
@@ -75,7 +106,7 @@ function Stat({ label, title, children }: { label: string; title?: string; child
   return (
     <div className="flex min-w-0 items-baseline gap-2" title={title}>
       <dt className="shrink-0 text-xs text-muted">{label}</dt>
-      <dd className="min-w-0 truncate text-sm font-medium tabular-nums">{children}</dd>
+      <dd className="min-w-0 truncate text-xs font-medium tabular-nums">{children}</dd>
     </div>
   );
 }
@@ -85,14 +116,14 @@ function SystemCard({ sys }: { sys: ServerSystem }) {
   const sub = [sys.hostname && sys.hostname !== sys.name ? sys.hostname : null, sys.os].filter(Boolean).join(" · ");
   const cpuSub = [sys.cpuModel, sys.cores ? t.server.cores(sys.cores, sys.threads ?? 0) : null].filter(Boolean).join(" · ");
   return (
-    <article className="card flex flex-col gap-4 p-4" aria-label={sys.name}>
-      <header className="flex flex-wrap items-start gap-x-3 gap-y-1">
-        <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-accent/15 text-accent">
-          <Server className="h-5 w-5" aria-hidden />
+    <article className="card flex flex-col gap-2.5 px-3 py-2.5" aria-label={sys.name}>
+      <header className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+        <div className="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-accent/15 text-accent">
+          <Server className="h-4 w-4" aria-hidden />
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h3 className="truncate text-lg font-semibold leading-tight">{sys.name}</h3>
+            <h3 className="truncate text-sm font-semibold leading-5">{sys.name}</h3>
             <span className={cn("chip shrink-0 whitespace-nowrap", statusStyle[sys.status])}>
               <span className={cn("h-1.5 w-1.5 rounded-full bg-current", live && "animate-pulse")} aria-hidden />
               {t.server.status[sys.status]}
@@ -105,15 +136,14 @@ function SystemCard({ sys }: { sys: ServerSystem }) {
           )}
         </div>
         {sys.uptime != null && live && (
-          <div className="text-right">
-            <div className="text-xs text-muted">{t.server.uptime}</div>
-            <div className="text-sm font-medium tabular-nums">{formatDuration(sys.uptime)}</div>
+          <div className="text-xs tabular-nums text-muted">
+            {t.server.uptime} <span className="font-medium text-fg">{formatDuration(sys.uptime)}</span>
           </div>
         )}
       </header>
 
       {!live ? (
-        <p className="text-sm text-muted">{sys.status === "paused" ? t.server.pausedHint : t.server.noData(formatAge(sys.updated))}</p>
+        <p className="text-xs text-muted">{sys.status === "paused" ? t.server.pausedHint : t.server.noData(formatAge(sys.updated))}</p>
       ) : (
         <LiveStats sys={sys} cpuSub={cpuSub} />
       )}
@@ -171,7 +201,7 @@ function LiveStats({ sys, cpuSub }: { sys: ServerSystem; cpuSub: string }) {
         )}
       </div>
 
-      <dl className="grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2 xl:grid-cols-4">
+      <dl className="grid empty:hidden grid-cols-1 gap-x-6 gap-y-1 sm:grid-cols-2 xl:grid-cols-4">
         {sys.load && (
           <Stat label={t.server.load} title={t.server.loadTitle}>
             {sys.load.map(fmtLoad).join(" · ")}
@@ -182,11 +212,11 @@ function LiveStats({ sys, cpuSub }: { sys: ServerSystem; cpuSub: string }) {
             {sys.netUp != null && sys.netDown != null ? (
               <span className="inline-flex items-center gap-2">
                 <span className="inline-flex items-center gap-0.5">
-                  <ArrowDown className="h-3.5 w-3.5 text-muted" aria-label="Bajada" />
+                  <ArrowDown className="h-3 w-3 text-muted" aria-label="Bajada" />
                   {formatSpeed(sys.netDown)}
                 </span>
                 <span className="inline-flex items-center gap-0.5">
-                  <ArrowUp className="h-3.5 w-3.5 text-muted" aria-label="Subida" />
+                  <ArrowUp className="h-3 w-3 text-muted" aria-label="Subida" />
                   {formatSpeed(sys.netUp)}
                 </span>
               </span>
@@ -203,19 +233,19 @@ function LiveStats({ sys, cpuSub }: { sys: ServerSystem; cpuSub: string }) {
       </dl>
 
       {sys.disks.length > 0 && (
-        <section className="flex flex-col gap-2" aria-label={t.server.disks}>
-          <h4 className="text-xs font-medium uppercase tracking-wide text-muted">{t.server.disks}</h4>
-          <div className="grid gap-x-6 gap-y-2 sm:grid-cols-2">
+        <section className="flex flex-col gap-1" aria-label={t.server.disks}>
+          <h4 className="text-xs text-muted">{t.server.disks}</h4>
+          <div className="grid gap-x-6 gap-y-1 sm:grid-cols-2">
             {sys.disks.map((d) => (
-              <div key={d.name} className="flex min-w-0 items-center gap-3" title={usageDetail(d.usage) ?? undefined}>
-                <span className="w-28 shrink-0 truncate text-sm">{d.name}</span>
+              <div key={d.name} className="flex min-w-0 items-center gap-2" title={usageDetail(d.usage) ?? undefined}>
+                <span className="w-24 shrink-0 truncate text-xs">{d.name}</span>
                 <div className="flex-1">
                   <Bar pct={d.usage.pct} tone={pctTone(d.usage.pct)} />
                 </div>
-                <span className={cn("w-12 shrink-0 text-right text-sm tabular-nums", toneText[pctTone(d.usage.pct)])}>
+                <span className={cn("w-11 shrink-0 text-right text-xs tabular-nums", toneText[pctTone(d.usage.pct)])}>
                   {fmtPct(d.usage.pct)} %
                 </span>
-                <span className="hidden w-32 shrink-0 text-right text-xs tabular-nums text-muted xl:block">{usageDetail(d.usage)}</span>
+                <span className="hidden w-28 shrink-0 text-right text-[11px] tabular-nums text-muted 2xl:block">{usageDetail(d.usage)}</span>
               </div>
             ))}
           </div>
@@ -223,10 +253,10 @@ function LiveStats({ sys, cpuSub }: { sys: ServerSystem; cpuSub: string }) {
       )}
 
       {sys.sensors.length > 1 && (
-        <section className="flex flex-wrap items-center gap-1.5" aria-label={t.server.sensors}>
-          <span className="mr-1 text-xs font-medium uppercase tracking-wide text-muted">{t.server.sensors}</span>
+        <section className="flex flex-wrap items-center gap-1" aria-label={t.server.sensors}>
+          <span className="mr-1 text-xs text-muted">{t.server.sensors}</span>
           {sys.sensors.slice(0, 8).map((s) => (
-            <span key={s.name} className="chip bg-surface-2 tabular-nums text-muted">
+            <span key={s.name} className="chip bg-surface-2 py-0 text-[11px] tabular-nums text-muted">
               {s.name}
               <span className={cn("font-semibold", toneText[tempTone(s.temp)])}>{Math.round(s.temp)}°</span>
             </span>
@@ -240,10 +270,11 @@ function LiveStats({ sys, cpuSub }: { sys: ServerSystem; cpuSub: string }) {
 /** Inicio → estado del servidor, sacado de Beszel. No aparece si Beszel no está configurado. */
 export function ServerStats() {
   const q = useServerSystems();
+  const [prefs] = usePrefs();
   if (q.configured !== true) return null;
-  const systems = q.data ?? [];
+  const systems = (q.data ?? []).map((s) => hideFields(s, prefs.hiddenServerFields));
   return (
-    <section className="flex flex-col gap-3" data-service="beszel" aria-label={t.server.title(systems.length || 1)}>
+    <section className="flex flex-col gap-2" data-service="beszel" aria-label={t.server.title(systems.length || 1)}>
       <h2 className="text-lg font-semibold">{t.server.title(systems.length || 1)}</h2>
       {q.isLoading ? (
         <div className="card h-40 animate-pulse" aria-busy />
@@ -252,7 +283,7 @@ export function ServerStats() {
       ) : systems.length === 0 ? (
         <p className="card p-4 text-sm text-muted">{t.server.none}</p>
       ) : (
-        <div className="grid gap-3">
+        <div className={cn("grid items-start gap-2", systems.length > 1 && "min-[1800px]:grid-cols-2")}>
           {systems.map((s) => (
             <SystemCard key={s.id} sys={s} />
           ))}

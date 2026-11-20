@@ -8,6 +8,16 @@ import { isDevBuild } from "@/lib/version";
 
 /** Cada cuánto se vuelve a mirar si hay versión nueva mientras la app sigue abierta. */
 export const CHECK_EVERY_MS = 6 * 60 * 60 * 1000;
+/** En el canal de prueba se mira mucho más a menudo: cada cambio que entra en dev llega en unos minutos. */
+export const DEV_CHECK_EVERY_MS = 10 * 60 * 1000;
+
+/**
+ * Canal que se sigue: «Dasharr Dev» (las compilaciones de la rama dev, que se instalan aparte) sigue la versión
+ * de prueba; «Dasharr», la última versión publicada.
+ */
+export function updateChannel(): "stable" | "dev" {
+  return isDevBuild() ? "dev" : "stable";
+}
 /** Margen antes de instalar sola, para que el usuario pueda posponerlo. */
 export const AUTO_INSTALL_DELAY_S = 30;
 
@@ -35,6 +45,8 @@ const subscribe = (l: () => void) => {
 export function useUpdateState(): UpdateState {
   return useSyncExternalStore(subscribe, () => state, () => state);
 }
+
+let lastCheck = 0;
 
 /** Versiones ya avisadas en esta sesión, para no repetir el aviso en cada comprobación. */
 const announced = new Set<string>();
@@ -94,12 +106,13 @@ export async function runUpdateCheck({ manual }: { manual: boolean }): Promise<U
   if (state.checking || state.installing) return state.available;
   set({ checking: true, upToDate: false });
   try {
-    const u = await checkUpdate();
+    const dev = updateChannel() === "dev";
+    lastCheck = Date.now();
+    const u = await checkUpdate(dev, __APP_BUILD__);
     set({ checking: false, available: u, upToDate: !u });
     if (u && (manual || !announced.has(u.version))) {
       announced.add(u.version);
-      // Las compilaciones de prueba (rama dev) no se sustituyen solas por la versión publicada.
-      if (!manual && getPrefs().autoUpdate && !isDevBuild()) scheduleAutoInstall(u);
+      if (!manual && getPrefs().autoUpdate) scheduleAutoInstall(u);
       else if (!manual) notifyUpdate(u);
     }
     return u;
@@ -111,12 +124,19 @@ export async function runUpdateCheck({ manual }: { manual: boolean }): Promise<U
   }
 }
 
-/** Al abrir la app y luego cada pocas horas, comprueba si hay una versión publicada más nueva (no en desarrollo). */
+/** Toca volver a mirar: cada 10 minutos en el canal de prueba y cada 6 horas en el estable. */
+export function checkDue(now = Date.now()) {
+  return now - lastCheck >= (updateChannel() === "dev" ? DEV_CHECK_EVERY_MS : CHECK_EVERY_MS);
+}
+
+/** Al abrir la app y luego de vez en cuando, comprueba si hay una versión más nueva (no en desarrollo). */
 export function useUpdateCheck() {
   useEffect(() => {
     if (import.meta.env.DEV || import.meta.env.VITEST) return;
     const first = setTimeout(() => void runUpdateCheck({ manual: false }), 5000);
-    const every = setInterval(() => void runUpdateCheck({ manual: false }), CHECK_EVERY_MS);
+    const every = setInterval(() => {
+      if (checkDue()) void runUpdateCheck({ manual: false });
+    }, DEV_CHECK_EVERY_MS);
     return () => {
       clearTimeout(first);
       clearInterval(every);
@@ -128,5 +148,6 @@ export function useUpdateCheck() {
 export function resetUpdateState() {
   cancelAutoInstall();
   announced.clear();
+  lastCheck = 0;
   state = { available: null, checking: false, installing: false, upToDate: false };
 }
