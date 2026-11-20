@@ -11,7 +11,8 @@ use tauri::{AppHandle, Runtime};
 pub const RELEASES_REPO: &str = "Vitorsinc/Dasharr";
 
 /// Etiqueta de la versión de prueba: CI la vuelve a publicar con cada cambio que entra en la rama dev.
-pub const DEV_TAG: &str = "dev";
+/// No puede llamarse «dev»: una etiqueta con el nombre de la rama confunde a `git fetch origin dev`.
+pub const DEV_TAG: &str = "dev-latest";
 
 #[derive(Deserialize)]
 struct GhRelease {

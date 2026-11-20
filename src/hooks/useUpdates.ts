@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import { t } from "@/i18n/es";
 import { checkUpdate, installUpdate, writeLog, type UpdateInfo } from "@/lib/tauri";
 import { errorMessage } from "@/lib/errors";
-import { getPrefs, type Prefs } from "@/hooks/usePrefs";
+import { getPrefs } from "@/hooks/usePrefs";
 import { isDevBuild } from "@/lib/version";
 
 /** Cada cuánto se vuelve a mirar si hay versión nueva mientras la app sigue abierta. */
@@ -11,9 +11,12 @@ export const CHECK_EVERY_MS = 6 * 60 * 60 * 1000;
 /** En el canal de prueba se mira mucho más a menudo: cada cambio que entra en dev llega en unos minutos. */
 export const DEV_CHECK_EVERY_MS = 10 * 60 * 1000;
 
-/** Canal que se sigue: el elegido en Ajustes o, si no se ha elegido, el de la compilación instalada. */
-export function updateChannel(prefs: Pick<Prefs, "updateChannel"> = getPrefs()): "stable" | "dev" {
-  return prefs.updateChannel ?? (isDevBuild() ? "dev" : "stable");
+/**
+ * Canal que se sigue: «Dasharr Dev» (las compilaciones de la rama dev, que se instalan aparte) sigue la versión
+ * de prueba; «Dasharr», la última versión publicada.
+ */
+export function updateChannel(): "stable" | "dev" {
+  return isDevBuild() ? "dev" : "stable";
 }
 /** Margen antes de instalar sola, para que el usuario pueda posponerlo. */
 export const AUTO_INSTALL_DELAY_S = 30;
@@ -109,9 +112,7 @@ export async function runUpdateCheck({ manual }: { manual: boolean }): Promise<U
     set({ checking: false, available: u, upToDate: !u });
     if (u && (manual || !announced.has(u.version))) {
       announced.add(u.version);
-      // Las compilaciones de prueba (rama dev) no se sustituyen solas por la versión publicada,
-      // salvo que sigan el canal de prueba: entonces se actualizan solas a la última de dev.
-      if (!manual && getPrefs().autoUpdate && (dev || !isDevBuild())) scheduleAutoInstall(u);
+      if (!manual && getPrefs().autoUpdate) scheduleAutoInstall(u);
       else if (!manual) notifyUpdate(u);
     }
     return u;

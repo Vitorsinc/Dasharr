@@ -33,7 +33,7 @@ beforeEach(() => {
 });
 afterEach(() => {
   resetUpdateState();
-  setPrefs({ autoUpdate: true, updateChannel: undefined });
+  setPrefs({ autoUpdate: true });
   build.dev = false;
   vi.useRealTimers();
 });
@@ -80,7 +80,7 @@ test("la versión publicada mira el canal estable", async () => {
   expect(mock).toHaveBeenCalledWith("check_update", { dev: false, build: expect.any(String) });
 });
 
-test("una compilación de prueba sigue el canal dev y se actualiza sola", async () => {
+test("Dasharr Dev sigue la versión de prueba y se actualiza sola", async () => {
   build.dev = true;
   const mock = backend({ ...update, version: "0.2.0 · dev abc1234" });
   await runUpdateCheck({ manual: false });
@@ -89,22 +89,12 @@ test("una compilación de prueba sigue el canal dev y se actualiza sola", async 
   expect(mock).toHaveBeenCalledWith("install_update", expect.anything());
 });
 
-test("una compilación de prueba en el canal estable solo avisa", async () => {
-  build.dev = true;
-  setPrefs({ updateChannel: "stable" });
-  const mock = backend(update);
-  await runUpdateCheck({ manual: false });
-  expect(mock).toHaveBeenCalledWith("check_update", { dev: false, build: expect.any(String) });
-  await act(() => vi.advanceTimersByTimeAsync(AUTO_INSTALL_DELAY_S * 1000));
-  expect(mock).not.toHaveBeenCalledWith("install_update", expect.anything());
-});
-
 test("el canal dev se comprueba cada 10 minutos y el estable cada 6 horas", async () => {
   backend(null);
   await runUpdateCheck({ manual: false });
   const now = Date.now();
   expect(checkDue(now + DEV_CHECK_EVERY_MS)).toBe(false);
   expect(checkDue(now + CHECK_EVERY_MS)).toBe(true);
-  setPrefs({ updateChannel: "dev" });
+  build.dev = true;
   expect(checkDue(now + DEV_CHECK_EVERY_MS)).toBe(true);
 });

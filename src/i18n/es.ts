@@ -947,8 +947,6 @@ export const es = {
     checkFailed: (msg: string) => `No se pudo comprobar si hay actualizaciones: ${msg}`,
     auto: "Instalar las actualizaciones automáticamente",
     autoHint: "Dasharr mira si hay versión nueva al abrirse y cada 6 horas (cada 10 minutos con las versiones de prueba). Antes de instalarla te avisa unos segundos por si prefieres dejarlo para más tarde.",
-    devChannel: "Recibir las versiones de prueba (rama dev)",
-    devChannelHint: "Cada cambio nuevo llega a los pocos minutos de terminarse, sin esperar a que se publique una versión. Pueden tener algún fallo. Al desactivarlo, Dasharr vuelve a la versión publicada cuando salga la siguiente.",
     newVersion: (v: string) => `Nueva versión disponible: v${v}`,
     notes: "Novedades",
     sidebar: (v: string) => `Actualizar a v${v}`,

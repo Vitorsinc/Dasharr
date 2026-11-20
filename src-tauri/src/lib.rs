@@ -3,6 +3,7 @@ mod filmaffinity;
 mod images;
 mod letterboxd;
 mod logs;
+mod migrate;
 mod nyaa;
 mod settings;
 mod state;
@@ -19,6 +20,8 @@ const PROBE_INTERVAL: Duration = Duration::from_secs(60);
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    let context = tauri::generate_context!();
+    migrate::copy_stable_config(&context.config().identifier);
     tauri::Builder::default()
         .plugin(logs::plugin())
         .plugin(tauri_plugin_store::Builder::default().build())
@@ -83,6 +86,6 @@ pub fn run() {
             });
             Ok(())
         })
-        .run(tauri::generate_context!())
+        .run(context)
         .expect("error al iniciar Dasharr");
 }
