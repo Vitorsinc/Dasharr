@@ -12,6 +12,9 @@ También se puede lanzar a mano en Actions → Release → «Run workflow» indi
 
 ## [Sin publicar]
 
+### Cambiado
+- Inicio: la sección Servidor (Beszel) es más compacta, y en Ajustes → Servicios → Beszel se elige qué datos de cada servidor se ven.
+
 ### Añadido
 - Beszel: nuevo servicio en Ajustes (correo y contraseña de Beszel, o una API key en Beszel 0.21+). Inicio muestra cada servidor con CPU, memoria, disco, temperatura, tiempo encendido, carga, red, swap, discos extra y sensores.
 

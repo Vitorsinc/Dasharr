@@ -25,7 +25,7 @@ import { useConnectionStates } from "@/hooks/useConnectionStates";
 import { faClearQueue } from "@/api/filmaffinity";
 import { lbClearQueue } from "@/api/letterboxd";
 import { RatingIcon, ratingName } from "@/components/media/RatingBadges";
-import { RATING_SOURCES, usePrefs, type RatingSource, type Theme } from "@/hooks/usePrefs";
+import { RATING_SOURCES, SERVER_FIELDS, usePrefs, type RatingSource, type ServerField, type Theme } from "@/hooks/usePrefs";
 import { ServiceForm } from "./ServiceForm";
 import { parseConfigFile } from "@/lib/importConfig";
 import { openExternal, saveService } from "@/lib/tauri";
@@ -205,6 +205,27 @@ function Autostart() {
       <Row label={t.settings.autostart}>
         <Toggle label={t.settings.autostart} checked={autostart} onChange={toggleAutostart} />
       </Row>
+    </section>
+  );
+}
+
+/** Ajustes → Servicios → Beszel: qué datos de cada servidor salen en Inicio. */
+function ServerFieldsSettings() {
+  const [prefs, setPrefs] = usePrefs();
+  const toggle = (f: ServerField, show: boolean) =>
+    setPrefs({ hiddenServerFields: show ? prefs.hiddenServerFields.filter((h) => h !== f) : [...prefs.hiddenServerFields, f] });
+  return (
+    <section className="card p-5" aria-label={t.server.fieldsTitle}>
+      <h2 className="text-base font-semibold">{t.server.fieldsTitle}</h2>
+      <p className="mb-2 text-sm text-muted">{t.server.fieldsHint}</p>
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3">
+        {SERVER_FIELDS.map((f) => (
+          <div key={f} className="flex items-center justify-between gap-4 py-2 pr-6">
+            <span className="text-sm">{t.server.fields[f]}</span>
+            <Toggle label={t.server.fields[f]} checked={!prefs.hiddenServerFields.includes(f)} onChange={(v) => toggle(f, v)} />
+          </div>
+        ))}
+      </div>
     </section>
   );
 }
@@ -513,7 +534,10 @@ function Services() {
       ) : isLoading ? (
         <Loading />
       ) : (
-        <ServiceForm key={`${service}-${generation}`} service={service} view={data?.[service]} route={routes?.[service]} />
+        <>
+          <ServiceForm key={`${service}-${generation}`} service={service} view={data?.[service]} route={routes?.[service]} />
+          {service === "beszel" && <ServerFieldsSettings />}
+        </>
       )}
     </Section>
   );
