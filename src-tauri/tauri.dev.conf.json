@@ -1,0 +1,17 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Dasharr Dev",
+  "identifier": "com.vitorsinc.dasharr.dev",
+  "app": {
+    "windows": [
+      {
+        "title": "Dasharr Dev",
+        "width": 1360,
+        "height": 860,
+        "minWidth": 980,
+        "minHeight": 640,
+        "center": true
+      }
+    ]
+  }
+}

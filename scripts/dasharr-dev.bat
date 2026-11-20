@@ -9,7 +9,9 @@ where npm >nul 2>nul || (echo Falta Node.js. Instala: winget install OpenJS.Node
 where cargo >nul 2>nul || (echo Falta Rust. Instala: winget install Rustlang.Rustup & pause & exit /b 1)
 
 echo Descargando los ultimos cambios...
-git fetch origin dev && git checkout dev && git pull --ff-only origin dev || (echo No se pudieron bajar los cambios. & pause & exit /b 1)
+rem Referencias explicitas: una etiqueta antigua llamada "dev" no debe confundirse con la rama.
+git tag -d dev >nul 2>nul
+git fetch origin refs/heads/dev && git checkout dev && git pull --ff-only origin refs/heads/dev || (echo No se pudieron bajar los cambios. & pause & exit /b 1)
 
 echo Instalando dependencias (solo tarda la primera vez)...
 call npm install --no-audit --no-fund || (pause & exit /b 1)

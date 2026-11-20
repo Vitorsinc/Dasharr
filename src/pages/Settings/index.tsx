@@ -32,7 +32,7 @@ import { openExternal, saveService } from "@/lib/tauri";
 import { tmdbSaveKey } from "@/api/tmdb";
 import { useTmdbHasKey } from "@/hooks/useMovieReleases";
 import { COUNTRIES } from "@/lib/countries";
-import { runUpdateCheck, startUpdate, updateChannel, useUpdateState } from "@/hooks/useUpdates";
+import { runUpdateCheck, startUpdate, useUpdateState } from "@/hooks/useUpdates";
 import { versionLabel } from "@/lib/version";
 import { errorMessage } from "@/lib/errors";
 import { settingsKey } from "@/hooks/useSettings";
@@ -466,20 +466,6 @@ function Updates() {
           <span className="text-xs text-muted">{t.updates.autoHint}</span>
         </div>
         <Toggle label={t.updates.auto} checked={prefs.autoUpdate} onChange={(v) => setPrefs({ autoUpdate: v })} />
-      </div>
-      <div className="flex items-center justify-between gap-4 p-4">
-        <div className="flex flex-col gap-1">
-          <span className="text-sm">{t.updates.devChannel}</span>
-          <span className="text-xs text-muted">{t.updates.devChannelHint}</span>
-        </div>
-        <Toggle
-          label={t.updates.devChannel}
-          checked={updateChannel(prefs) === "dev"}
-          onChange={(v) => {
-            setPrefs({ updateChannel: v ? "dev" : "stable" });
-            void runUpdateCheck({ manual: true });
-          }}
-        />
       </div>
     </section>
   );
