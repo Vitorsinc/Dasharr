@@ -1,6 +1,7 @@
 import { screen, within } from "@testing-library/react";
 import { mockBackend, renderApp } from "@/test/utils";
 import { toServerSystem } from "@/api/beszel";
+import { setPrefs } from "@/hooks/usePrefs";
 
 const GB = 1024 ** 3;
 
@@ -60,5 +61,27 @@ describe("Beszel", () => {
     expect(within(card).getByRole("group", { name: "Temperatura: 52 °C" })).toBeInTheDocument();
     expect(within(card).getByText("media")).toBeInTheDocument();
     expect(within(card).getByText("3 d 5 h")).toBeInTheDocument();
+  });
+});
+
+describe("Beszel: datos visibles", () => {
+  it("oculta en Inicio lo que se desmarca en Ajustes", async () => {
+    setPrefs({ hiddenServerFields: ["temp", "disks"] });
+    mockBackend({
+      api: {
+        beszel: (req) => {
+          if (req.path === "/api/beszel/info") return { v: "0.18.3" };
+          if (req.path === "/api/collections/systems/records") return { items: [system] };
+          if (req.path === "/api/collections/system_stats/records") return { items: [{ stats }] };
+          return details;
+        },
+      },
+    });
+    renderApp("/");
+    const card = await screen.findByRole("article", { name: "Vyrtubuntu" });
+    expect(within(card).getByRole("group", { name: "CPU: 12 %" })).toBeInTheDocument();
+    expect(within(card).queryByRole("group", { name: /Temperatura/ })).not.toBeInTheDocument();
+    expect(within(card).queryByText("media")).not.toBeInTheDocument();
+    setPrefs({ hiddenServerFields: [] });
   });
 });
