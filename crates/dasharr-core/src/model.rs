@@ -76,6 +76,20 @@ fn default_true() -> bool {
     true
 }
 
+/// Interpreta los servicios guardados de uno en uno: uno que esta versión no conoce (p. ej. guardado
+/// por una versión más nueva) o que está dañado se ignora sin hacer desaparecer el resto.
+pub fn parse_service_configs(
+    raw: &serde_json::Map<String, Value>,
+) -> std::collections::HashMap<ServiceKind, ServiceConfig> {
+    raw.iter()
+        .filter_map(|(key, value)| {
+            let kind = serde_json::from_value::<ServiceKind>(Value::String(key.clone())).ok()?;
+            let config = serde_json::from_value::<ServiceConfig>(value.clone()).ok()?;
+            Some((kind, config))
+        })
+        .collect()
+}
+
 impl ServiceConfig {
     pub fn local(&self) -> Option<&str> {
         self.local_url.as_deref().map(str::trim).filter(|s| !s.is_empty())

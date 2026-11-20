@@ -15,6 +15,12 @@ También se puede lanzar a mano en Actions → Release → «Run workflow» indi
 ### Añadido
 - Beszel: nuevo servicio en Ajustes (correo y contraseña de Beszel, o una API key en Beszel 0.21+). Inicio muestra cada servidor con CPU, memoria, disco, temperatura, tiempo encendido, carga, red, swap, discos extra y sensores.
 
+### Corregido
+
+- Abrir una versión anterior después de haber usado una más nueva (por ejemplo, con Beszel
+  configurado) ya no hace desaparecer todos los servicios de Ajustes, y guardar en esa versión
+  tampoco borra los servicios que no conoce.
+
 ## [0.5.0] - 2026-11-18
 
 ### Cambiado
