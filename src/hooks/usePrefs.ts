@@ -37,6 +37,8 @@ export interface Prefs {
   watchUserId: string | null;
   /** Al borrar una película o serie, quitar también sus torrents de qBittorrent (se recuerda la última elección). */
   deleteTorrents: boolean;
+  /** Columnas visibles en Descargas (null = las de siempre). */
+  downloadColumns: string[] | null;
   /** Datos de Beszel que no se quieren ver en Inicio (los nuevos salen por defecto). */
   hiddenServerFields: ServerField[];
 }
@@ -56,6 +58,7 @@ const DEFAULTS: Prefs = {
   sorts: {},
   watchUserId: null,
   deleteTorrents: false,
+  downloadColumns: null,
   hiddenServerFields: [],
 };
 const listeners = new Set<() => void>();
