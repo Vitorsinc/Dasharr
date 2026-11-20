@@ -13,6 +13,9 @@ También se puede lanzar a mano en Actions → Release → «Run workflow» indi
 ## [Sin publicar]
 
 ### Añadido
+- Versiones de prueba: cada cambio de la rama dev se publica solo como la Release «dev», y las
+  instalaciones del canal de prueba se actualizan solas en unos minutos. Se activa en
+  Ajustes → Sistema → «Recibir las versiones de prueba».
 - Beszel: nuevo servicio en Ajustes (correo y contraseña de Beszel, o una API key en Beszel 0.21+). Inicio muestra cada servidor con CPU, memoria, disco, temperatura, tiempo encendido, carga, red, swap, discos extra y sensores.
 
 ### Corregido

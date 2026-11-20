@@ -47,3 +47,36 @@ jobs:
           path: |
             target/release/bundle/msi/*.msi
             target/release/bundle/nsis/*.exe
+
+  # Versión de prueba: con cada cambio que entra en dev se vuelve a publicar la Release «dev»
+  # (marcada como prerelease, así que la versión estable sigue mirando solo las publicadas).
+  # Las instalaciones que siguen el canal dev la detectan y se actualizan solas.
+  dev-release:
+    name: Publicar versión de prueba (dev)
+    if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+    needs: windows
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dasharr-windows
+          path: build
+      - name: Sustituir la Release «dev» por esta compilación
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          exe=$(find build -name '*-setup.exe' | head -n1)
+          test -n "$exe"
+          sha256sum "$exe" | cut -d' ' -f1 > "$exe.sha256"
+          short=${GITHUB_SHA::7}
+          { echo "Versión de prueba de la rama dev (commit $short)."; echo; echo "Último cambio:"; echo; echo "$MESSAGE"; } > notes.md
+          gh release delete dev --cleanup-tag --yes || true
+          # Esperar a que la etiqueta antigua desaparezca antes de crearla de nuevo en este commit.
+          for i in 1 2 3 4 5 6; do gh api "repos/$GH_REPO/git/refs/tags/dev" >/dev/null 2>&1 || break; sleep 5; done
+          gh release create dev "$exe" "$exe.sha256" --prerelease --latest=false --target "$GITHUB_SHA" \
+            --title "Dasharr dev ($short)" --notes-file notes.md
