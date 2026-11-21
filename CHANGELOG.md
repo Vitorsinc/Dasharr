@@ -13,6 +13,8 @@ También se puede lanzar a mano en Actions → Release → «Run workflow» indi
 ## [Sin publicar]
 
 ### Añadido
+- Bazarr → Proveedores: activa o desactiva los proveedores de subtítulos, edita sus usuarios, contraseñas y
+  opciones, mira cuáles están bloqueados (y por qué y hasta cuándo) y desbloquéalos todos con un botón.
 - Primera versión para Android: una APK que se instala en el móvil (Dasharr Dev sale con cada cambio en la
   versión de prueba). En Android las claves se guardan en la carpeta privada de la app y, al actualizar, la
   APK nueva se descarga en el navegador.

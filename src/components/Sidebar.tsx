@@ -18,6 +18,7 @@ import {
   Library,
   Menu,
   MonitorPlay,
+  Plug,
   Radar,
   Search,
   Settings,
@@ -93,7 +94,14 @@ const groups: { service: ServiceKind; logo: string; items: NavItem[] }[] = [
       { to: "/trackers", label: t.nav.trackers, icon: Gauge },
     ],
   },
-  { service: "bazarr", logo: bazarrLogo, items: [{ to: "/subtitulos", label: t.nav.subtitles, icon: Captions }] },
+  {
+    service: "bazarr",
+    logo: bazarrLogo,
+    items: [
+      { to: "/subtitulos", label: t.nav.subtitles, icon: Captions },
+      { to: "/proveedores", label: t.nav.subtitleProviders, icon: Plug },
+    ],
+  },
   // El historial sale de Tracearr, pero es lo que se ha visto en Plex: va con Plex para no sumar otro grupo.
   {
     service: "plex",
