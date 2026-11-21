@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { Dialog } from "@/components/Dialog";
 import { movePath, type QualityProfile, type RootFolder } from "@/api/arr";
 import { t } from "@/i18n/es";

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { Dialog } from "@/components/Dialog";
 import { Spinner } from "@/components/ui";
 import { t } from "@/i18n/es";

@@ -3,7 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Bell, Cpu, Library, Palette, Plug, ScrollText, Server, Upload, type LucideIcon } from "lucide-react";
 import { Navigate, useParams } from "react-router-dom";
 import { TabNav } from "@/components/TabNav";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { disable, enable, isEnabled } from "@tauri-apps/plugin-autostart";
 import { isMobile } from "@/lib/platform";
 import { Page } from "@/components/Page";

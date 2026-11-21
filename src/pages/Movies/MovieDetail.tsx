@@ -3,7 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { FileX, FolderSearch, Library, Pencil, RefreshCw, Search, TextCursorInput, Trash2, User } from "lucide-react";
 import { MonitorIcon } from "@/components/media/MonitorToggle";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { ConfirmDialog, Dialog } from "@/components/Dialog";
 import { RenameDialog } from "@/components/media/RenameDialog";
 import { ArrRatings } from "@/components/media/ArrRatings";

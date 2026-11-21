@@ -1,6 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, Circle, ExternalLink, RefreshCw, ScanSearch } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { findInPlex, isWatched, plex, plexWebUrl, type ExternalIds } from "@/api/plex";
 import { usePlexIndex } from "@/hooks/usePlex";
 import { t } from "@/i18n/es";

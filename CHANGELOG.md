@@ -15,6 +15,9 @@ También se puede lanzar a mano en Actions → Release → «Run workflow» indi
 ### Añadido
 - Nuevo icono de Dasharr: en el instalador y la app de Windows, Dasharr Dev, el lanzador de Android y el
   logo junto al nombre en el menú.
+- Campanita de errores junto al nombre de Dasharr (también en el menú del móvil): guarda los errores de la sesión (servicios que no responden y
+  acciones que fallan) y cada uno se puede marcar como leído para que no vuelva a salir hasta cerrar la
+  app.
 - Primera versión para Android: una APK que se instala en el móvil (Dasharr Dev sale con cada cambio en la
   versión de prueba). En Android las claves se guardan en la carpeta privada de la app y, al actualizar, la
   APK nueva se descarga en el navegador.

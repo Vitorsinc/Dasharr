@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { Dialog } from "@/components/Dialog";
 import { qbit, type Torrent } from "@/api/qbit";
 import { t } from "@/i18n/es";
