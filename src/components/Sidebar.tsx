@@ -42,6 +42,7 @@ import bazarrLogo from "@/assets/services/bazarr.svg";
 import qbittorrentLogo from "@/assets/services/qbittorrent.svg";
 import plexLogo from "@/assets/services/plex.svg";
 import seerrLogo from "@/assets/services/seerr.svg";
+import appIcon from "@/assets/dasharr-icon.png";
 
 interface NavItem {
   to: string;
@@ -185,21 +186,9 @@ function Group({ service, logo, items }: (typeof groups)[number]) {
   );
 }
 
-/** Marca: un guion y una flecha, «dash» y «arr». */
+/** Marca: el icono de la app (la «D» con el botón de reproducir y el indicador). */
 function Logo() {
-  return (
-    <svg viewBox="0 0 28 28" className="h-7 w-7 shrink-0" aria-hidden>
-      <rect width="28" height="28" rx="7" className="fill-brand" />
-      <path
-        d="M7 14h6M15.5 8.5 21 14l-5.5 5.5"
-        fill="none"
-        strokeWidth="2.75"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className="stroke-bg"
-      />
-    </svg>
-  );
+  return <img src={appIcon} alt="" className="h-7 w-7 shrink-0" aria-hidden />;
 }
 
 /** Aparece solo cuando hay una versión nueva; lleva a Ajustes → Sistema para instalarla. */
