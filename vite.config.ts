@@ -7,7 +7,7 @@ import { execSync } from "node:child_process";
 
 const pkg = JSON.parse(readFileSync(path.resolve(__dirname, "package.json"), "utf8"));
 // En GitHub Actions: las builds de una etiqueta v* o del flujo Release (DASHARR_RELEASE) son versiones publicadas;
-// el resto, builds de desarrollo con su commit.
+// el resto, builds de desarrollo con su número (CI) o su commit (en local).
 const isRelease = process.env.GITHUB_REF_TYPE === "tag" || process.env.DASHARR_RELEASE === "1";
 // En local se usa el commit de git (con "+" si hay cambios sin commitear), para saber qué versión se está viendo.
 function localBuild() {
@@ -19,7 +19,16 @@ function localBuild() {
     return "local";
   }
 }
-const build = isRelease ? "" : process.env.GITHUB_SHA ? process.env.GITHUB_SHA.slice(0, 7) : localBuild();
+// En CI, el número de la versión de prueba: cuántos commits lleva la rama (233, 234…). Sube con cada cambio,
+// así es fácil de leer y de comparar. Necesita el historial completo (checkout con fetch-depth: 0).
+function ciBuild() {
+  try {
+    return execSync("git rev-list --count HEAD", { cwd: __dirname, stdio: ["ignore", "pipe", "ignore"] }).toString().trim();
+  } catch {
+    return process.env.GITHUB_SHA!.slice(0, 7);
+  }
+}
+const build = isRelease ? "" : process.env.GITHUB_SHA ? ciBuild() : localBuild();
 
 const host = process.env.TAURI_DEV_HOST;
 
