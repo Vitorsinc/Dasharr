@@ -1,10 +1,10 @@
 import { act } from "@testing-library/react";
 import { invoke } from "@tauri-apps/api/core";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { AUTO_INSTALL_DELAY_S, CHECK_EVERY_MS, DEV_CHECK_EVERY_MS, checkDue, resetUpdateState, runUpdateCheck } from "./useUpdates";
 import { setPrefs } from "./usePrefs";
 
-vi.mock("sonner", () => {
+vi.mock("@/lib/toast", () => {
   const toast = Object.assign(vi.fn(() => "t"), { loading: vi.fn(() => "l"), error: vi.fn(), dismiss: vi.fn() });
   return { toast };
 });

@@ -1421,6 +1421,16 @@ export const es = {
     nobodyRequested: "Nadie lo ha pedido en Seerr.",
     requestedUnknown: "Seerr no tiene datos de este título.",
   },
+  errorBell: {
+    button: (n: number) => (n ? `Errores: ${n} sin leer` : "Errores"),
+    title: "Errores",
+    empty: "No hay errores. Los que salgan durante esta sesión aparecerán aquí.",
+    markRead: "Marcar como leído",
+    markAllRead: "Marcar todos como leídos",
+    hint: "Lo que marques como leído no vuelve a salir hasta que cierres Dasharr.",
+    times: (n: number) => `×${n}`,
+    general: "Dasharr",
+  },
   common: {
     retry: "Reintentar",
     cancel: "Cancelar",

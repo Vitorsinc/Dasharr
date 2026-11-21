@@ -1,5 +1,5 @@
 import { useEffect, useSyncExternalStore } from "react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { t } from "@/i18n/es";
 import { checkUpdate, installUpdate, writeLog, type UpdateInfo } from "@/lib/tauri";
 import { errorMessage } from "@/lib/errors";
