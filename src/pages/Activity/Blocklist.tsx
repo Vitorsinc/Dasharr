@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Trash2, XCircle } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { ConfirmDialog } from "@/components/Dialog";
 import { ErrorPanel } from "@/components/ErrorPanel";
 import { Empty, Loading, Pager } from "@/components/ui";

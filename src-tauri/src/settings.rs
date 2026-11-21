@@ -91,6 +91,17 @@ pub fn save_config<R: Runtime>(app: &AppHandle<R>, kind: ServiceKind, config: &S
     store.save().map_err(|e| e.to_string())
 }
 
+/// Lista de servicios tal cual está guardada (también los que esta versión no conoce), para la copia en Google.
+pub fn load_raw_services<R: Runtime>(app: &AppHandle<R>) -> serde_json::Map<String, serde_json::Value> {
+    app.store(STORE_FILE).ok().map(|s| raw_services(s.get(SERVICES_KEY))).unwrap_or_default()
+}
+
+pub fn save_raw_services<R: Runtime>(app: &AppHandle<R>, all: serde_json::Map<String, serde_json::Value>) -> Result<(), String> {
+    let store = app.store(STORE_FILE).map_err(|e| e.to_string())?;
+    store.set(SERVICES_KEY, serde_json::Value::Object(all));
+    store.save().map_err(|e| e.to_string())
+}
+
 pub fn load_secrets(kind: ServiceKind) -> ServiceSecrets {
     secrets::get(kind.as_str()).and_then(|s| serde_json::from_str(&s).ok()).unwrap_or_default()
 }

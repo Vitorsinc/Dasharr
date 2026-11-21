@@ -7,12 +7,16 @@ import { useApplyTheme } from "@/hooks/usePrefs";
 import { useDownloadNotifications } from "@/hooks/useDownloadNotifications";
 import { useUpdateCheck } from "@/hooks/useUpdates";
 import { usePlexNotifications } from "@/hooks/usePlex";
+import { useGoogleSync } from "@/hooks/useGoogleSync";
+import { useHealthInBell } from "./HealthList";
 
 export function Layout() {
   useApplyTheme();
   useDownloadNotifications();
   usePlexNotifications();
   useUpdateCheck();
+  useGoogleSync();
+  useHealthInBell();
   // En <html> y no en este div para que los diálogos, que se montan fuera, también tomen el color del servicio.
   const service = serviceForPath(useLocation().pathname);
   useEffect(() => {

@@ -26,7 +26,7 @@ import { arrScores, visibleScores } from "@/components/media/RatingBadges";
 import { posterUrl, type ReleaseQuery, type WantedKind } from "@/api/arr";
 import { WantedList } from "@/components/media/WantedList";
 import { ReleaseSearchDialog } from "@/components/media/ReleaseSearchDialog";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { errorMessage } from "@/lib/errors";
 import { formatDate } from "@/lib/format";
 import { faKey, seriesItem } from "@/api/filmaffinity";

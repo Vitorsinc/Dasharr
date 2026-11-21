@@ -34,6 +34,12 @@ impl Tmdb {
         key.get_or_insert_with(|| crate::secrets::get(SECRET_NAME).filter(|k| !k.is_empty()))
             .clone()
     }
+
+    /// Olvida la clave leída y las respuestas guardadas (la configuración ha cambiado desde fuera).
+    pub async fn forget_key(&self) {
+        *self.key.lock().await = None;
+        self.cache.lock().await.clear();
+    }
 }
 
 #[tauri::command]

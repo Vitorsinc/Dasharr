@@ -32,7 +32,7 @@ export function DeleteMediaDialog({
   lookup?: { service: LibraryService; ids: number[] };
   onConfirm: (o: DeleteOptions) => void;
 }) {
-  const [deleteFiles, setDeleteFiles] = useState(false);
+  const [deleteFiles, setDeleteFiles] = useState(true);
   const [addExclusion, setAddExclusion] = useState(false);
   /** Torrents elegidos uno a uno cuando no se marca «quitar todos». */
   const [picked, setPicked] = useState<Set<string>>(new Set());
@@ -47,7 +47,7 @@ export function DeleteMediaDialog({
   });
   useEffect(() => {
     if (open) {
-      setDeleteFiles(false);
+      setDeleteFiles(true);
       setAddExclusion(false);
       setPicked(new Set());
     }

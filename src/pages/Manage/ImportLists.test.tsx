@@ -90,7 +90,7 @@ test("borrar una película desde la ficha puede añadirla a las exclusiones", as
   const del = calls.find((c) => c.method === "DELETE");
   expect(del.path).toBe("/api/v3/movie/1");
   expect(del.query).toEqual([
-    ["deleteFiles", "false"],
+    ["deleteFiles", "true"],
     ["addImportExclusion", "true"],
   ]);
 });

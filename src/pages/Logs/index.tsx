@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Copy, RefreshCw, Trash2 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { ConfirmDialog } from "@/components/Dialog";
 import { Empty, Loading, Segmented } from "@/components/ui";
 import { t } from "@/i18n/es";

@@ -1,3 +1,5 @@
+<p align="center"><img src="assets/icon.png" width="128" alt="Dasharr"></p>
+
 # Dasharr
 
 Dashboard de escritorio para Windows que reúne Radarr, Sonarr, Prowlarr, Bazarr, qBittorrent y Plex, inspirado en nzb360.

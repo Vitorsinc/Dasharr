@@ -1,6 +1,8 @@
 import { useQueries } from "@tanstack/react-query";
 import { AlertTriangle, ExternalLink, Info, XCircle } from "lucide-react";
-import { getHealth, type HealthService } from "@/api/health";
+import { useEffect } from "react";
+import { getHealth, HEALTH_SERVICES, type HealthService } from "@/api/health";
+import { setHealthNotices } from "@/lib/errorLog";
 import { REFRESH } from "@/hooks/useServiceQuery";
 import { useSettings } from "@/hooks/useSettings";
 import { t } from "@/i18n/es";
@@ -14,7 +16,7 @@ const tone = { notice: "text-muted", warning: "text-warning", error: "text-dange
  * Avisos de salud de los servicios configurados (lo que cada uno enseña en System → Status):
  * disco, indexadores caídos, carpetas que faltan, actualizaciones…
  */
-export function HealthList({ services, hideWhenOk }: { services: HealthService[]; hideWhenOk?: boolean }) {
+export function useHealthItems(services: HealthService[]) {
   const settings = useSettings();
   const configured = services.filter((s) => {
     const c = settings.data?.[s]?.config;
@@ -29,6 +31,27 @@ export function HealthList({ services, hideWhenOk }: { services: HealthService[]
     })),
   });
   const items = configured.flatMap((s, i) => (results[i]?.data ?? []).map((h) => ({ ...h, service: s })));
+  return { items, configured };
+}
+
+/** Los avisos de salud de Radarr, Sonarr, Prowlarr y Bazarr van a la campanita junto al nombre de Dasharr. */
+export function useHealthInBell() {
+  const { items } = useHealthItems(HEALTH_SERVICES);
+  const key = JSON.stringify(items.map((h) => [h.service, h.type, h.message, h.wikiUrl]));
+  useEffect(() => {
+    setHealthNotices(
+      items.map((h) => ({
+        source: t.services[h.service],
+        message: h.message,
+        level: h.type === "error" || h.type === "warning" ? h.type : "notice",
+        link: h.wikiUrl ?? undefined,
+      })),
+    );
+  }, [key]);
+}
+
+export function HealthList({ services, hideWhenOk }: { services: HealthService[]; hideWhenOk?: boolean }) {
+  const { items, configured } = useHealthItems(services);
   if (!items.length) return hideWhenOk || !configured.length ? null : <p className="text-sm text-muted">{t.health.allOk}</p>;
   return (
     <section className="card divide-y divide-border" aria-label={t.health.title}>

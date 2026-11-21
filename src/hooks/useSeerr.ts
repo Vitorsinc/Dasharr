@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { errorMessage } from "@/lib/errors";
 import { seerr, seerrReason, type DiscoverKind, type MovieDetails, type TvDetails, type IssueFilter, type MediaType, type RequestFilter } from "@/api/seerr";
 import { REFRESH, useServiceQuery } from "./useServiceQuery";

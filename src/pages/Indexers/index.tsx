@@ -2,7 +2,7 @@ import { useMemo, useState, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { BarChart3, CheckCircle2, FlaskConical, History, Link2, Pencil, Plus, Radar, Trash2, type LucideIcon } from "lucide-react";
 import { Navigate, useParams } from "react-router-dom";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { Page } from "@/components/Page";
 import { ConfirmDialog } from "@/components/Dialog";
 import { TabNav } from "@/components/TabNav";

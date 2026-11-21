@@ -24,9 +24,7 @@ import { formatBytes, formatDate, formatEta, formatSpeed } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import { useItemDetail } from "@/pages/Calendar";
 import { NowWatching } from "@/components/NowWatching";
-import { HealthList } from "@/components/HealthList";
 import { DuplicatesNotice } from "@/components/DuplicatesNotice";
-import { HEALTH_SERVICES } from "@/api/health";
 import { RecentlyAdded } from "@/components/plex/RecentlyAdded";
 import { PendingRequests } from "@/components/seerr/PendingRequests";
 import radarrLogo from "@/assets/services/radarr.svg";
@@ -260,7 +258,6 @@ export default function HomePage() {
           <ServiceCard key={s} service={s} route={routes?.[s]} />
         ))}
       </section>
-      <HealthList services={HEALTH_SERVICES} hideWhenOk />
       <ServerStats />
       <DuplicatesNotice />
       <PendingRequests />

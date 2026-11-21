@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { ArrowLeft, CheckCircle2, Search } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { Dialog } from "@/components/Dialog";
 import { ErrorPanel } from "@/components/ErrorPanel";
 import { ProviderFields } from "@/components/ProviderFields";

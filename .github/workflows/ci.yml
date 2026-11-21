@@ -10,6 +10,11 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+# Identificador de Dasharr ante Google (inicio de sesión para la copia en Drive): ver docs/google.md.
+env:
+  DASHARR_GOOGLE_CLIENT_ID: ${{ secrets.DASHARR_GOOGLE_CLIENT_ID }}
+  DASHARR_GOOGLE_CLIENT_SECRET: ${{ secrets.DASHARR_GOOGLE_CLIENT_SECRET }}
+
 jobs:
   test:
     name: Pruebas

@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { ArrowDown, ArrowDownWideNarrow, ArrowUp, ArrowUpNarrowWide, ChevronDown, ChevronUp, Gauge, Pause, Play, Plus, RotateCw, Tag, Trash2, Turtle, Zap } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { Page } from "@/components/Page";
 import { ErrorPanel, NotConfigured } from "@/components/ErrorPanel";
 import { ConfirmDialog } from "@/components/Dialog";

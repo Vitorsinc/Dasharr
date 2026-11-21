@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Pause, Play, Square } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { Dialog } from "@/components/Dialog";
 import { ErrorPanel } from "@/components/ErrorPanel";
 import { Poster } from "@/components/media/PosterCard";

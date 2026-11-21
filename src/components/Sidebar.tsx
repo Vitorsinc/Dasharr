@@ -29,6 +29,8 @@ import {
 import { t } from "@/i18n/es";
 import { cn } from "@/lib/cn";
 import { versionLabel } from "@/lib/version";
+import { useErrors } from "@/lib/errorLog";
+import { ErrorBell } from "./ErrorBell";
 import { usePrefs } from "@/hooks/usePrefs";
 import { useUpdateState } from "@/hooks/useUpdates";
 import { DiskIndicator } from "./DiskIndicator";
@@ -41,6 +43,7 @@ import bazarrLogo from "@/assets/services/bazarr.svg";
 import qbittorrentLogo from "@/assets/services/qbittorrent.svg";
 import plexLogo from "@/assets/services/plex.svg";
 import seerrLogo from "@/assets/services/seerr.svg";
+import appIcon from "@/assets/dasharr-icon.png";
 
 interface NavItem {
   to: string;
@@ -191,21 +194,9 @@ function Group({ service, logo, items }: (typeof groups)[number]) {
   );
 }
 
-/** Marca: un guion y una flecha, «dash» y «arr». */
+/** Marca: el icono de la app (la «D» con el botón de reproducir y el indicador). */
 function Logo() {
-  return (
-    <svg viewBox="0 0 28 28" className="h-7 w-7 shrink-0" aria-hidden>
-      <rect width="28" height="28" rx="7" className="fill-brand" />
-      <path
-        d="M7 14h6M15.5 8.5 21 14l-5.5 5.5"
-        fill="none"
-        strokeWidth="2.75"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className="stroke-bg"
-      />
-    </svg>
-  );
+  return <img src={appIcon} alt="" className="h-7 w-7 shrink-0" aria-hidden />;
 }
 
 /** Aparece solo cuando hay una versión nueva; lleva a Ajustes → Sistema para instalarla. */
@@ -230,6 +221,7 @@ function NavContent() {
       <div className="mb-5 flex items-center gap-2.5 px-2">
         <Logo />
         <span className="font-display text-xl font-extrabold [font-stretch:78%]">{t.app.name}</span>
+        <ErrorBell />
       </div>
       <div className="-mx-1 flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-1 pb-2">
         <div className="flex flex-col gap-0.5">
@@ -275,6 +267,8 @@ export function MobileNav() {
   const [open, setOpen] = useState(false);
   const { pathname } = useLocation();
   const { available } = useUpdateState();
+  const errors = useErrors();
+  const severe = errors.some((e) => (e.level ?? "error") === "error");
   // Al cambiar de página se cierra el panel.
   useEffect(() => setOpen(false), [pathname]);
   const inTabs = tabs.some((i) => (i.end ? pathname === i.to : pathname === i.to || pathname.startsWith(`${i.to}/`)));
@@ -311,7 +305,12 @@ export function MobileNav() {
         >
           <Menu className="h-5 w-5" aria-hidden />
           <span>{t.nav.more}</span>
-          {available && <span className="absolute right-[calc(50%-14px)] top-1.5 h-2 w-2 rounded-full bg-accent" aria-hidden />}
+          {(errors.length > 0 || available) && (
+            <span
+              className={cn("absolute right-[calc(50%-14px)] top-1.5 h-2 w-2 rounded-full", errors.length ? (severe ? "bg-danger" : "bg-warning") : "bg-accent")}
+              aria-hidden
+            />
+          )}
         </button>
       </nav>
       <RD.Root open={open} onOpenChange={setOpen}>

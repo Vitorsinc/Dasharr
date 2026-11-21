@@ -27,6 +27,10 @@ base64 = { workspace = true }
 percent-encoding = "2"
 reqwest = { workspace = true }
 sha2 = "0.10"
+url = { workspace = true }
+aes-gcm = "0.10"
+pbkdf2 = { version = "0.12", default-features = false, features = ["hmac"] }
+getrandom = "0.2"
 
 [target.'cfg(windows)'.dependencies]
 keyring = { version = "3", features = ["windows-native"] }

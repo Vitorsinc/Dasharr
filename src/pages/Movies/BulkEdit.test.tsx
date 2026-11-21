@@ -80,7 +80,7 @@ test("selección múltiple: monitorizar, perfil, etiquetas, carpeta moviendo arc
 
   await userEvent.click(within(bar).getByRole("button", { name: "Borrar" }));
   const del = await screen.findByRole("dialog", { name: "Borrar 2 elementos" });
-  await userEvent.click(within(del).getByRole("checkbox", { name: "Borrar también los archivos" }));
+  expect(within(del).getByRole("checkbox", { name: "Borrar también los archivos" })).toBeChecked();
   await userEvent.click(within(del).getByRole("button", { name: "Borrar" }));
   await vi.waitFor(() => expect(editorCalls(calls)).toHaveLength(5));
   expect(editorCalls(calls)[4]).toMatchObject({
