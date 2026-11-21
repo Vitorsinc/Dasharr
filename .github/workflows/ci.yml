@@ -123,9 +123,13 @@ jobs:
           { echo "Versión de prueba de la rama dev (commit $short)."; echo; echo "Último cambio:"; echo; echo "$MESSAGE"; } > notes.md
           # «dev» era el nombre anterior: se quita porque la etiqueta chocaba con la rama dev.
           gh release delete dev --cleanup-tag --yes || true
-          gh release delete dev-latest --cleanup-tag --yes || true
+          # Quitar la Release dev-latest anterior (también si quedó como borrador) y su etiqueta.
+          for id in $(gh api "repos/$GH_REPO/releases?per_page=50" --jq '.[] | select(.tag_name == "dev-latest") | .id'); do
+            gh api -X DELETE "repos/$GH_REPO/releases/$id"
+          done
+          gh api -X DELETE "repos/$GH_REPO/git/refs/tags/dev-latest" >/dev/null 2>&1 || true
           # Esperar a que la etiqueta antigua desaparezca antes de crearla de nuevo en este commit.
-          for i in 1 2 3 4 5 6; do gh api "repos/$GH_REPO/git/refs/tags/dev-latest" >/dev/null 2>&1 || break; sleep 5; done
+          for i in 1 2 3 4 5 6; do gh api "repos/$GH_REPO/git/ref/tags/dev-latest" >/dev/null 2>&1 || break; sleep 5; done
           apk=$(find build-android -name '*_android.apk' | head -n1)
           test -n "$apk"
           # Primero la etiqueta y la Release sin archivos, y luego se suben. Con los archivos en el mismo
