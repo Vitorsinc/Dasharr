@@ -12,6 +12,8 @@ También se puede lanzar a mano en Actions → Release → «Run workflow» indi
 
 ## [Sin publicar]
 
+## [0.7.0] - 2026-11-21
+
 ### Añadido
 - Bazarr → Proveedores: activa o desactiva los proveedores de subtítulos, edita sus usuarios, contraseñas y
   opciones, mira cuáles están bloqueados (y por qué y hasta cuándo) y desbloquéalos todos con un botón.
