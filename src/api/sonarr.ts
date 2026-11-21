@@ -177,6 +177,9 @@ export const sonarr = {
     }),
   getEpisodeFiles: (seriesId: number) => apiRequest<EpisodeFile[]>("sonarr", { path: "/api/v3/episodefile", query: { seriesId } }),
   deleteEpisodeFile: (id: number) => apiRequest<unknown>("sonarr", { method: "DELETE", path: `/api/v3/episodefile/${id}` }),
+  /** Borra del disco varios archivos de una vez (los episodios siguen en la biblioteca). */
+  deleteEpisodeFiles: (ids: number[]) =>
+    apiRequest<unknown>("sonarr", { method: "DELETE", path: "/api/v3/episodefile/bulk", json: { episodeFileIds: ids } }),
   getRenamePreview: (seriesId: number) => apiRequest<RenamePreview[]>("sonarr", { path: "/api/v3/rename", query: { seriesId } }),
   renameFiles: (seriesId: number, files: number[]) => common.command({ name: "RenameFiles", seriesId, files }),
   /** Actualiza los datos de la serie (episodios nuevos, fechas, imágenes) desde TheTVDB y reescanea el disco. */

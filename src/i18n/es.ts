@@ -780,6 +780,14 @@ export const es = {
     deleteFileTitle: "Borrar archivo del episodio",
     deleteFileMessage: (what: string) => `Se borrará del disco el archivo de ${what}. El episodio seguirá en la biblioteca.`,
     fileDeleted: "Archivo borrado",
+    deleteSeason: "Borrar los capítulos de la temporada",
+    deleteSeasonTitle: (season: string) => `Borrar ${season.toLowerCase()}`,
+    deleteSeasonMessage: (what: string, n: number, size: string) =>
+      `Se borrarán del disco ${n === 1 ? "el archivo" : `los ${n} archivos`} de ${what} (${size}). Los episodios seguirán en la biblioteca.`,
+    deleteSeasonUnmonitor: "Dejar de monitorizar la temporada",
+    deleteSeasonUnmonitorHint: "Si no, Sonarr puede volver a descargar los capítulos.",
+    seasonTorrentsHint: "Solo los que descargaron esta temporada; los packs de la serie completa se quedan.",
+    seasonDeleted: (n: number) => (n === 1 ? "1 archivo borrado" : `${n} archivos borrados`),
   },
   movieTools: {
     refreshHint: "Actualiza la información de la película (fechas, imágenes, notas) y revisa el disco",

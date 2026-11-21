@@ -55,3 +55,23 @@ export async function deleteWithTorrents(
   if (hashes.length) await qbit.removeWithFiles(hashes);
   return hashes.length;
 }
+
+/**
+ * Torrents de qBittorrent que Sonarr descargó solo para esta temporada. Un pack que trae también
+ * episodios de otras temporadas (la serie completa) se deja fuera, para no perder lo que sigue sembrando.
+ */
+export async function findSeasonTorrents(seriesId: number, season: number): Promise<Torrent[]> {
+  const records = await apiRequest<HistoryRecord[]>("sonarr", {
+    path: "/api/v3/history/series",
+    query: { seriesId, includeEpisode: true },
+  });
+  const seasons = new Map<string, Set<number>>();
+  for (const r of records) {
+    const id = r.downloadId?.trim().toLowerCase();
+    const s = r.episode?.seasonNumber;
+    if (!id || s == null) continue;
+    seasons.set(id, (seasons.get(id) ?? new Set()).add(s));
+  }
+  const ids = new Set([...seasons].filter(([, ss]) => ss.size === 1 && ss.has(season)).map(([id]) => id));
+  return torrentsInQbit(ids);
+}
