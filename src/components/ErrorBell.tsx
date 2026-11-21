@@ -1,15 +1,18 @@
 import { useEffect, useRef, useState } from "react";
-import { Bell, Check, CheckCheck } from "lucide-react";
+import { Bell, Check, CheckCheck, ExternalLink } from "lucide-react";
 import { t } from "@/i18n/es";
 import { cn } from "@/lib/cn";
+import { openExternal } from "@/lib/tauri";
 import { markAllErrorsRead, markErrorRead, useErrors, type ErrorEntry } from "@/lib/errorLog";
+
+const dot = { error: "bg-danger", warning: "bg-warning", notice: "bg-muted" } as const;
 
 const time = (ms: number) => new Date(ms).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
 
 function Row({ e }: { e: ErrorEntry }) {
   return (
     <li className="group flex gap-2 px-3 py-2.5">
-      <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-danger" aria-hidden />
+      <span className={cn("mt-1.5 h-2 w-2 shrink-0 rounded-full", dot[e.level ?? "error"])} aria-hidden />
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline gap-2 text-xs text-muted">
           <span className="truncate font-semibold text-fg">{e.source ?? t.errorBell.general}</span>
@@ -18,6 +21,17 @@ function Row({ e }: { e: ErrorEntry }) {
         </div>
         <p className="mt-0.5 break-words text-sm leading-snug [overflow-wrap:anywhere]">{e.message}</p>
       </div>
+      {e.link && (
+        <button
+          type="button"
+          onClick={() => openExternal(e.link!)}
+          className="btn-ghost h-7 w-7 shrink-0 self-center p-0 text-muted hover:text-fg"
+          title={t.health.more}
+          aria-label={t.health.more}
+        >
+          <ExternalLink className="h-3.5 w-3.5" />
+        </button>
+      )}
       <button
         type="button"
         onClick={() => markErrorRead(e.id)}
@@ -37,6 +51,8 @@ export function ErrorBell() {
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
   const n = errors.length;
+  // Rojo si hay algún error; si solo hay advertencias de los servicios, ámbar.
+  const severe = errors.some((e) => (e.level ?? "error") === "error");
 
   useEffect(() => {
     if (!open) return;
@@ -68,14 +84,17 @@ export function ErrorBell() {
         title={t.errorBell.button(n)}
         className={cn(
           "btn-ghost relative h-8 w-8 p-0",
-          n ? "text-danger" : "text-muted hover:text-fg",
+          n ? (severe ? "text-danger" : "text-warning") : "text-muted hover:text-fg",
           open && "bg-surface-2",
         )}
       >
-        <Bell className={cn("h-[18px] w-[18px]", n > 0 && "fill-danger/20")} aria-hidden />
+        <Bell className={cn("h-[18px] w-[18px]", n > 0 && (severe ? "fill-danger/20" : "fill-warning/20"))} aria-hidden />
         {n > 0 && (
           <span
-            className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[10px] font-bold leading-none text-white ring-2 ring-surface"
+            className={cn(
+              "absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold leading-none ring-2 ring-surface",
+              severe ? "bg-danger text-white" : "bg-warning text-bg",
+            )}
             aria-hidden
           >
             {n > 9 ? "9+" : n}
