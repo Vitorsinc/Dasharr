@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Bell, Cloud, Cpu, Library, Palette, Plug, ScrollText, Server, Upload, type LucideIcon } from "lucide-react";
+import { Bell, Cpu, Library, Palette, Plug, ScrollText, Server, Upload, type LucideIcon } from "lucide-react";
 import { Navigate, useParams } from "react-router-dom";
 import { TabNav } from "@/components/TabNav";
 import { toast } from "@/lib/toast";
@@ -592,16 +592,6 @@ const tabs: { id: string; label: string; icon: LucideIcon; wide?: boolean; rende
     render: () => (
       <Section title={t.settings.tabs.notifications}>
         <Notifications />
-      </Section>
-    ),
-  },
-  {
-    id: "google",
-    label: t.google.tab,
-    icon: Cloud,
-    render: () => (
-      <Section title={t.google.title} hint={t.google.hint}>
-        <GoogleSync />
       </Section>
     ),
   },
