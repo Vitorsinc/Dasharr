@@ -127,6 +127,13 @@ input[type="radio"] {
   .input {
     @apply w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/30 placeholder:text-muted;
   }
+  /* Listas que se desplazan en horizontal en el móvil (pestañas) sin mostrar la barra. */
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
   .card {
     @apply rounded-xl border border-border bg-surface;
   }

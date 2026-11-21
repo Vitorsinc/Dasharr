@@ -24,9 +24,7 @@ import { formatBytes, formatDate, formatEta, formatSpeed } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import { useItemDetail } from "@/pages/Calendar";
 import { NowWatching } from "@/components/NowWatching";
-import { HealthList } from "@/components/HealthList";
 import { DuplicatesNotice } from "@/components/DuplicatesNotice";
-import { HEALTH_SERVICES } from "@/api/health";
 import { RecentlyAdded } from "@/components/plex/RecentlyAdded";
 import { PendingRequests } from "@/components/seerr/PendingRequests";
 import radarrLogo from "@/assets/services/radarr.svg";
@@ -166,7 +164,7 @@ function ActiveDownloads() {
   const up = (torrents.data ?? []).reduce((a, x) => a + x.upspeed, 0);
   return (
     <section className="flex flex-col gap-3">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
         <h2 className="text-lg font-semibold">{t.home.activeDownloads}</h2>
         <div className="flex items-center gap-4 text-sm tabular-nums text-muted">
           <span className="flex items-center gap-1">
@@ -193,14 +191,14 @@ function ActiveDownloads() {
       ) : (
         <div className="card divide-y divide-border">
           {active.slice(0, 5).map((tr) => (
-            <div key={tr.hash} className="flex items-center gap-4 px-4 py-3">
-              <div className="min-w-0 flex-1 truncate text-sm font-medium" title={tr.name}>
+            <div key={tr.hash} className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 md:flex-nowrap">
+              <div className="min-w-0 basis-full truncate text-sm font-medium md:flex-1 md:basis-auto" title={tr.name}>
                 {tr.name}
               </div>
-              <div className="w-48 shrink-0">
+              <div className="min-w-0 flex-1 md:w-48 md:flex-none md:shrink-0">
                 <ProgressBar value={tr.progress} />
               </div>
-              <div className="w-20 shrink-0 whitespace-nowrap text-right text-xs tabular-nums text-muted">{formatBytes(tr.size)}</div>
+              <div className="hidden w-20 shrink-0 whitespace-nowrap md:block text-right text-xs tabular-nums text-muted">{formatBytes(tr.size)}</div>
               <div className="w-20 shrink-0 whitespace-nowrap text-right text-xs tabular-nums text-muted">{formatSpeed(tr.dlspeed)}</div>
               <div className="w-16 shrink-0 whitespace-nowrap text-right text-xs tabular-nums text-muted">{formatEta(tr.eta)}</div>
             </div>
@@ -260,7 +258,6 @@ export default function HomePage() {
           <ServiceCard key={s} service={s} route={routes?.[s]} />
         ))}
       </section>
-      <HealthList services={HEALTH_SERVICES} hideWhenOk />
       <ServerStats />
       <DuplicatesNotice />
       <PendingRequests />

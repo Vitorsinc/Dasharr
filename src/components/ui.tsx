@@ -55,7 +55,7 @@ export function Segmented<T extends string>({
   label?: string;
 }) {
   return (
-    <div className="inline-flex rounded-lg border border-border bg-surface p-0.5" role="tablist" aria-label={label}>
+    <div className="no-scrollbar inline-flex max-w-full overflow-x-auto rounded-lg border border-border bg-surface p-0.5" role="tablist" aria-label={label}>
       {options.map((o) => (
         <button
           key={o.value}
@@ -64,7 +64,7 @@ export function Segmented<T extends string>({
           aria-selected={value === o.value}
           onClick={() => onChange(o.value)}
           className={cn(
-            "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+            "shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
             value === o.value ? "bg-accent text-accent-fg" : "text-muted hover:text-fg",
           )}
         >

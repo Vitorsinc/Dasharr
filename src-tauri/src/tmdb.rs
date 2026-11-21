@@ -1,4 +1,4 @@
-//! Fechas de estreno por país desde TMDB. La clave se guarda en el Administrador de credenciales y nunca
+//! Fechas de estreno por país desde TMDB. La clave se guarda con los demás secretos y nunca
 //! vuelve a la interfaz; las respuestas se guardan en memoria unas horas para no repetir consultas.
 use std::collections::HashMap;
 use std::sync::OnceLock;
@@ -11,8 +11,7 @@ use tokio::task::JoinSet;
 
 use crate::state::AppState;
 
-const KEYRING_SERVICE: &str = "dasharr";
-const KEYRING_USER: &str = "tmdb";
+const SECRET_NAME: &str = "tmdb";
 const TTL: Duration = Duration::from_secs(12 * 3600);
 /// Consultas a la vez: TMDB admite muchas más, pero no hace falta.
 const PARALLEL: usize = 8;
@@ -25,10 +24,6 @@ pub struct Tmdb {
     cache: Mutex<HashMap<u64, (Instant, CountryDates)>>,
 }
 
-fn entry() -> Result<keyring::Entry, String> {
-    keyring::Entry::new(KEYRING_SERVICE, KEYRING_USER).map_err(|e| e.to_string())
-}
-
 impl Tmdb {
     fn http(&self) -> reqwest::Client {
         self.http.get_or_init(tmdb::http_client).clone()
@@ -36,8 +31,14 @@ impl Tmdb {
 
     async fn key(&self) -> Option<String> {
         let mut key = self.key.lock().await;
-        key.get_or_insert_with(|| entry().ok().and_then(|e| e.get_password().ok()).filter(|k| !k.is_empty()))
+        key.get_or_insert_with(|| crate::secrets::get(SECRET_NAME).filter(|k| !k.is_empty()))
             .clone()
+    }
+
+    /// Olvida la clave leída y las respuestas guardadas (la configuración ha cambiado desde fuera).
+    pub async fn forget_key(&self) {
+        *self.key.lock().await = None;
+        self.cache.lock().await.clear();
     }
 }
 
@@ -52,16 +53,11 @@ pub async fn tmdb_save_key(state: State<'_, AppState>, key: String) -> Result<()
     let key = key.trim().to_string();
     let tmdb = &state.tmdb;
     if key.is_empty() {
-        match entry()?.delete_credential() {
-            Ok(()) | Err(keyring::Error::NoEntry) => {}
-            Err(e) => return Err(e.to_string()),
-        }
+        crate::secrets::delete(SECRET_NAME)?;
         *tmdb.key.lock().await = Some(None);
     } else {
         tmdb::check_key(&tmdb.http(), tmdb::BASE, &key).await.map_err(|e| e.to_string())?;
-        entry()?
-            .set_password(&key)
-            .map_err(|e| format!("No se pudo guardar en el Administrador de credenciales: {e}"))?;
+        crate::secrets::set(SECRET_NAME, &key)?;
         *tmdb.key.lock().await = Some(Some(key));
     }
     tmdb.cache.lock().await.clear();

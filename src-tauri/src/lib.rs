@@ -1,12 +1,15 @@
 mod commands;
 mod filmaffinity;
+mod google;
 mod images;
 mod letterboxd;
 mod logs;
 mod migrate;
 mod nyaa;
+mod secrets;
 mod settings;
 mod state;
+mod sync;
 mod tmdb;
 mod updater;
 
@@ -22,12 +25,14 @@ const PROBE_INTERVAL: Duration = Duration::from_secs(60);
 pub fn run() {
     let context = tauri::generate_context!();
     migrate::copy_stable_config(&context.config().identifier);
-    tauri::Builder::default()
+    let builder = tauri::Builder::default();
+    #[cfg(desktop)]
+    let builder = builder.plugin(tauri_plugin_autostart::init(tauri_plugin_autostart::MacosLauncher::LaunchAgent, None));
+    builder
         .plugin(logs::plugin())
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_opener::init())
-        .plugin(tauri_plugin_autostart::init(tauri_plugin_autostart::MacosLauncher::LaunchAgent, None))
         .manage(AppState::default())
         .register_asynchronous_uri_scheme_protocol(images::SCHEME, images::handle)
         .invoke_handler(tauri::generate_handler![
@@ -60,10 +65,19 @@ pub fn run() {
             tmdb::tmdb_has_key,
             tmdb::tmdb_save_key,
             tmdb::tmdb_release_dates,
+            sync::google_status,
+            sync::google_login,
+            sync::google_login_cancel,
+            sync::google_logout,
+            sync::sync_set_password,
+            sync::sync_push,
+            sync::sync_pull,
+            sync::sync_delete_remote,
         ])
         .setup(|app| {
             log::info!("Dasharr {} iniciado", app.package_info().version);
             let handle = app.handle().clone();
+            secrets::init(app.path().app_data_dir()?);
             // Los clientes se crean antes de abrir la ventana para que las primeras peticiones no fallen como "no configurado".
             tauri::async_runtime::block_on(handle.state::<AppState>().load(&handle));
             tauri::async_runtime::block_on(handle.state::<AppState>().filmaffinity.load(&handle));

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Trash2, XCircle } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { ConfirmDialog } from "@/components/Dialog";
 import { ErrorPanel } from "@/components/ErrorPanel";
 import { Empty, Loading, Pager } from "@/components/ui";
@@ -91,7 +91,7 @@ export function Blocklist({ service }: { service: ArrService }) {
                 .filter(Boolean)
                 .join(" · ");
               return (
-                <li key={r.id} className="flex items-center gap-3 px-4 py-1.5 text-sm">
+                <li key={r.id} className="flex flex-wrap items-center gap-x-3 gap-y-0.5 px-4 py-2 text-sm md:flex-nowrap md:py-1.5">
                   <input
                     type="checkbox"
                     className="h-4 w-4 shrink-0"
@@ -99,19 +99,19 @@ export function Blocklist({ service }: { service: ArrService }) {
                     onChange={() => toggle(r.id)}
                     aria-label={t.common.select(r.sourceTitle)}
                   />
-                  <span className="w-56 shrink-0 truncate font-medium" title={what}>
+                  <span className="min-w-0 flex-1 truncate font-medium md:w-56 md:flex-none md:shrink-0" title={what}>
                     {what}
                   </span>
-                  <span className="min-w-0 flex-1 truncate font-mono text-xs text-muted" title={r.sourceTitle}>
+                  <span className="order-last min-w-0 basis-full truncate font-mono text-xs text-muted md:order-none md:flex-1 md:basis-auto" title={r.sourceTitle}>
                     {r.sourceTitle}
                   </span>
                   {r.message && (
-                    <span className="max-w-[14rem] shrink truncate text-xs text-warning" title={r.message}>
+                    <span className="order-last max-w-full shrink truncate text-xs text-warning md:order-none md:max-w-[14rem]" title={r.message}>
                       {r.message}
                     </span>
                   )}
                   {meta && (
-                    <span className="max-w-[12rem] shrink-0 truncate text-xs text-muted" title={meta}>
+                    <span className="order-last max-w-full shrink-0 truncate text-xs text-muted md:order-none md:max-w-[12rem]" title={meta}>
                       {meta}
                     </span>
                   )}

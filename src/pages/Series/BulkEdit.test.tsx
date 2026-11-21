@@ -31,5 +31,5 @@ test("series: edición masiva con seriesIds y solo las de la sección", async ()
   const del = await screen.findByRole("dialog", { name: "Borrar 1 elemento" });
   await userEvent.click(within(del).getByRole("button", { name: "Borrar" }));
   await vi.waitFor(() => expect(calls.find((c) => c.method === "DELETE")).toBeTruthy());
-  expect(calls.find((c) => c.method === "DELETE").body.value).toEqual({ seriesIds: [1], deleteFiles: false, addImportListExclusion: false });
+  expect(calls.find((c) => c.method === "DELETE").body.value).toEqual({ seriesIds: [1], deleteFiles: true, addImportListExclusion: false });
 });

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ExternalLink, Send } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { Empty, Segmented, Spinner } from "@/components/ui";
 import { t } from "@/i18n/es";
 import type { TrackerDeal, TrackerDeals } from "@/api/trackers";

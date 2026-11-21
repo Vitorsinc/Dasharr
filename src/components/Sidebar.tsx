@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+import * as RD from "@radix-ui/react-dialog";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   Activity,
@@ -14,16 +16,21 @@ import {
   Home,
   Inbox,
   Library,
+  Menu,
   MonitorPlay,
+  Plug,
   Radar,
   Search,
   Settings,
   Tv,
+  X,
   type LucideIcon,
 } from "lucide-react";
 import { t } from "@/i18n/es";
 import { cn } from "@/lib/cn";
 import { versionLabel } from "@/lib/version";
+import { useErrors } from "@/lib/errorLog";
+import { ErrorBell } from "./ErrorBell";
 import { usePrefs } from "@/hooks/usePrefs";
 import { useUpdateState } from "@/hooks/useUpdates";
 import { DiskIndicator } from "./DiskIndicator";
@@ -36,6 +43,7 @@ import bazarrLogo from "@/assets/services/bazarr.svg";
 import qbittorrentLogo from "@/assets/services/qbittorrent.svg";
 import plexLogo from "@/assets/services/plex.svg";
 import seerrLogo from "@/assets/services/seerr.svg";
+import appIcon from "@/assets/dasharr-icon.png";
 
 interface NavItem {
   to: string;
@@ -89,7 +97,14 @@ const groups: { service: ServiceKind; logo: string; items: NavItem[] }[] = [
       { to: "/trackers", label: t.nav.trackers, icon: Gauge },
     ],
   },
-  { service: "bazarr", logo: bazarrLogo, items: [{ to: "/subtitulos", label: t.nav.subtitles, icon: Captions }] },
+  {
+    service: "bazarr",
+    logo: bazarrLogo,
+    items: [
+      { to: "/subtitulos", label: t.nav.subtitles, icon: Captions },
+      { to: "/proveedores", label: t.nav.subtitleProviders, icon: Plug },
+    ],
+  },
   // El historial sale de Tracearr, pero es lo que se ha visto en Plex: va con Plex para no sumar otro grupo.
   {
     service: "plex",
@@ -179,21 +194,9 @@ function Group({ service, logo, items }: (typeof groups)[number]) {
   );
 }
 
-/** Marca: un guion y una flecha, «dash» y «arr». */
+/** Marca: el icono de la app (la «D» con el botón de reproducir y el indicador). */
 function Logo() {
-  return (
-    <svg viewBox="0 0 28 28" className="h-7 w-7 shrink-0" aria-hidden>
-      <rect width="28" height="28" rx="7" className="fill-brand" />
-      <path
-        d="M7 14h6M15.5 8.5 21 14l-5.5 5.5"
-        fill="none"
-        strokeWidth="2.75"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className="stroke-bg"
-      />
-    </svg>
-  );
+  return <img src={appIcon} alt="" className="h-7 w-7 shrink-0" aria-hidden />;
 }
 
 /** Aparece solo cuando hay una versión nueva; lleva a Ajustes → Sistema para instalarla. */
@@ -211,12 +214,14 @@ function UpdateItem() {
   );
 }
 
-export function Sidebar() {
+/** Contenido del menú: el mismo en la barra lateral del escritorio y en el panel del móvil. */
+function NavContent() {
   return (
-    <nav className="flex w-56 shrink-0 flex-col border-r border-border bg-surface px-3 py-4">
+    <>
       <div className="mb-5 flex items-center gap-2.5 px-2">
         <Logo />
         <span className="font-display text-xl font-extrabold [font-stretch:78%]">{t.app.name}</span>
+        <ErrorBell />
       </div>
       <div className="-mx-1 flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-1 pb-2">
         <div className="flex flex-col gap-0.5">
@@ -236,6 +241,93 @@ export function Sidebar() {
       <div className="mt-2 px-3 text-xs text-muted" title={t.app.version}>
         {versionLabel()}
       </div>
+    </>
+  );
+}
+
+/** Barra lateral del escritorio (oculta en pantallas estrechas, donde se usa `MobileNav`). */
+export function Sidebar() {
+  return (
+    <nav className="hidden w-56 shrink-0 flex-col border-r border-border bg-surface px-3 py-4 md:flex">
+      <NavContent />
     </nav>
+  );
+}
+
+/** Accesos de la barra inferior del móvil; el resto de páginas está en «Menú». */
+const tabs: NavItem[] = [
+  { to: "/", label: t.nav.home, icon: Home, end: true },
+  { to: "/peliculas", label: t.nav.movies, icon: Clapperboard },
+  { to: "/series", label: t.nav.series, icon: Tv },
+  { to: "/descargas", label: t.nav.downloads, icon: Download },
+];
+
+/** Móvil: barra inferior con las páginas más usadas y un panel lateral con el menú completo. */
+export function MobileNav() {
+  const [open, setOpen] = useState(false);
+  const { pathname } = useLocation();
+  const { available } = useUpdateState();
+  const errors = useErrors();
+  const severe = errors.some((e) => (e.level ?? "error") === "error");
+  // Al cambiar de página se cierra el panel.
+  useEffect(() => setOpen(false), [pathname]);
+  const inTabs = tabs.some((i) => (i.end ? pathname === i.to : pathname === i.to || pathname.startsWith(`${i.to}/`)));
+  return (
+    <>
+      <nav
+        aria-label={t.nav.mobileBar}
+        className="flex shrink-0 items-stretch border-t border-border bg-surface md:hidden"
+      >
+        {tabs.map(({ to, label, icon: Icon, end }) => (
+          <NavLink
+            key={to}
+            to={to}
+            end={end}
+            className={({ isActive }) =>
+              cn(
+                "flex min-w-0 flex-1 flex-col items-center gap-0.5 pb-1.5 pt-2 text-[11px] font-medium",
+                isActive ? "text-accent" : "text-muted",
+              )
+            }
+          >
+            <Icon className="h-5 w-5" aria-hidden />
+            <span className="max-w-full truncate">{label}</span>
+          </NavLink>
+        ))}
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          aria-expanded={open}
+          className={cn(
+            "relative flex min-w-0 flex-1 flex-col items-center gap-0.5 pb-1.5 pt-2 text-[11px] font-medium",
+            inTabs ? "text-muted" : "text-accent",
+          )}
+        >
+          <Menu className="h-5 w-5" aria-hidden />
+          <span>{t.nav.more}</span>
+          {(errors.length > 0 || available) && (
+            <span
+              className={cn("absolute right-[calc(50%-14px)] top-1.5 h-2 w-2 rounded-full", errors.length ? (severe ? "bg-danger" : "bg-warning") : "bg-accent")}
+              aria-hidden
+            />
+          )}
+        </button>
+      </nav>
+      <RD.Root open={open} onOpenChange={setOpen}>
+        <RD.Portal>
+          <RD.Overlay className="fixed inset-0 z-40 bg-black/60 md:hidden" />
+          <RD.Content
+            aria-describedby={undefined}
+            className="fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col border-r border-border bg-surface px-3 py-4 shadow-2xl outline-none md:hidden"
+          >
+            <RD.Title className="sr-only">{t.nav.more}</RD.Title>
+            <RD.Close className="btn-ghost absolute right-3 top-4 p-1.5" aria-label={t.common.close}>
+              <X className="h-5 w-5" />
+            </RD.Close>
+            <NavContent />
+          </RD.Content>
+        </RD.Portal>
+      </RD.Root>
+    </>
   );
 }

@@ -12,6 +12,33 @@ También se puede lanzar a mano en Actions → Release → «Run workflow» indi
 
 ## [Sin publicar]
 
+## [0.7.0] - 2026-11-21
+
+### Añadido
+- Bazarr → Proveedores: activa o desactiva los proveedores de subtítulos, edita sus usuarios, contraseñas y
+  opciones, mira cuáles están bloqueados (y por qué y hasta cuándo) y desbloquéalos todos con un botón.
+- Series: papelera en cada temporada de la ficha para borrar del disco todos sus capítulos, con opción de dejar de monitorizarla y de quitar de qBittorrent los torrents de esa temporada.
+- Nuevo icono de Dasharr: en el instalador y la app de Windows, Dasharr Dev, el lanzador de Android y el
+  logo junto al nombre en el menú.
+- Campanita de errores junto al nombre de Dasharr (también en el menú del móvil): guarda los errores de la sesión (servicios que no responden y
+  acciones que fallan, y también los avisos de salud de Radarr, Sonarr, Prowlarr y Bazarr, que antes salían
+  en Inicio) y cada uno se puede marcar como leído para que no vuelva a salir hasta cerrar la
+  app.
+- Primera versión para Android: una APK que se instala en el móvil (Dasharr Dev sale con cada cambio en la
+  versión de prueba). En Android las claves se guardan en la carpeta privada de la app y, al actualizar, la
+  APK nueva se descarga en el navegador.
+- Dasharr se adapta a pantallas de móvil: barra inferior con Inicio, Películas, Series y Descargas y el resto
+  del menú en un panel lateral; Descargas en tarjetas, fichas y búsquedas a pantalla completa, Calendario en
+  agenda (también el mes), pósters más pequeños y listas de Actividad y Solicitudes en dos líneas.
+- Copia de la configuración en tu cuenta de Google (Ajustes → Sistema → Sincronización con Google): inicias sesión con Google,
+  eliges una contraseña y los servicios, claves y preferencias quedan iguales en el PC y en el móvil. Se
+  sincroniza sola mientras Dasharr está abierto, y las claves viajan cifradas.
+
+### Cambiado
+- Al borrar una película o serie, «Borrar también los archivos» sale marcado por defecto.
+- Dasharr Dev muestra un número de versión sencillo (por ejemplo «dev 233») en vez del commit.
+- README nuevo, en inglés y en español, con capturas, funciones y enlace de descarga.
+
 ## [0.6.0] - 2026-11-21
 
 ### Cambiado

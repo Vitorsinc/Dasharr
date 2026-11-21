@@ -134,3 +134,19 @@ test("ficha: temporada entera, archivo, actualizar, reescanear, renombrar y edit
   const put = calls.filter((c) => c.method === "PUT").at(-1);
   expect(put.query).toContainEqual(["moveFiles", "false"]);
 });
+
+test("ficha: la papelera de la temporada borra todos sus archivos y deja de monitorizarla", async () => {
+  const calls = backend();
+  renderApp("/series");
+  await userEvent.click(await screen.findByRole("button", { name: "Shōgun" }));
+  const dialog = await screen.findByRole("dialog", { name: "Shōgun" });
+  await userEvent.click(await within(dialog).findByRole("button", { name: "Borrar los capítulos de la temporada: Temporada 1" }));
+  const confirm = await screen.findByRole("dialog", { name: "Borrar temporada 1" });
+  expect(within(confirm).getByText(/el archivo de Shōgun · Temporada 1 \(2 GB\)/)).toBeInTheDocument();
+  expect(within(confirm).getByRole("checkbox", { name: /Dejar de monitorizar/ })).toBeChecked();
+  await userEvent.click(within(confirm).getByRole("button", { name: "Borrar" }));
+  await vi.waitFor(() => expect(calls.find((c) => c.method === "DELETE")?.path).toBe("/api/v3/episodefile/bulk"));
+  expect(calls.find((c) => c.method === "DELETE").body.value).toEqual({ episodeFileIds: [55] });
+  await vi.waitFor(() => expect(calls.find((c) => c.method === "PUT")?.body.value.seasons).toEqual([{ seasonNumber: 1, monitored: false }]));
+});
+

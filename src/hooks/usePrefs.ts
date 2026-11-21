@@ -87,6 +87,12 @@ export function setPrefs(patch: Partial<Prefs>) {
   listeners.forEach((l) => l());
 }
 
+/** Avisa de cada cambio de preferencias (para subirlas a Google). */
+export function subscribePrefs(l: () => void): () => void {
+  listeners.add(l);
+  return () => listeners.delete(l);
+}
+
 export function getPrefs(): Prefs {
   return read();
 }

@@ -3,8 +3,9 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Bell, Cpu, Library, Palette, Plug, ScrollText, Server, Upload, type LucideIcon } from "lucide-react";
 import { Navigate, useParams } from "react-router-dom";
 import { TabNav } from "@/components/TabNav";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { disable, enable, isEnabled } from "@tauri-apps/plugin-autostart";
+import { isMobile } from "@/lib/platform";
 import { Page } from "@/components/Page";
 import { Loading, Segmented, Toggle } from "@/components/ui";
 import { t } from "@/i18n/es";
@@ -27,6 +28,7 @@ import { lbClearQueue } from "@/api/letterboxd";
 import { RatingIcon, ratingName } from "@/components/media/RatingBadges";
 import { RATING_SOURCES, SERVER_FIELDS, usePrefs, type RatingSource, type ServerField, type Theme } from "@/hooks/usePrefs";
 import { ServiceForm } from "./ServiceForm";
+import { GoogleSync } from "./GoogleSync";
 import { parseConfigFile } from "@/lib/importConfig";
 import { openExternal, saveService } from "@/lib/tauri";
 import { tmdbSaveKey } from "@/api/tmdb";
@@ -460,13 +462,17 @@ function Updates() {
           )}
         </div>
       )}
-      <div className="flex items-center justify-between gap-4 p-4">
-        <div className="flex flex-col gap-1">
-          <span className="text-sm">{t.updates.auto}</span>
-          <span className="text-xs text-muted">{t.updates.autoHint}</span>
+      {isMobile() ? (
+        <p className="p-4 text-xs text-muted">{t.updates.mobileHint}</p>
+      ) : (
+        <div className="flex items-center justify-between gap-4 p-4">
+          <div className="flex flex-col gap-1">
+            <span className="text-sm">{t.updates.auto}</span>
+            <span className="text-xs text-muted">{t.updates.autoHint}</span>
+          </div>
+          <Toggle label={t.updates.auto} checked={prefs.autoUpdate} onChange={(v) => setPrefs({ autoUpdate: v })} />
         </div>
-        <Toggle label={t.updates.auto} checked={prefs.autoUpdate} onChange={(v) => setPrefs({ autoUpdate: v })} />
-      </div>
+      )}
     </section>
   );
 }
@@ -594,10 +600,15 @@ const tabs: { id: string; label: string; icon: LucideIcon; wide?: boolean; rende
     label: t.settings.tabs.system,
     icon: Cpu,
     render: () => (
-      <Section title={t.settings.tabs.system}>
-        <Autostart />
-        <Updates />
-      </Section>
+      <div className="flex flex-col gap-8">
+        <Section title={t.settings.tabs.system}>
+          <Autostart />
+          <Updates />
+        </Section>
+        <Section title={t.google.title} hint={t.google.hint}>
+          <GoogleSync />
+        </Section>
+      </div>
     ),
   },
   { id: "registro", label: t.nav.logs, icon: ScrollText, wide: true, render: () => <LogsPanel /> },
@@ -605,6 +616,8 @@ const tabs: { id: string; label: string; icon: LucideIcon; wide?: boolean; rende
 
 export default function SettingsPage() {
   const { tab = tabs[0].id } = useParams();
+  // La sincronización con Google tuvo su propia pestaña: ahora está en Sistema.
+  if (tab === "google") return <Navigate to="/ajustes/sistema" replace />;
   const current = tabs.find((x) => x.id === tab);
   if (!current) return <Navigate to="/ajustes" replace />;
   return (

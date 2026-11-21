@@ -76,6 +76,34 @@ export interface SubHistoryRecord {
   sonarrEpisodeId?: number;
 }
 
+/** Estado de un proveedor activo según Bazarr (`GET /api/providers`). */
+export interface ProviderStatus {
+  name: string;
+  /** "Good" o el motivo del bloqueo (TooManyRequests, AuthenticationError…). */
+  status: string;
+  /** Cuándo lo vuelve a usar, en inglés ("in 2 hours"); "-" si está bien. */
+  retry: string;
+}
+
+/** Ajustes de Bazarr por secciones (`general`, `opensubtitlescom`…). Las contraseñas vienen en claro. */
+export type BazarrSettings = Record<string, Record<string, unknown> | undefined>;
+
+const ENABLED_KEY = "settings-general-enabled_providers";
+
+/** Bazarr guarda una lista vacía si recibe el campo con un solo valor vacío. */
+const listValue = (v: string[]) => (v.length ? v : [""]);
+
+/** Un valor de ajuste como lo espera el formulario de Bazarr: listas repetidas, booleanos en minúscula. */
+export function settingValue(v: unknown): string | string[] {
+  if (Array.isArray(v)) return listValue(v.map(String));
+  if (typeof v === "boolean") return v ? "true" : "false";
+  return v == null ? "" : String(v);
+}
+
+/** Guarda solo los campos que se pasan (`settings-<sección>-<campo>`); el resto de ajustes no se toca. */
+const saveSettings = (form: Record<string, string | string[]>) =>
+  apiRequest<unknown>("bazarr", { method: "POST", path: "/api/system/settings", form });
+
 const bool = (v: string | boolean | undefined) => (String(v).toLowerCase() === "true" ? "True" : "False");
 
 const flags = (l: SubLang) => ({ language: l.code2, forced: String(!!l.forced), hi: String(!!l.hi) });
@@ -132,6 +160,17 @@ export const bazarr = {
   getHistory: async (kind: "movies" | "episodes") =>
     (await apiRequest<{ data?: SubHistoryRecord[] }>("bazarr", { path: `/api/${kind}/history`, query: { start: 0, length: 100 } })).data ??
     [],
+  getProviderStatus: async () => (await apiRequest<{ data?: ProviderStatus[] }>("bazarr", { path: "/api/providers" })).data ?? [],
+  /** Quita los bloqueos temporales de todos los proveedores. */
+  resetProviders: () => apiRequest<unknown>("bazarr", { method: "POST", path: "/api/providers", query: { action: "reset" } }),
+  getSettings: () => apiRequest<BazarrSettings>("bazarr", { path: "/api/system/settings" }),
+  setEnabledProviders: (keys: string[]) => saveSettings({ [ENABLED_KEY]: listValue(keys) }),
+  /** Guarda los campos de un proveedor y, si se pide, lo deja activo en la misma llamada. */
+  saveProvider: (key: string, values: Record<string, unknown>, enabled?: string[]) =>
+    saveSettings({
+      ...Object.fromEntries(Object.entries(values).map(([k, v]) => [`settings-${key}-${k}`, settingValue(v)])),
+      ...(enabled ? { [ENABLED_KEY]: listValue(enabled) } : {}),
+    }),
   searchAllWanted: async () => {
     await apiRequest<unknown>("bazarr", {
       method: "POST",

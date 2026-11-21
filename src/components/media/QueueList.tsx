@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, Download, FileInput, Trash2 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { arrCommon, type ArrService, type QueueRecord } from "@/api/arr";
 import { Dialog } from "@/components/Dialog";
 import { ManualImportDialog } from "./ManualImportDialog";

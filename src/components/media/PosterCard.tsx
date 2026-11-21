@@ -129,5 +129,5 @@ function WatchMark({ watch }: { watch: MyWatch }) {
 }
 
 export function PosterGrid({ children }: { children: React.ReactNode }) {
-  return <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-x-4 gap-y-6">{children}</div>;
+  return <div className="grid grid-cols-[repeat(auto-fill,minmax(105px,1fr))] gap-x-3 gap-y-4 sm:grid-cols-[repeat(auto-fill,minmax(150px,1fr))] sm:gap-x-4 sm:gap-y-6">{children}</div>;
 }

@@ -3,7 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { FileX, FolderSearch, Library, Pencil, RefreshCw, Search, TextCursorInput, Trash2, User } from "lucide-react";
 import { MonitorIcon } from "@/components/media/MonitorToggle";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { ConfirmDialog, Dialog } from "@/components/Dialog";
 import { RenameDialog } from "@/components/media/RenameDialog";
 import { ArrRatings } from "@/components/media/ArrRatings";
@@ -81,8 +81,8 @@ export function MovieDetail({ movie, onClose }: { movie: Movie | null; onClose: 
   return (
     <>
       <Dialog open onOpenChange={(o) => !o && onClose()} title={`${movie.title} (${movie.year})`} wide backdrop={fanartUrl("radarr", movie)}>
-        <div className="flex gap-6">
-          <aside className="flex w-48 shrink-0 flex-col gap-5">
+        <div className="flex flex-col gap-5 md:flex-row md:gap-6">
+          <aside className="grid shrink-0 grid-cols-[7.5rem_minmax(0,1fr)] items-start gap-4 md:flex md:w-48 md:flex-col md:gap-5">
             <Poster src={posterUrl("radarr", movie)} title={movie.title} className="w-full" />
             <FactSection title={t.detail.ratings}>
               <FaInfo item={movieItem(movie)} list />
@@ -90,7 +90,7 @@ export function MovieDetail({ movie, onClose }: { movie: Movie | null; onClose: 
               <ArrRatings ratings={movie.ratings} list />
             </FactSection>
             {movie.genres?.length ? (
-              <div className="flex flex-wrap gap-1.5">
+              <div className="col-span-2 flex flex-wrap gap-1.5">
                 {movie.genres.map((g) => (
                   <span key={g} className="chip bg-surface-2 text-muted">
                     {g}
@@ -101,7 +101,7 @@ export function MovieDetail({ movie, onClose }: { movie: Movie | null; onClose: 
           </aside>
           <div className="flex min-w-0 flex-1 flex-col gap-5">
             {movie.overview && <p className="text-sm leading-relaxed text-fg">{movie.overview}</p>}
-            <div className="grid grid-cols-4 gap-x-4 gap-y-3">
+            <div className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-4">
               <Info label={t.library.status} value={status} />
               <Info label={t.library.quality} value={movie.movieFile?.quality?.quality?.name} />
               <Info label={t.library.size} value={movie.sizeOnDisk ? formatBytes(movie.sizeOnDisk) : undefined} />
