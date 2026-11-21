@@ -8,7 +8,8 @@ export interface ApiCall {
   path: string;
   query?: Record<string, string | number | boolean | undefined | null | (string | number)[]>;
   json?: unknown;
-  form?: Record<string, string>;
+  /** Un array repite el campo (Bazarr guarda así las listas, p. ej. los proveedores activos). */
+  form?: Record<string, string | string[]>;
   files?: FilePart[];
   /** Fuerza multipart/form-data aunque no haya archivos (qBittorrent /torrents/add). */
   multipart?: boolean;
@@ -19,10 +20,13 @@ type ApiBody =
   | { type: "form"; value: [string, string][] }
   | { type: "multipart"; value: { fields: [string, string][]; files: FilePart[] } };
 
+function formPairs(form: ApiCall["form"]): [string, string][] {
+  return Object.entries(form ?? {}).flatMap(([k, v]): [string, string][] => (Array.isArray(v) ? v.map((x) => [k, x]) : [[k, v]]));
+}
+
 function toBody(call: ApiCall): ApiBody | null {
-  if (call.multipart || call.files?.length)
-    return { type: "multipart", value: { fields: Object.entries(call.form ?? {}), files: call.files ?? [] } };
-  if (call.form) return { type: "form", value: Object.entries(call.form) };
+  if (call.multipart || call.files?.length) return { type: "multipart", value: { fields: formPairs(call.form), files: call.files ?? [] } };
+  if (call.form) return { type: "form", value: formPairs(call.form) };
   if (call.json !== undefined) return { type: "json", value: call.json };
   return null;
 }

@@ -14,6 +14,7 @@ import DownloadsPage from "@/pages/Downloads";
 import DuplicatesPage from "@/pages/Duplicates";
 import SearchPage from "@/pages/Search";
 import SubtitlesPage from "@/pages/Subtitles";
+import SubtitleProvidersPage from "@/pages/SubtitleProviders";
 import CalendarPage from "@/pages/Calendar";
 import SettingsPage from "@/pages/Settings";
 import HistoryPage from "@/pages/History";
@@ -49,6 +50,7 @@ export const routes: RouteObject[] = [
           { path: "/duplicados", element: <DuplicatesPage /> },
           { path: "/buscar", element: <SearchPage /> },
           { path: "/subtitulos", element: <SubtitlesPage /> },
+          { path: "/proveedores", element: <SubtitleProvidersPage /> },
           { path: "/calendario", element: <CalendarPage /> },
           { path: "/historial", element: <HistoryPage /> },
           { path: "/plex", element: <PlexPage /> },

@@ -13,7 +13,8 @@ También se puede lanzar a mano en Actions → Release → «Run workflow» indi
 ## [Sin publicar]
 
 ### Añadido
-
+- Bazarr → Proveedores: activa o desactiva los proveedores de subtítulos, edita sus usuarios, contraseñas y
+  opciones, mira cuáles están bloqueados (y por qué y hasta cuándo) y desbloquéalos todos con un botón.
 - Series: papelera en cada temporada de la ficha para borrar del disco todos sus capítulos, con opción de dejar de monitorizarla y de quitar de qBittorrent los torrents de esa temporada.
 - Nuevo icono de Dasharr: en el instalador y la app de Windows, Dasharr Dev, el lanzador de Android y el
   logo junto al nombre en el menú.
