@@ -15,8 +15,43 @@ permissions:
   contents: write
 
 jobs:
+  # La APK de Android se compila aparte (en Linux) y la publica el trabajo de Windows junto al instalador.
+  android:
+    runs-on: ubuntu-latest
+    env:
+      DASHARR_RELEASE: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: android
+      - run: npm ci
+      - name: Compilar la APK
+        env:
+          DASHARR_ANDROID_KEYSTORE: ${{ secrets.DASHARR_ANDROID_KEYSTORE }}
+        run: |
+          export NDK_HOME="$ANDROID_NDK_LATEST_HOME"
+          scripts/build-android.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dasharr-android
+          path: dist-android/*
+          if-no-files-found: warn
+
   release:
     runs-on: windows-latest
+    needs: android
     env:
       TAG: ${{ github.event_name == 'workflow_dispatch' && format('v{0}', inputs.version) || github.ref_name }}
       # Marca la compilación como versión publicada aunque se lance a mano (sin etiqueta): sin "· dev abc1234".
@@ -74,6 +109,11 @@ jobs:
           test -n "$(ls dist-release/*-setup.exe)"
           # La suma SHA-256 la usa la actualización automática: se calcula sobre el instalador ya firmado.
           for exe in dist-release/*-setup.exe; do sha256sum "$exe" | cut -d' ' -f1 > "$exe.sha256"; done
+      - uses: actions/download-artifact@v4
+        continue-on-error: true # no hay APK si falta la firma de Android
+        with:
+          name: dasharr-android
+          path: dist-release
       - name: Publicar la Release
         shell: bash
         env:

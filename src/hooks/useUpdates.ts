@@ -5,6 +5,7 @@ import { checkUpdate, installUpdate, writeLog, type UpdateInfo } from "@/lib/tau
 import { errorMessage } from "@/lib/errors";
 import { getPrefs } from "@/hooks/usePrefs";
 import { isDevBuild } from "@/lib/version";
+import { isMobile } from "@/lib/platform";
 
 /** Cada cuánto se vuelve a mirar si hay versión nueva mientras la app sigue abierta. */
 export const CHECK_EVERY_MS = 6 * 60 * 60 * 1000;
@@ -62,6 +63,16 @@ function cancelAutoInstall() {
 export async function startUpdate(u: UpdateInfo) {
   cancelAutoInstall();
   if (state.installing) return;
+  if (isMobile()) {
+    // En Android se abre la descarga en el navegador: al terminar, Android pide confirmar la instalación.
+    try {
+      await installUpdate(u);
+      toast(t.updates.mobileDownload(u.version), { id: `update-${u.version}`, duration: 15000 });
+    } catch (e) {
+      toast.error(t.updates.failed(errorMessage(e)));
+    }
+    return;
+  }
   set({ installing: true });
   const id = toast.loading(t.updates.installing(u.version));
   try {
@@ -112,7 +123,7 @@ export async function runUpdateCheck({ manual }: { manual: boolean }): Promise<U
     set({ checking: false, available: u, upToDate: !u });
     if (u && (manual || !announced.has(u.version))) {
       announced.add(u.version);
-      if (!manual && getPrefs().autoUpdate) scheduleAutoInstall(u);
+      if (!manual && getPrefs().autoUpdate && !isMobile()) scheduleAutoInstall(u);
       else if (!manual) notifyUpdate(u);
     }
     return u;
