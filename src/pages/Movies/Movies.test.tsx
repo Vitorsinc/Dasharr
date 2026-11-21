@@ -115,10 +115,11 @@ test("ficha: búsqueda automática y borrar con confirmación", async () => {
   expect(calls.find((c) => c.path === "/api/v3/command")?.body.value).toEqual({ name: "MoviesSearch", movieIds: [1] });
   await userEvent.click(within(dialog).getByRole("button", { name: "Borrar" }));
   const confirm = await screen.findByRole("dialog", { name: "Borrar película" });
+  expect(within(confirm).getByRole("checkbox", { name: "Borrar también los archivos" })).toBeChecked();
   await userEvent.click(within(confirm).getByRole("button", { name: "Borrar" }));
   const del = calls.find((c) => c.method === "DELETE");
   expect(del.path).toBe("/api/v3/movie/1");
-  expect(del.query).toContainEqual(["deleteFiles", "false"]);
+  expect(del.query).toContainEqual(["deleteFiles", "true"]);
 });
 
 test("búsqueda manual: lista releases y descarga la elegida", async () => {
