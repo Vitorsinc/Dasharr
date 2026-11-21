@@ -1,4 +1,4 @@
-import { deleteWithTorrents } from "./mediaTorrents";
+import { deleteWithTorrents, findSeasonTorrents } from "./mediaTorrents";
 import { mockBackend } from "@/test/utils";
 
 function backend(qbitDown = false) {
@@ -51,4 +51,25 @@ test("si qBittorrent no responde no se borra nada", async () => {
   const del = vi.fn(async () => undefined);
   await expect(deleteWithTorrents("radarr", [1], { deleteFiles: true, addExclusion: false, deleteTorrents: true }, del)).rejects.toBeTruthy();
   expect(del).not.toHaveBeenCalled();
+});
+
+test("torrents de una temporada: solo los de esa temporada, sin packs de la serie completa", async () => {
+  mockBackend({
+    api: {
+      sonarr: (req) => {
+        expect(new URLSearchParams(req.query).get("includeEpisode")).toBe("true");
+        return [
+          { downloadId: "S2PACK", episode: { seasonNumber: 2 } },
+          { downloadId: "S2PACK", episode: { seasonNumber: 2 } },
+          { downloadId: "S2E05", episode: { seasonNumber: 2 } },
+          { downloadId: "S1PACK", episode: { seasonNumber: 1 } },
+          { downloadId: "COMPLETA", episode: { seasonNumber: 1 } },
+          { downloadId: "COMPLETA", episode: { seasonNumber: 2 } },
+          { downloadId: "SIN_EPISODIO" },
+        ];
+      },
+      qbittorrent: () => [{ hash: "s2pack" }, { hash: "s2e05" }, { hash: "s1pack" }, { hash: "completa" }, { hash: "sin_episodio" }],
+    },
+  });
+  expect((await findSeasonTorrents(7, 2)).map((t) => t.hash)).toEqual(["s2pack", "s2e05"]);
 });

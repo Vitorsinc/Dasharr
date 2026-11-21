@@ -13,6 +13,8 @@ También se puede lanzar a mano en Actions → Release → «Run workflow» indi
 ## [Sin publicar]
 
 ### Añadido
+
+- Series: papelera en cada temporada de la ficha para borrar del disco todos sus capítulos, con opción de dejar de monitorizarla y de quitar de qBittorrent los torrents de esa temporada.
 - Nuevo icono de Dasharr: en el instalador y la app de Windows, Dasharr Dev, el lanzador de Android y el
   logo junto al nombre en el menú.
 - Campanita de errores junto al nombre de Dasharr (también en el menú del móvil): guarda los errores de la sesión (servicios que no responden y

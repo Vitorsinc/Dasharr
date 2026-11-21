@@ -18,11 +18,13 @@ import { PlexBadge } from "@/components/plex/PlexBadge";
 import { RequestedBy } from "@/components/seerr/RequestedBy";
 import { seriesItem } from "@/api/filmaffinity";
 import { episodeStatus, sonarr, type Episode, type EpisodeFile, type MonitorChange, type Series, type SeriesType } from "@/api/sonarr";
-import { deleteWithTorrents } from "@/api/mediaTorrents";
+import { deleteWithTorrents, findSeasonTorrents } from "@/api/mediaTorrents";
+import { qbit } from "@/api/qbit";
 import { ArrHistory } from "@/components/media/ArrHistory";
 import { EditMediaDialog } from "@/components/media/EditMediaDialog";
 import { MediaTags } from "@/components/media/TagPicker";
 import { DeleteMediaDialog } from "@/components/media/DeleteMediaDialog";
+import { DeleteSeasonDialog } from "@/components/media/DeleteSeasonDialog";
 import { RenameDialog } from "./RenameDialog";
 import { useEpisodeFiles, useEpisodes, useSonarrMeta } from "@/hooks/useArr";
 import { useMediaHistory } from "@/hooks/useTracearr";
@@ -46,12 +48,14 @@ function SeasonBlock({
   mine,
   files,
   onDeleteFile,
+  onDeleteSeason,
 }: {
   series: Series;
   season: number;
   episodes: Episode[];
   files: Map<number, EpisodeFile>;
   onDeleteFile: (file: EpisodeFile, what: string) => void;
+  onDeleteSeason: (files: EpisodeFile[], monitored: boolean) => void;
   /** Reproducciones de Tracearr por episodio (`"1x3"`); undefined sin Tracearr. */
   watch?: Map<string, Play[]>;
   /** Episodios que has visto tú (`"1x3"`); undefined si no has elegido tu usuario de Plex. */
@@ -65,6 +69,9 @@ function SeasonBlock({
   const aired = episodes.filter((e) => episodeStatus(e) !== "unaired").length;
   const seen = mine ? episodes.filter((e) => mine.get(episodeKey(e.seasonNumber, e.episodeNumber))?.state === "watched").length : 0;
   const seasonMonitored = series.seasons?.find((x) => x.seasonNumber === season)?.monitored ?? episodes.some((e) => e.monitored);
+  const seasonFiles = [...new Set(episodes.map((e) => e.episodeFileId).filter((id): id is number => !!id))]
+    .map((id) => files.get(id))
+    .filter((f): f is EpisodeFile => !!f);
   return (
     <div className="card overflow-hidden">
       <div className="flex items-center gap-3 px-4 py-3">
@@ -91,6 +98,15 @@ function SeasonBlock({
           onAuto={() => run(() => sonarr.searchSeason(series.id, season), t.library.searchStarted)}
           onManual={() => onManual({ seriesId: series.id, seasonNumber: season }, `${series.title} · ${t.library.season(season)}`)}
         />
+        <button
+          className="btn-ghost p-1.5 text-muted hover:text-danger disabled:opacity-30 disabled:hover:text-muted"
+          title={t.seriesTools.deleteSeason}
+          aria-label={`${t.seriesTools.deleteSeason}: ${t.library.season(season)}`}
+          disabled={seasonFiles.length === 0}
+          onClick={() => onDeleteSeason(seasonFiles, seasonMonitored)}
+        >
+          <Trash2 className="h-4 w-4" />
+        </button>
       </div>
       {open && (
         <ul className="divide-y divide-border border-t border-border">
@@ -169,6 +185,7 @@ export function SeriesDetail({ series, onClose }: { series: Series | null; onClo
   const [monitorChange, setMonitorChange] = useState<MonitorChange | "">("");
   const [renaming, setRenaming] = useState(false);
   const [deleting, setDeleting] = useState<{ file: EpisodeFile; what: string } | null>(null);
+  const [deletingSeason, setDeletingSeason] = useState<{ season: number; files: EpisodeFile[]; monitored: boolean } | null>(null);
   const watchQ = useMediaHistory(series ? showRefs(series) : []);
   const watch = useMemo(() => (watchQ.data && !watchQ.data.notFound ? playsByEpisode(watchQ.data.plays) : undefined), [watchQ.data]);
   const myShows = useMyWatchedShows();
@@ -308,6 +325,7 @@ export function SeriesDetail({ series, onClose }: { series: Series | null; onClo
                   mine={mine}
                   files={files}
                   onDeleteFile={(file, what) => setDeleting({ file, what })}
+                  onDeleteSeason={(files, monitored) => setDeletingSeason({ season: n, files, monitored })}
                   onManual={(query, what) => setManual({ query, what })}
                 />
               ))}
@@ -350,6 +368,35 @@ export function SeriesDetail({ series, onClose }: { series: Series | null; onClo
         message={deleting ? t.seriesTools.deleteFileMessage(deleting.what) : ""}
         onConfirm={() => deleting && run(() => sonarr.deleteEpisodeFile(deleting.file.id), t.seriesTools.fileDeleted)}
       />
+      {deletingSeason && (
+        <DeleteSeasonDialog
+          open
+          onOpenChange={(o) => !o && setDeletingSeason(null)}
+          title={t.seriesTools.deleteSeasonTitle(t.library.season(deletingSeason.season))}
+          message={t.seriesTools.deleteSeasonMessage(
+            `${series.title} · ${t.library.season(deletingSeason.season)}`,
+            deletingSeason.files.length,
+            formatBytes(deletingSeason.files.reduce((a, f) => a + (f.size ?? 0), 0)),
+          )}
+          seriesId={series.id}
+          season={deletingSeason.season}
+          monitored={deletingSeason.monitored}
+          onConfirm={(o) => {
+            const { season, files: doomed } = deletingSeason;
+            void run(async () => {
+              const hashes = o.torrentHashes ?? (await findSeasonTorrents(series.id, season)).map((tr) => tr.hash);
+              await sonarr.deleteEpisodeFiles(doomed.map((f) => f.id));
+              toast.success(t.seriesTools.seasonDeleted(doomed.length));
+              if (o.unmonitor) await sonarr.setSeasonMonitored(series, season, false);
+              if (hashes.length) {
+                await qbit.removeWithFiles(hashes);
+                toast.success(t.library.torrentsDeleted(hashes.length));
+                void qc.invalidateQueries({ queryKey: ["qbittorrent"] });
+              }
+            });
+          }}
+        />
+      )}
       <DeleteMediaDialog
         open={confirm}
         onOpenChange={setConfirm}
