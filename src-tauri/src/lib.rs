@@ -1,5 +1,6 @@
 mod commands;
 mod filmaffinity;
+mod google;
 mod images;
 mod letterboxd;
 mod logs;
@@ -8,6 +9,7 @@ mod nyaa;
 mod secrets;
 mod settings;
 mod state;
+mod sync;
 mod tmdb;
 mod updater;
 
@@ -63,6 +65,14 @@ pub fn run() {
             tmdb::tmdb_has_key,
             tmdb::tmdb_save_key,
             tmdb::tmdb_release_dates,
+            sync::google_status,
+            sync::google_login,
+            sync::google_login_cancel,
+            sync::google_logout,
+            sync::sync_set_password,
+            sync::sync_push,
+            sync::sync_pull,
+            sync::sync_delete_remote,
         ])
         .setup(|app| {
             log::info!("Dasharr {} iniciado", app.package_info().version);
