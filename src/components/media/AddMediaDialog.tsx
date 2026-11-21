@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Check, Plus, Search } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { Dialog } from "@/components/Dialog";
 import { Empty, Segmented, Spinner } from "@/components/ui";
 import { t } from "@/i18n/es";

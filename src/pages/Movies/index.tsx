@@ -26,7 +26,7 @@ import { useMyWatchedMovies } from "@/hooks/useMyWatched";
 import { arrScores, visibleScores } from "@/components/media/RatingBadges";
 import { posterUrl, type WantedKind } from "@/api/arr";
 import { WantedList } from "@/components/media/WantedList";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { errorMessage } from "@/lib/errors";
 import { formatDate } from "@/lib/format";
 import { faKey, movieItem } from "@/api/filmaffinity";

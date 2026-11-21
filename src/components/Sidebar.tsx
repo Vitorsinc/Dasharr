@@ -28,6 +28,8 @@ import {
 import { t } from "@/i18n/es";
 import { cn } from "@/lib/cn";
 import { versionLabel } from "@/lib/version";
+import { useErrors } from "@/lib/errorLog";
+import { ErrorBell } from "./ErrorBell";
 import { usePrefs } from "@/hooks/usePrefs";
 import { useUpdateState } from "@/hooks/useUpdates";
 import { DiskIndicator } from "./DiskIndicator";
@@ -222,6 +224,7 @@ function NavContent() {
       <div className="mb-5 flex items-center gap-2.5 px-2">
         <Logo />
         <span className="font-display text-xl font-extrabold [font-stretch:78%]">{t.app.name}</span>
+        <ErrorBell />
       </div>
       <div className="-mx-1 flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-1 pb-2">
         <div className="flex flex-col gap-0.5">
@@ -267,6 +270,7 @@ export function MobileNav() {
   const [open, setOpen] = useState(false);
   const { pathname } = useLocation();
   const { available } = useUpdateState();
+  const errors = useErrors().length;
   // Al cambiar de página se cierra el panel.
   useEffect(() => setOpen(false), [pathname]);
   const inTabs = tabs.some((i) => (i.end ? pathname === i.to : pathname === i.to || pathname.startsWith(`${i.to}/`)));
@@ -303,7 +307,12 @@ export function MobileNav() {
         >
           <Menu className="h-5 w-5" aria-hidden />
           <span>{t.nav.more}</span>
-          {available && <span className="absolute right-[calc(50%-14px)] top-1.5 h-2 w-2 rounded-full bg-accent" aria-hidden />}
+          {(errors > 0 || available) && (
+            <span
+              className={cn("absolute right-[calc(50%-14px)] top-1.5 h-2 w-2 rounded-full", errors ? "bg-danger" : "bg-accent")}
+              aria-hidden
+            />
+          )}
         </button>
       </nav>
       <RD.Root open={open} onOpenChange={setOpen}>

@@ -14,7 +14,7 @@ import {
   Trash2,
   Tv,
 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { Page } from "@/components/Page";
 import { ErrorPanel, NotConfigured } from "@/components/ErrorPanel";
 import { ConfirmDialog } from "@/components/Dialog";

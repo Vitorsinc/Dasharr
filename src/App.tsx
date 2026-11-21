@@ -1,4 +1,8 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryCache, QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { t } from "@/i18n/es";
+import { errorMessage } from "@/lib/errors";
+import { reportError } from "@/lib/errorLog";
+import { isApiError, SERVICE_KINDS, type ServiceKind } from "@/lib/types";
 import { createMemoryRouter, createBrowserRouter, Navigate, RouterProvider, useParams, type RouteObject } from "react-router-dom";
 import { Layout } from "@/components/Layout";
 import { RouteError } from "@/components/RouteError";
@@ -65,8 +69,20 @@ export const routes: RouteObject[] = [
   },
 ];
 
+/**
+ * Una consulta a un servicio que falla (tras su reintento) va a la campanita. Las de servicios sin configurar no
+ * son un error, y las de extras como notas de Letterboxd o FilmAffinity fallan a menudo sin que importe.
+ */
+function reportQueryError(e: unknown, query: { queryKey: readonly unknown[] }) {
+  const service = query.queryKey[0];
+  if (!SERVICE_KINDS.includes(service as ServiceKind)) return;
+  if (isApiError(e) && e.kind === "NotConfigured") return;
+  reportError(errorMessage(e, service as ServiceKind), t.services[service as ServiceKind]);
+}
+
 export function makeQueryClient() {
   return new QueryClient({
+    queryCache: new QueryCache({ onError: reportQueryError }),
     defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: true, staleTime: 5_000 } },
   });
 }

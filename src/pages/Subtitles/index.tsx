@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Search, User } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { Page } from "@/components/Page";
 import { ErrorPanel, NotConfigured } from "@/components/ErrorPanel";
 import { Empty, Loading, Segmented, Spinner } from "@/components/ui";
