@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Bell, Cloud, Cpu, Library, Palette, Plug, ScrollText, Server, Upload, type LucideIcon } from "lucide-react";
+import { Bell, Cpu, Library, Palette, Plug, ScrollText, Server, Upload, type LucideIcon } from "lucide-react";
 import { Navigate, useParams } from "react-router-dom";
 import { TabNav } from "@/components/TabNav";
 import { toast } from "@/lib/toast";
@@ -596,24 +596,19 @@ const tabs: { id: string; label: string; icon: LucideIcon; wide?: boolean; rende
     ),
   },
   {
-    id: "google",
-    label: t.google.tab,
-    icon: Cloud,
-    render: () => (
-      <Section title={t.google.title} hint={t.google.hint}>
-        <GoogleSync />
-      </Section>
-    ),
-  },
-  {
     id: "sistema",
     label: t.settings.tabs.system,
     icon: Cpu,
     render: () => (
-      <Section title={t.settings.tabs.system}>
-        <Autostart />
-        <Updates />
-      </Section>
+      <div className="flex flex-col gap-8">
+        <Section title={t.settings.tabs.system}>
+          <Autostart />
+          <Updates />
+        </Section>
+        <Section title={t.google.title} hint={t.google.hint}>
+          <GoogleSync />
+        </Section>
+      </div>
     ),
   },
   { id: "registro", label: t.nav.logs, icon: ScrollText, wide: true, render: () => <LogsPanel /> },
@@ -621,6 +616,8 @@ const tabs: { id: string; label: string; icon: LucideIcon; wide?: boolean; rende
 
 export default function SettingsPage() {
   const { tab = tabs[0].id } = useParams();
+  // La sincronización con Google tuvo su propia pestaña: ahora está en Sistema.
+  if (tab === "google") return <Navigate to="/ajustes/sistema" replace />;
   const current = tabs.find((x) => x.id === tab);
   if (!current) return <Navigate to="/ajustes" replace />;
   return (
