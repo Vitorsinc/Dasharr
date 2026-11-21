@@ -57,10 +57,10 @@ export function WeekAgenda({ days, byDay, onOpen }: Props) {
           <section
             key={dayKey(d)}
             data-testid={`day-${dayKey(d)}`}
-            className={cn("relative grid grid-cols-[96px_1fr]", isToday && "bg-accent/[0.06]")}
+            className={cn("relative grid grid-cols-[64px_1fr] md:grid-cols-[96px_1fr]", isToday && "bg-accent/[0.06]")}
           >
             {isToday && <div className="absolute inset-y-0 left-0 w-1 bg-accent" />}
-            <div className={cn("flex flex-col items-start px-5 py-3", past && "opacity-45")}>
+            <div className={cn("flex flex-col items-start px-3 py-3 md:px-5", past && "opacity-45")}>
               <span className={cn("text-xs capitalize", isToday ? "font-semibold text-accent" : "text-muted")}>
                 {isToday ? tc.today : weekdayLong.format(d)}
               </span>
@@ -75,20 +75,28 @@ export function WeekAgenda({ days, byDay, onOpen }: Props) {
                     <button
                       onClick={() => onOpen(it)}
                       className={cn(
-                        "grid w-full grid-cols-[36px_72px_1fr_auto] items-center gap-3 rounded-lg px-2 py-2 text-left hover:bg-surface-2",
+                        "grid w-full grid-cols-[36px_1fr] items-center gap-3 rounded-lg px-2 py-2 text-left hover:bg-surface-2 md:grid-cols-[36px_72px_1fr_auto]",
                         past && !isToday && "opacity-70",
                       )}
                     >
                       <Img src={it.poster} className="h-[54px] w-9 rounded" />
-                      <span className="flex items-center gap-1.5 text-sm tabular-nums">
+                      <span className="hidden items-center gap-1.5 text-sm tabular-nums md:flex">
                         <span className={cn("h-2 w-2 shrink-0 rounded-full", it.source === "radarr" ? "bg-radarr" : "bg-sonarr")} />
                         {when(it)}
                       </span>
                       <span className="min-w-0">
                         <span className="block truncate font-medium">{it.title}</span>
                         <span className="block truncate text-sm text-muted">{sub(it)}</span>
+                        {/* Móvil: hora y estado debajo del título, que si no no cabe. */}
+                        <span className="mt-1 flex items-center gap-2 text-xs tabular-nums text-muted md:hidden">
+                          <span className={cn("h-2 w-2 shrink-0 rounded-full", it.source === "radarr" ? "bg-radarr" : "bg-sonarr")} />
+                          {when(it)}
+                          <Status it={it} today={today} />
+                        </span>
                       </span>
-                      <Status it={it} today={today} />
+                      <span className="hidden md:block">
+                        <Status it={it} today={today} />
+                      </span>
                     </button>
                   </li>
                 ))}

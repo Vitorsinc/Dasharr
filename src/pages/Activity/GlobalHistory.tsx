@@ -47,16 +47,16 @@ export function GlobalHistory({ service }: { service: ArrService }) {
             {records.map((r) => {
               const detail = historyDetail(r);
               return (
-                <li key={r.id} className="flex items-center gap-3 px-4 py-1.5 text-sm">
-                  <span className={cn("w-36 shrink-0 truncate font-medium", historyTone[r.eventType])}>{historyEventLabel(r)}</span>
-                  <span className="w-48 shrink-0 truncate font-medium" title={historyItemTitle(r, titles)}>
+                <li key={r.id} className="flex flex-wrap items-center gap-x-3 gap-y-0.5 px-4 py-2 text-sm md:flex-nowrap md:py-1.5">
+                  <span className={cn("shrink-0 truncate font-medium md:w-36", historyTone[r.eventType])}>{historyEventLabel(r)}</span>
+                  <span className="min-w-0 flex-1 truncate font-medium md:w-48 md:flex-none md:shrink-0" title={historyItemTitle(r, titles)}>
                     {historyItemTitle(r, titles)}
                   </span>
-                  <span className="min-w-0 flex-1 truncate font-mono text-xs text-muted" title={r.sourceTitle}>
+                  <span className="order-last min-w-0 basis-full truncate font-mono text-xs text-muted md:order-none md:flex-1 md:basis-auto" title={r.sourceTitle}>
                     {r.sourceTitle}
                   </span>
                   {detail && (
-                    <span className="max-w-[16rem] shrink truncate text-xs text-muted" title={detail}>
+                    <span className="order-last max-w-full shrink truncate text-xs text-muted md:order-none md:max-w-[16rem]" title={detail}>
                       {detail}
                     </span>
                   )}

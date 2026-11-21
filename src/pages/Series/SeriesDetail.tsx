@@ -199,15 +199,15 @@ export function SeriesDetail({ series, onClose }: { series: Series | null; onClo
     <>
       <Dialog open onOpenChange={(o) => !o && onClose()} title={series.title} wide backdrop={fanartUrl("sonarr", series)}>
         <div className="flex flex-col gap-6">
-          <div className="flex gap-6">
-            <aside className="flex w-48 shrink-0 flex-col gap-5">
+          <div className="flex flex-col gap-5 md:flex-row md:gap-6">
+            <aside className="grid shrink-0 grid-cols-[7.5rem_minmax(0,1fr)] items-start gap-4 md:flex md:w-48 md:flex-col md:gap-5">
               <Poster src={posterUrl("sonarr", series)} title={series.title} className="w-full" />
               <FactSection title={t.detail.ratings}>
                 <FaInfo item={seriesItem(series)} list />
                 <ArrRatings ratings={{ tvdb: series.ratings }} list />
               </FactSection>
               {series.genres?.length ? (
-                <div className="flex flex-wrap gap-1.5">
+                <div className="col-span-2 flex flex-wrap gap-1.5">
                   {series.genres.map((g) => (
                     <span key={g} className="chip bg-surface-2 text-muted">
                       {g}

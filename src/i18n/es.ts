@@ -2,6 +2,8 @@ export const es = {
   app: { name: "Dasharr", version: "Versión de Dasharr" },
   nav: {
     home: "Inicio",
+    more: "Menú",
+    mobileBar: "Navegación",
     movies: "Películas",
     series: "Series",
     anime: "Anime",
@@ -143,6 +145,9 @@ export const es = {
     autoSwitch: "Dasharr usa la dirección local cuando responde y la externa cuando no.",
   },
   downloads: {
+    sortSelect: "Ordenar por",
+    sortAsc: "Orden ascendente",
+    sortDesc: "Orden descendente",
     addRejected: "qBittorrent no ha aceptado el torrent (¿ya estaba añadido o el enlace no es válido?)",
     all: "Todos",
     downloading: "Descargando",
@@ -1004,6 +1009,7 @@ export const es = {
     countryDates: (country: string) => `Fechas de ${country} según TMDB; si TMDB no tiene alguna, se usa la de Radarr.`,
   },
   calendar: {
+    emptyMonth: "No hay estrenos este mes.",
     week: "Semana",
     month: "Mes",
     today: "Hoy",
