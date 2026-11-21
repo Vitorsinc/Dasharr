@@ -41,6 +41,8 @@ Cada cambio que entra en la rama `dev` se compila solo y se publica como la Rele
 [`dev-latest`](https://github.com/Vitorsinc/Dasharr/releases/tag/dev-latest) (marcada como versión preliminar).
 Esa compilación se llama **Dasharr Dev**: tiene su propio nombre, carpeta, acceso directo y configuración,
 así que convive con Dasharr sin tocarlo.
+Cada versión de prueba lleva un número que sube con cada cambio (por ejemplo `v0.6.0 · dev 233`):
+es el número de commits de la rama dev.
 
 - Para empezar, instala una vez el `-setup.exe` de esa Release. La primera vez que se abre copia la
   configuración de Dasharr (servicios y preferencias); las API keys y contraseñas son compartidas.

@@ -38,6 +38,8 @@ jobs:
     needs: test
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # el número de la versión de prueba es el número de commits
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -61,6 +63,8 @@ jobs:
     needs: test
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # el número de la versión de prueba es el número de commits
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -101,6 +105,9 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/download-artifact@v4
         with:
           name: dasharr-windows
@@ -120,7 +127,9 @@ jobs:
           test -n "$exe"
           sha256sum "$exe" | cut -d' ' -f1 > "$exe.sha256"
           short=${GITHUB_SHA::7}
-          { echo "Versión de prueba de la rama dev (commit $short)."; echo; echo "Último cambio:"; echo; echo "$MESSAGE"; } > notes.md
+          # El mismo número que llevan dentro las apps (vite.config.ts): commits de la rama hasta aquí.
+          number=$(git rev-list --count HEAD)
+          { echo "Versión de prueba $number de la rama dev (commit $short)."; echo; echo "Último cambio:"; echo; echo "$MESSAGE"; } > notes.md
           # «dev» era el nombre anterior: se quita porque la etiqueta chocaba con la rama dev.
           gh release delete dev --cleanup-tag --yes || true
           # Quitar la Release dev-latest anterior (también si quedó como borrador) y su etiqueta.
@@ -137,7 +146,7 @@ jobs:
           # no se ve sin sesión, así que Dasharr Dev no encontraba la actualización.
           gh api "repos/$GH_REPO/git/refs" -f ref=refs/tags/dev-latest -f sha="$GITHUB_SHA" >/dev/null
           gh release create dev-latest --verify-tag --prerelease --latest=false \
-            --title "Dasharr Dev ($short)" --notes-file notes.md
+            --title "Dasharr Dev $number" --notes-file notes.md
           # La suma SHA-256 se sube la última: hasta entonces la app no ofrece la actualización a medias.
           gh release upload dev-latest "$exe" "$apk"
           gh release upload dev-latest "$exe.sha256" "$apk.sha256"
