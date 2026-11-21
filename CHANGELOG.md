@@ -23,6 +23,9 @@ También se puede lanzar a mano en Actions → Release → «Run workflow» indi
 - Dasharr se adapta a pantallas de móvil: barra inferior con Inicio, Películas, Series y Descargas y el resto
   del menú en un panel lateral; Descargas en tarjetas, fichas y búsquedas a pantalla completa, Calendario en
   agenda (también el mes), pósters más pequeños y listas de Actividad y Solicitudes en dos líneas.
+- Copia de la configuración en tu cuenta de Google (Ajustes → Cuenta de Google): inicias sesión con Google,
+  eliges una contraseña y los servicios, claves y preferencias quedan iguales en el PC y en el móvil. Se
+  sincroniza sola mientras Dasharr está abierto, y las claves viajan cifradas.
 
 ## [0.6.0] - 2026-11-21
 

@@ -1,0 +1,32 @@
+import { invoke } from "@tauri-apps/api/core";
+
+export interface GoogleStatus {
+  /** Esta versión trae la conexión con Google. */
+  available: boolean;
+  signedIn: boolean;
+  email: string | null;
+  hasPassword: boolean;
+  /** Este dispositivo ya ha traído o subido la copia alguna vez. */
+  linked: boolean;
+  lastSync: number | null;
+}
+
+export type PushResult =
+  | { status: "unchanged" }
+  | { status: "uploaded" }
+  | { status: "remoteNewer"; updatedAt: number | null; device: string | null };
+
+export type PullResult =
+  | { status: "empty" }
+  | { status: "unchanged" }
+  | { status: "applied"; prefs: unknown; updatedAt: number; device: string };
+
+export const googleStatus = () => invoke<GoogleStatus>("google_status");
+/** Abre el navegador y espera a que el usuario acepte. Devuelve el correo. */
+export const googleLogin = () => invoke<string>("google_login");
+export const googleLoginCancel = () => invoke<void>("google_login_cancel");
+export const googleLogout = () => invoke<void>("google_logout");
+export const syncSetPassword = (password: string) => invoke<void>("sync_set_password", { password });
+export const syncPush = (prefs: unknown, force = false) => invoke<PushResult>("sync_push", { prefs, force });
+export const syncPull = (force = false) => invoke<PullResult>("sync_pull", { force });
+export const syncDeleteRemote = () => invoke<void>("sync_delete_remote");

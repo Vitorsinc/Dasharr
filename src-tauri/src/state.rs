@@ -6,6 +6,8 @@ use tokio::sync::Mutex;
 
 use crate::commands::PlexLogin;
 use crate::filmaffinity::FilmAffinity;
+use crate::google::Google;
+use crate::sync::ConfigSync;
 use crate::letterboxd::Letterboxd;
 use crate::nyaa::Nyaa;
 use crate::settings;
@@ -20,6 +22,8 @@ pub struct AppState {
     pub letterboxd: Letterboxd,
     pub nyaa: Nyaa,
     pub tmdb: Tmdb,
+    pub google: Google,
+    pub sync: ConfigSync,
     last_routes: Mutex<HashMap<ServiceKind, Option<Route>>>,
     /// Inicio de sesión con Plex en curso: los tokens no salen nunca hacia la interfaz.
     pub plex_login: Mutex<Option<PlexLogin>>,

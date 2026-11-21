@@ -8,6 +8,10 @@ Se conecta solo a estos sitios:
   direcciones que tú escribes en Ajustes, con tus API keys o contraseñas. Las claves se guardan en el
   Administrador de credenciales de Windows y nunca salen hacia otro sitio.
 - **Plex** (`plex.tv`), solo si inicias sesión con Plex, para encontrar tus servidores.
+- **Google** (`accounts.google.com`, `googleapis.com`), solo si inicias sesión con Google en Ajustes →
+  Cuenta de Google, para guardar una copia de tu configuración en la carpeta privada de Dasharr en tu Google
+  Drive (Dasharr no puede ver el resto de tus archivos). Las claves y contraseñas van cifradas con una
+  contraseña que eliges tú y que no sale de tus dispositivos, así que ni Google puede leerlas.
 - **GitHub** (`api.github.com`, `github.com`), para comprobar si hay una versión nueva y descargarla.
   La instalación automática se puede desactivar en Ajustes → Sistema.
 - **Fichas públicas de películas y series**: carátulas e información de TMDb (`themoviedb.org`),
