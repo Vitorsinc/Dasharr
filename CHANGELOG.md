@@ -12,9 +12,12 @@ También se puede lanzar a mano en Actions → Release → «Run workflow» indi
 
 ## [Sin publicar]
 
+## [0.6.0] - 2026-11-21
+
 ### Cambiado
 - Las versiones publicadas se preparan para ir firmadas con el certificado gratuito de SignPath Foundation,
   para que Windows deje de avisar de «Editor desconocido». Dasharr pasa a tener licencia MIT.
+- Inicio: las tarjetas de los servicios son más compactas (una fila con logo, nombre, estado y versión).
 - Inicio: la sección Servidor (Beszel) es más compacta, y en Ajustes → Servicios → Beszel se elige qué datos de cada servidor se ven.
 
 ### Añadido
@@ -24,7 +27,6 @@ También se puede lanzar a mano en Actions → Release → «Run workflow» indi
 - Beszel: nuevo servicio en Ajustes (correo y contraseña de Beszel, o una API key en Beszel 0.21+). Inicio muestra cada servidor con CPU, memoria, disco, temperatura, tiempo encendido, carga, red, swap, discos extra y sensores.
 
 ### Corregido
-
 - Abrir una versión anterior después de haber usado una más nueva (por ejemplo, con Beszel
   configurado) ya no hace desaparecer todos los servicios de Ajustes, y guardar en esa versión
   tampoco borra los servicios que no conoce.
