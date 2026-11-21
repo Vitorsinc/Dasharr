@@ -144,8 +144,9 @@ jobs:
           # Primero la etiqueta y la Release sin archivos, y luego se suben. Con los archivos en el mismo
           # «gh release create», gh la crea como borrador para subirlos y a veces se queda así: un borrador
           # no se ve sin sesión, así que Dasharr Dev no encontraba la actualización.
+          # --target: sin él la Release apunta a «master», y las Dasharr Dev de antes (que comparan el commit) no la ven.
           gh api "repos/$GH_REPO/git/refs" -f ref=refs/tags/dev-latest -f sha="$GITHUB_SHA" >/dev/null
-          gh release create dev-latest --verify-tag --prerelease --latest=false \
+          gh release create dev-latest --verify-tag --target "$GITHUB_SHA" --prerelease --latest=false \
             --title "Dasharr Dev $number" --notes-file notes.md
           # La suma SHA-256 se sube la última: hasta entonces la app no ofrece la actualización a medias.
           gh release upload dev-latest "$exe" "$apk"
