@@ -50,13 +50,48 @@ jobs:
             target/release/bundle/msi/*.msi
             target/release/bundle/nsis/*.exe
 
+  android:
+    name: APK de Android
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: android
+      - run: npm ci
+      # Como en Windows, CI compila «Dasharr Dev», que se instala junto a Dasharr.
+      - name: Compilar la APK
+        env:
+          DASHARR_ANDROID_DEV: "1"
+          DASHARR_ANDROID_KEYSTORE: ${{ secrets.DASHARR_ANDROID_KEYSTORE }}
+        run: |
+          export NDK_HOME="$ANDROID_NDK_LATEST_HOME"
+          scripts/build-android.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dasharr-android
+          path: dist-android/*
+          if-no-files-found: error
+
   # Versión de prueba: con cada cambio que entra en dev se vuelve a publicar la Release «dev-latest»
   # (marcada como prerelease, así que la versión estable sigue mirando solo las publicadas).
   # Las instalaciones que siguen el canal dev la detectan y se actualizan solas.
   dev-release:
     name: Publicar versión de prueba (dev)
     if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
-    needs: windows
+    needs: [windows, android]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -65,6 +100,10 @@ jobs:
         with:
           name: dasharr-windows
           path: build
+      - uses: actions/download-artifact@v4
+        with:
+          name: dasharr-android
+          path: build-android
       - name: Sustituir la Release «dev-latest» por esta compilación
         shell: bash
         env:
@@ -82,5 +121,7 @@ jobs:
           gh release delete dev-latest --cleanup-tag --yes || true
           # Esperar a que la etiqueta antigua desaparezca antes de crearla de nuevo en este commit.
           for i in 1 2 3 4 5 6; do gh api "repos/$GH_REPO/git/refs/tags/dev-latest" >/dev/null 2>&1 || break; sleep 5; done
-          gh release create dev-latest "$exe" "$exe.sha256" --prerelease --latest=false --target "$GITHUB_SHA" \
+          apk=$(find build-android -name '*_android.apk' | head -n1)
+          test -n "$apk"
+          gh release create dev-latest "$exe" "$exe.sha256" "$apk" "$apk.sha256" --prerelease --latest=false --target "$GITHUB_SHA" \
             --title "Dasharr Dev ($short)" --notes-file notes.md

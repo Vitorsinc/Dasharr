@@ -1,4 +1,4 @@
-//! Configuración de servicios: URLs en el store (JSON en AppData) y secretos en el Administrador de credenciales.
+//! Configuración de servicios: URLs en el store (JSON en AppData) y secretos aparte (ver `secrets`).
 use std::collections::HashMap;
 
 use dasharr_core::{ServiceConfig, ServiceKind, ServiceSecrets};
@@ -6,9 +6,10 @@ use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Runtime};
 use tauri_plugin_store::StoreExt;
 
+use crate::secrets;
+
 const STORE_FILE: &str = "settings.json";
 const SERVICES_KEY: &str = "services";
-const KEYRING_SERVICE: &str = "dasharr";
 
 /// Cambios en secretos: `None` mantiene el valor guardado, `Some("")` lo borra, `Some(v)` lo sustituye.
 #[derive(Debug, Clone, Default, Deserialize)]
@@ -90,21 +91,13 @@ pub fn save_config<R: Runtime>(app: &AppHandle<R>, kind: ServiceKind, config: &S
     store.save().map_err(|e| e.to_string())
 }
 
-fn entry(kind: ServiceKind) -> Result<keyring::Entry, String> {
-    keyring::Entry::new(KEYRING_SERVICE, kind.as_str()).map_err(|e| e.to_string())
-}
-
 pub fn load_secrets(kind: ServiceKind) -> ServiceSecrets {
-    entry(kind)
-        .and_then(|e| e.get_password().map_err(|e| e.to_string()))
-        .ok()
-        .and_then(|s| serde_json::from_str(&s).ok())
-        .unwrap_or_default()
+    secrets::get(kind.as_str()).and_then(|s| serde_json::from_str(&s).ok()).unwrap_or_default()
 }
 
 pub fn save_secrets(kind: ServiceKind, secrets: &ServiceSecrets) -> Result<(), String> {
     let json = serde_json::to_string(secrets).map_err(|e| e.to_string())?;
-    entry(kind)?.set_password(&json).map_err(|e| format!("No se pudo guardar en el Administrador de credenciales: {e}"))
+    secrets::set(kind.as_str(), &json)
 }
 
 #[cfg(test)]

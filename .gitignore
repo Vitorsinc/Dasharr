@@ -7,3 +7,4 @@ src-tauri/gen/schemas/
 coverage/
 *.tsbuildinfo
 dasharr-config*.json
+dist-android/

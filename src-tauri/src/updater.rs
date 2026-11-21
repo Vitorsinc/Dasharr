@@ -1,5 +1,7 @@
 //! Actualización desde las Releases de GitHub: compara la última versión publicada con la instalada,
 //! descarga el instalador `-setup.exe`, comprueba su SHA-256 y lo ejecuta en modo pasivo.
+//! En Android el paquete es `_android.apk` y se abre su descarga en el navegador: Android pide confirmar la
+//! instalación y una app no puede instalarse a sí misma sin ese paso.
 
 use std::cmp::Ordering;
 
@@ -13,6 +15,12 @@ pub const RELEASES_REPO: &str = "Vitorsinc/Dasharr";
 /// Etiqueta de la versión de prueba: CI la vuelve a publicar con cada cambio que entra en la rama dev.
 /// No puede llamarse «dev»: una etiqueta con el nombre de la rama confunde a `git fetch origin dev`.
 pub const DEV_TAG: &str = "dev-latest";
+
+/// Final del nombre del archivo que instala Dasharr en este sistema.
+#[cfg(not(target_os = "android"))]
+pub const INSTALLER_SUFFIX: &str = "-setup.exe";
+#[cfg(target_os = "android")]
+pub const INSTALLER_SUFFIX: &str = "_android.apk";
 
 #[derive(Deserialize)]
 struct GhRelease {
@@ -53,7 +61,7 @@ fn pick_update(release: GhRelease, current: &str) -> Option<UpdateInfo> {
     if compare_versions(&release.tag_name, current)? != Ordering::Greater {
         return None;
     }
-    let installer = release.assets.iter().find(|a| a.name.ends_with("-setup.exe"))?;
+    let installer = release.assets.iter().find(|a| a.name.ends_with(INSTALLER_SUFFIX))?;
     let checksum = release.assets.iter().find(|a| a.name == format!("{}.sha256", installer.name));
     Some(UpdateInfo {
         version: release.tag_name.trim_start_matches('v').to_string(),
@@ -71,9 +79,9 @@ fn pick_dev_update(release: GhRelease, current_build: &str) -> Option<UpdateInfo
     if !sha.chars().all(|c| c.is_ascii_hexdigit()) || current_build.trim() == short {
         return None;
     }
-    let installer = release.assets.iter().find(|a| a.name.ends_with("-setup.exe"))?;
+    let installer = release.assets.iter().find(|a| a.name.ends_with(INSTALLER_SUFFIX))?;
     let checksum = release.assets.iter().find(|a| a.name == format!("{}.sha256", installer.name))?;
-    // "Dasharr_0.5.0_x64-setup.exe" -> "0.5.0"
+    // "Dasharr_0.5.0_x64-setup.exe" / "Dasharr_0.5.0_android.apk" -> "0.5.0"
     let version = installer.name.split('_').nth(1).unwrap_or("?");
     Some(UpdateInfo {
         version: format!("{version} · dev {short}"),
@@ -113,6 +121,18 @@ fn allowed(url: &str) -> bool {
     url.starts_with(&format!("https://github.com/{RELEASES_REPO}/releases/download/"))
 }
 
+#[cfg(mobile)]
+#[tauri::command]
+pub async fn install_update<R: Runtime>(app: AppHandle<R>, installer_url: String, checksum_url: Option<String>) -> Result<(), String> {
+    use tauri_plugin_opener::OpenerExt;
+    if !allowed(&installer_url) || checksum_url.as_deref().is_some_and(|u| !allowed(u)) {
+        return Err("dirección de descarga no permitida".into());
+    }
+    log::info!("Abriendo la descarga de la actualización: {}", installer_url);
+    app.opener().open_url(installer_url, None::<&str>).map_err(|e| e.to_string())
+}
+
+#[cfg(desktop)]
 #[tauri::command]
 pub async fn install_update<R: Runtime>(app: AppHandle<R>, installer_url: String, checksum_url: Option<String>) -> Result<(), String> {
     if !allowed(&installer_url) || checksum_url.as_deref().is_some_and(|u| !allowed(u)) {

@@ -1,0 +1,16 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "desktop",
+  "description": "Permisos que solo existen en el escritorio",
+  "windows": [
+    "main"
+  ],
+  "platforms": [
+    "windows",
+    "linux",
+    "macOS"
+  ],
+  "permissions": [
+    "autostart:default"
+  ]
+}

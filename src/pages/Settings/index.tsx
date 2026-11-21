@@ -5,6 +5,7 @@ import { Navigate, useParams } from "react-router-dom";
 import { TabNav } from "@/components/TabNav";
 import { toast } from "sonner";
 import { disable, enable, isEnabled } from "@tauri-apps/plugin-autostart";
+import { isMobile } from "@/lib/platform";
 import { Page } from "@/components/Page";
 import { Loading, Segmented, Toggle } from "@/components/ui";
 import { t } from "@/i18n/es";
@@ -460,13 +461,17 @@ function Updates() {
           )}
         </div>
       )}
-      <div className="flex items-center justify-between gap-4 p-4">
-        <div className="flex flex-col gap-1">
-          <span className="text-sm">{t.updates.auto}</span>
-          <span className="text-xs text-muted">{t.updates.autoHint}</span>
+      {isMobile() ? (
+        <p className="p-4 text-xs text-muted">{t.updates.mobileHint}</p>
+      ) : (
+        <div className="flex items-center justify-between gap-4 p-4">
+          <div className="flex flex-col gap-1">
+            <span className="text-sm">{t.updates.auto}</span>
+            <span className="text-xs text-muted">{t.updates.autoHint}</span>
+          </div>
+          <Toggle label={t.updates.auto} checked={prefs.autoUpdate} onChange={(v) => setPrefs({ autoUpdate: v })} />
         </div>
-        <Toggle label={t.updates.auto} checked={prefs.autoUpdate} onChange={(v) => setPrefs({ autoUpdate: v })} />
-      </div>
+      )}
     </section>
   );
 }

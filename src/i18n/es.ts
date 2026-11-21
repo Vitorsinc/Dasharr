@@ -960,6 +960,8 @@ export const es = {
     newVersion: (v: string) => `Nueva versión disponible: v${v}`,
     notes: "Novedades",
     sidebar: (v: string) => `Actualizar a v${v}`,
+    mobileDownload: (v: string) => `Descargando Dasharr v${v} en el navegador. Cuando termine, ábrelo para instalarlo.`,
+    mobileHint: "Dasharr mira si hay versión nueva al abrirse y cada 6 horas (cada 10 minutos con las versiones de prueba) y te avisa. Al actualizar se descarga en el navegador y Android te pide confirmar la instalación.",
   },
   manualImport: {
     action: "Importar manualmente",
