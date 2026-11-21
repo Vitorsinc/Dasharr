@@ -128,7 +128,7 @@ Cada instalador lleva su archivo `.sha256` para comprobar la descarga.
 **Dasharr Dev:** cada cambio de la rama `dev` se publica solo en la Release
 [`dev-latest`](https://github.com/Vitorsinc/Dasharr/releases/tag/dev-latest) (Windows y Android). Se instala
 junto a Dasharr sin tocarlo, copia su configuración la primera vez, mira cada 10 minutos si hay cambios y se
-reinstala sola. No va firmada.
+reinstala sola. Cada versión de prueba lleva un número que sube con cada cambio (por ejemplo `v0.6.0 · dev 233`). No va firmada.
 
 <a id="primeros-pasos"></a>
 
@@ -146,7 +146,7 @@ reinstala sola. No va firmada.
 Las claves se guardan en el Administrador de credenciales de Windows (en Android, en la carpeta privada de
 la app).
 
-**Copia en Google (opcional):** en **Ajustes → Cuenta de Google** inicias sesión y eliges una contraseña.
+**Copia en Google (opcional):** en **Ajustes → Sistema → Sincronización con Google** inicias sesión y eliges una contraseña.
 Dasharr guarda servicios, claves y preferencias en su carpeta privada de tu Google Drive (no ve el resto de
 tus archivos), cifrados con AES-256-GCM con esa contraseña, que no sale de tus dispositivos. Detalles en
 [google.md](google.md).

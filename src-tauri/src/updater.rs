@@ -25,9 +25,9 @@ pub const INSTALLER_SUFFIX: &str = "_android.apk";
 #[derive(Deserialize)]
 struct GhRelease {
     tag_name: String,
-    /// Commit del que sale la versión (en la de prueba, el SHA completo del último cambio de dev).
+    /// Título de la Release. En la de prueba lleva su número al final: «Dasharr Dev 233».
     #[serde(default)]
-    target_commitish: Option<String>,
+    name: Option<String>,
     body: Option<String>,
     assets: Vec<GhAsset>,
 }
@@ -71,12 +71,17 @@ fn pick_update(release: GhRelease, current: &str) -> Option<UpdateInfo> {
     })
 }
 
-/// Versión de prueba: hay actualización si sale de un commit distinto del instalado. Exige la suma SHA-256
-/// (si aún no está subida, la publicación está a medias y se mira en la próxima comprobación).
+/// Número de la versión de prueba: el último número del título («Dasharr Dev 233» -> 233).
+fn dev_number(release: &GhRelease) -> Option<u64> {
+    release.name.as_deref()?.split_whitespace().last()?.parse().ok()
+}
+
+/// Versión de prueba: hay actualización si su número (cuántos cambios lleva la rama dev) es mayor que el de la
+/// instalada. Una instalación de antes, que en vez de número tenía un commit, se actualiza siempre.
+/// Exige la suma SHA-256 (si aún no está subida, la publicación está a medias y se mira en la próxima comprobación).
 fn pick_dev_update(release: GhRelease, current_build: &str) -> Option<UpdateInfo> {
-    let sha = release.target_commitish.as_deref()?.trim();
-    let short = sha.get(..7)?;
-    if !sha.chars().all(|c| c.is_ascii_hexdigit()) || current_build.trim() == short {
+    let number = dev_number(&release)?;
+    if current_build.trim().parse::<u64>().is_ok_and(|current| number <= current) {
         return None;
     }
     let installer = release.assets.iter().find(|a| a.name.ends_with(INSTALLER_SUFFIX))?;
@@ -84,7 +89,7 @@ fn pick_dev_update(release: GhRelease, current_build: &str) -> Option<UpdateInfo
     // "Dasharr_0.5.0_x64-setup.exe" / "Dasharr_0.5.0_android.apk" -> "0.5.0"
     let version = installer.name.split('_').nth(1).unwrap_or("?");
     Some(UpdateInfo {
-        version: format!("{version} · dev {short}"),
+        version: format!("{version} · dev {number}"),
         notes: release.body.unwrap_or_default(),
         installer_url: installer.browser_download_url.clone(),
         checksum_url: Some(checksum.browser_download_url.clone()),
@@ -173,7 +178,7 @@ mod tests {
     fn release(tag: &str) -> GhRelease {
         GhRelease {
             tag_name: tag.into(),
-            target_commitish: Some("master".into()),
+            name: Some(format!("Dasharr {tag}")),
             body: Some("notas".into()),
             assets: vec![
                 GhAsset { name: "Dasharr_0.2.0_x64-setup.exe".into(), browser_download_url: "https://github.com/x/setup.exe".into() },
@@ -200,27 +205,28 @@ mod tests {
         assert!(pick_update(release("v0.2.0"), "0.2.0").is_none());
     }
 
-    #[test]
-    fn dev_update_when_commit_differs() {
-        let mut r = release("dev");
-        r.target_commitish = Some("abc1234def5678abc1234def5678abc1234def56".into());
-        let u = pick_dev_update(r, "0ff1ce0").unwrap();
-        assert_eq!(u.version, "0.2.0 · dev abc1234");
-        assert_eq!(u.checksum_url.as_deref(), Some("https://github.com/x/sha"));
-
-        let mut same = release("dev");
-        same.target_commitish = Some("abc1234def5678abc1234def5678abc1234def56".into());
-        assert!(pick_dev_update(same, "abc1234").is_none());
+    fn dev_release(name: &str) -> GhRelease {
+        GhRelease { name: Some(name.into()), ..release("dev-latest") }
     }
 
     #[test]
-    fn dev_update_needs_checksum_and_commit() {
-        let mut r = release("dev");
-        r.target_commitish = Some("abc1234def5678abc1234def5678abc1234def56".into());
+    fn dev_update_when_number_is_higher() {
+        let u = pick_dev_update(dev_release("Dasharr Dev 233"), "230").unwrap();
+        assert_eq!(u.version, "0.2.0 · dev 233");
+        assert_eq!(u.checksum_url.as_deref(), Some("https://github.com/x/sha"));
+        assert!(pick_dev_update(dev_release("Dasharr Dev 233"), "233").is_none());
+        assert!(pick_dev_update(dev_release("Dasharr Dev 233"), "240").is_none());
+        // Las instalaciones de antes tenían un commit en vez de número: se actualizan a la numerada.
+        assert!(pick_dev_update(dev_release("Dasharr Dev 233"), "0ff1ce0").is_some());
+    }
+
+    #[test]
+    fn dev_update_needs_checksum_and_number() {
+        let mut r = dev_release("Dasharr Dev 233");
         r.assets.retain(|a| !a.name.ends_with(".sha256"));
-        assert!(pick_dev_update(r, "0ff1ce0").is_none());
-        // Sin commit (o con un nombre de rama en vez de SHA) no se puede saber si es otra versión.
-        assert!(pick_dev_update(release("dev"), "0ff1ce0").is_none());
+        assert!(pick_dev_update(r, "1").is_none());
+        // Título antiguo, con commit en vez de número: no se puede saber si es más nueva.
+        assert!(pick_dev_update(dev_release("Dasharr Dev (abc1234)"), "1").is_none());
     }
 
     #[test]

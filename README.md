@@ -201,6 +201,8 @@ Android. This build is called **Dasharr Dev** and installs **side by side** with
 name, folder, shortcut and settings.
 
 - On first launch it copies your Dasharr configuration; API keys and passwords are shared.
+- Each preview build has a number that goes up with every change (for example `v0.6.0 · dev 233`): the
+  number of commits on `dev`.
 - It checks for a new build every 10 minutes and reinstalls itself (with 30 seconds to postpone).
 - Preview builds are not code-signed.
 
@@ -222,7 +224,7 @@ storage). You can also import an existing configuration from a file.
 
 ### ☁️ Sync with Google (optional)
 
-**Ajustes → Cuenta de Google** keeps the same configuration on your PC and phone. Sign in with Google and
+**Ajustes → Sistema → Sincronización con Google** keeps the same configuration on your PC and phone. Sign in with Google and
 choose a password: Dasharr saves your services, keys and preferences to its **private app folder** in your
 Google Drive (it cannot see your other files), encrypted with AES-256-GCM using a key derived from your
 password, which never leaves your devices. It syncs on its own while Dasharr is open. Technical details:

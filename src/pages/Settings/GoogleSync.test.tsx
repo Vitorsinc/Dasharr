@@ -9,7 +9,7 @@ const base: GoogleStatus = { available: true, signedIn: false, email: null, hasP
 
 test("sin identificador de Google lo explica", async () => {
   mockBackend({ commands: { google_status: () => ({ ...base, available: false }) } });
-  renderApp("/ajustes/google");
+  renderApp("/ajustes/sistema");
   expect(await screen.findByText(/todavía no trae la conexión con Google/)).toBeInTheDocument();
 });
 
@@ -33,7 +33,7 @@ test("inicia sesión, pide la contraseña y sube la configuración si no hay cop
       },
     },
   });
-  renderApp("/ajustes/google");
+  renderApp("/ajustes/sistema");
   await userEvent.click(await screen.findByRole("button", { name: "Iniciar sesión con Google" }));
   expect(await screen.findByText("Sesión iniciada como yo@gmail.com")).toBeInTheDocument();
   await userEvent.type(screen.getByLabelText("Contraseña de la copia"), "una-clave-larga");
@@ -57,7 +57,7 @@ test("si ya hay copia pregunta y usa la de Google", async () => {
       sync_pull: pull,
     },
   });
-  renderApp("/ajustes/google");
+  renderApp("/ajustes/sistema");
   expect(await screen.findByText("Ya hay una copia en tu cuenta de Google")).toBeInTheDocument();
   expect(screen.getByText(/Se guardó desde Android/)).toBeInTheDocument();
   await userEvent.click(screen.getByRole("button", { name: "Usar la de Google en este dispositivo" }));
