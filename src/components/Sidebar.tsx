@@ -259,7 +259,8 @@ export function MobileNav() {
   const [open, setOpen] = useState(false);
   const { pathname } = useLocation();
   const { available } = useUpdateState();
-  const errors = useErrors().length;
+  const errors = useErrors();
+  const severe = errors.some((e) => (e.level ?? "error") === "error");
   // Al cambiar de página se cierra el panel.
   useEffect(() => setOpen(false), [pathname]);
   const inTabs = tabs.some((i) => (i.end ? pathname === i.to : pathname === i.to || pathname.startsWith(`${i.to}/`)));
@@ -296,9 +297,9 @@ export function MobileNav() {
         >
           <Menu className="h-5 w-5" aria-hidden />
           <span>{t.nav.more}</span>
-          {(errors > 0 || available) && (
+          {(errors.length > 0 || available) && (
             <span
-              className={cn("absolute right-[calc(50%-14px)] top-1.5 h-2 w-2 rounded-full", errors ? "bg-danger" : "bg-accent")}
+              className={cn("absolute right-[calc(50%-14px)] top-1.5 h-2 w-2 rounded-full", errors.length ? (severe ? "bg-danger" : "bg-warning") : "bg-accent")}
               aria-hidden
             />
           )}

@@ -20,7 +20,7 @@ describe("ErrorBell", () => {
     await userEvent.click(screen.getAllByRole("button", { name: "Marcar como leído" })[0]);
     expect(getErrors()).toHaveLength(1);
     await userEvent.click(screen.getByRole("button", { name: "Marcar todos como leídos" }));
-    expect(screen.getByText(/No hay errores/)).toBeInTheDocument();
+    expect(screen.getByText(/No hay errores ni avisos/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Errores" })).toBeInTheDocument();
   });
 });
