@@ -1,6 +1,6 @@
 # Copia de la configuración en Google
 
-Ajustes → Cuenta de Google guarda la configuración de Dasharr (servicios, claves, clave de TMDB y
+Ajustes → Sistema → Sincronización con Google guarda la configuración de Dasharr (servicios, claves, clave de TMDB y
 preferencias) en la carpeta privada de la app en Google Drive (`appDataFolder`), cifrada con una
 contraseña que elige el usuario. Así el PC y el móvil tienen la misma configuración.
 

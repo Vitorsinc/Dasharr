@@ -1000,8 +1000,7 @@ export const es = {
     incomplete: "Falta elegir a qué corresponde algún archivo marcado.",
   },
   google: {
-    tab: "Cuenta de Google",
-    title: "Copia en tu cuenta de Google",
+    title: "Sincronización con Google",
     hint: "Guarda la configuración (servicios, claves y preferencias) en tu Google Drive y tenla igual en el PC y en el móvil.",
     unavailable: "Esta versión de Dasharr todavía no trae la conexión con Google.",
     login: "Iniciar sesión con Google",
