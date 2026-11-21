@@ -12,10 +12,11 @@ pub enum ServiceKind {
     Tracearr,
     Plex,
     Seerr,
+    Beszel,
 }
 
 impl ServiceKind {
-    pub const ALL: [ServiceKind; 8] = [
+    pub const ALL: [ServiceKind; 9] = [
         ServiceKind::Radarr,
         ServiceKind::Sonarr,
         ServiceKind::Prowlarr,
@@ -24,6 +25,7 @@ impl ServiceKind {
         ServiceKind::Tracearr,
         ServiceKind::Plex,
         ServiceKind::Seerr,
+        ServiceKind::Beszel,
     ];
 
     pub fn as_str(self) -> &'static str {
@@ -36,6 +38,7 @@ impl ServiceKind {
             ServiceKind::Tracearr => "tracearr",
             ServiceKind::Plex => "plex",
             ServiceKind::Seerr => "seerr",
+            ServiceKind::Beszel => "beszel",
         }
     }
 
@@ -54,6 +57,8 @@ impl ServiceKind {
             ServiceKind::Plex => "/identity",
             // Público: responde sin API key.
             ServiceKind::Seerr => "/api/v1/status",
+            // Salud de PocketBase, pública.
+            ServiceKind::Beszel => "/api/health",
         }
     }
 }
@@ -69,6 +74,20 @@ pub struct ServiceConfig {
 
 fn default_true() -> bool {
     true
+}
+
+/// Interpreta los servicios guardados de uno en uno: uno que esta versión no conoce (p. ej. guardado
+/// por una versión más nueva) o que está dañado se ignora sin hacer desaparecer el resto.
+pub fn parse_service_configs(
+    raw: &serde_json::Map<String, Value>,
+) -> std::collections::HashMap<ServiceKind, ServiceConfig> {
+    raw.iter()
+        .filter_map(|(key, value)| {
+            let kind = serde_json::from_value::<ServiceKind>(Value::String(key.clone())).ok()?;
+            let config = serde_json::from_value::<ServiceConfig>(value.clone()).ok()?;
+            Some((kind, config))
+        })
+        .collect()
 }
 
 impl ServiceConfig {

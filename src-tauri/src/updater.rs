@@ -10,9 +10,16 @@ use tauri::{AppHandle, Runtime};
 /// Repositorio donde se publican las versiones (debe ser público para descargar sin sesión).
 pub const RELEASES_REPO: &str = "Vitorsinc/Dasharr";
 
+/// Etiqueta de la versión de prueba: CI la vuelve a publicar con cada cambio que entra en la rama dev.
+/// No puede llamarse «dev»: una etiqueta con el nombre de la rama confunde a `git fetch origin dev`.
+pub const DEV_TAG: &str = "dev-latest";
+
 #[derive(Deserialize)]
 struct GhRelease {
     tag_name: String,
+    /// Commit del que sale la versión (en la de prueba, el SHA completo del último cambio de dev).
+    #[serde(default)]
+    target_commitish: Option<String>,
     body: Option<String>,
     assets: Vec<GhAsset>,
 }
@@ -56,6 +63,26 @@ fn pick_update(release: GhRelease, current: &str) -> Option<UpdateInfo> {
     })
 }
 
+/// Versión de prueba: hay actualización si sale de un commit distinto del instalado. Exige la suma SHA-256
+/// (si aún no está subida, la publicación está a medias y se mira en la próxima comprobación).
+fn pick_dev_update(release: GhRelease, current_build: &str) -> Option<UpdateInfo> {
+    let sha = release.target_commitish.as_deref()?.trim();
+    let short = sha.get(..7)?;
+    if !sha.chars().all(|c| c.is_ascii_hexdigit()) || current_build.trim() == short {
+        return None;
+    }
+    let installer = release.assets.iter().find(|a| a.name.ends_with("-setup.exe"))?;
+    let checksum = release.assets.iter().find(|a| a.name == format!("{}.sha256", installer.name))?;
+    // "Dasharr_0.5.0_x64-setup.exe" -> "0.5.0"
+    let version = installer.name.split('_').nth(1).unwrap_or("?");
+    Some(UpdateInfo {
+        version: format!("{version} · dev {short}"),
+        notes: release.body.unwrap_or_default(),
+        installer_url: installer.browser_download_url.clone(),
+        checksum_url: Some(checksum.browser_download_url.clone()),
+    })
+}
+
 fn http() -> Result<reqwest::Client, String> {
     reqwest::Client::builder()
         .user_agent(concat!("Dasharr/", env!("CARGO_PKG_VERSION")))
@@ -63,17 +90,23 @@ fn http() -> Result<reqwest::Client, String> {
         .map_err(|e| e.to_string())
 }
 
-/// Devuelve la versión nueva si la hay; `None` si ya está al día.
+/// Devuelve la versión nueva si la hay; `None` si ya está al día. Con `dev = true` mira la versión de prueba
+/// (rama dev) y la compara con el commit instalado (`build`); si no, la última versión publicada.
 #[tauri::command]
-pub async fn check_update<R: Runtime>(app: AppHandle<R>) -> Result<Option<UpdateInfo>, String> {
+pub async fn check_update<R: Runtime>(app: AppHandle<R>, dev: Option<bool>, build: Option<String>) -> Result<Option<UpdateInfo>, String> {
     let current = app.package_info().version.to_string();
-    let url = format!("https://api.github.com/repos/{RELEASES_REPO}/releases/latest");
+    let dev = dev.unwrap_or(false);
+    let url = if dev {
+        format!("https://api.github.com/repos/{RELEASES_REPO}/releases/tags/{DEV_TAG}")
+    } else {
+        format!("https://api.github.com/repos/{RELEASES_REPO}/releases/latest")
+    };
     let res = http()?.get(url).header("Accept", "application/vnd.github+json").send().await.map_err(|e| e.to_string())?;
     if res.status() == reqwest::StatusCode::NOT_FOUND {
         return Ok(None); // aún no hay versiones publicadas (o el repositorio no es público)
     }
     let release: GhRelease = res.error_for_status().map_err(|e| e.to_string())?.json().await.map_err(|e| e.to_string())?;
-    Ok(pick_update(release, &current))
+    Ok(if dev { pick_dev_update(release, build.as_deref().unwrap_or_default()) } else { pick_update(release, &current) })
 }
 
 fn allowed(url: &str) -> bool {
@@ -120,6 +153,7 @@ mod tests {
     fn release(tag: &str) -> GhRelease {
         GhRelease {
             tag_name: tag.into(),
+            target_commitish: Some("master".into()),
             body: Some("notas".into()),
             assets: vec![
                 GhAsset { name: "Dasharr_0.2.0_x64-setup.exe".into(), browser_download_url: "https://github.com/x/setup.exe".into() },
@@ -144,6 +178,29 @@ mod tests {
         assert_eq!(u.installer_url, "https://github.com/x/setup.exe");
         assert_eq!(u.checksum_url.as_deref(), Some("https://github.com/x/sha"));
         assert!(pick_update(release("v0.2.0"), "0.2.0").is_none());
+    }
+
+    #[test]
+    fn dev_update_when_commit_differs() {
+        let mut r = release("dev");
+        r.target_commitish = Some("abc1234def5678abc1234def5678abc1234def56".into());
+        let u = pick_dev_update(r, "0ff1ce0").unwrap();
+        assert_eq!(u.version, "0.2.0 · dev abc1234");
+        assert_eq!(u.checksum_url.as_deref(), Some("https://github.com/x/sha"));
+
+        let mut same = release("dev");
+        same.target_commitish = Some("abc1234def5678abc1234def5678abc1234def56".into());
+        assert!(pick_dev_update(same, "abc1234").is_none());
+    }
+
+    #[test]
+    fn dev_update_needs_checksum_and_commit() {
+        let mut r = release("dev");
+        r.target_commitish = Some("abc1234def5678abc1234def5678abc1234def56".into());
+        r.assets.retain(|a| !a.name.ends_with(".sha256"));
+        assert!(pick_dev_update(r, "0ff1ce0").is_none());
+        // Sin commit (o con un nombre de rama en vez de SHA) no se puede saber si es otra versión.
+        assert!(pick_dev_update(release("dev"), "0ff1ce0").is_none());
     }
 
     #[test]

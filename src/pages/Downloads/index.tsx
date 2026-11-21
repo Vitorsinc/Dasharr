@@ -1,20 +1,34 @@
 import { useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { ArrowDown, ArrowUp, Gauge, Pause, Play, Plus, RotateCw, Tag, Trash2, Turtle, Zap } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronDown, ChevronUp, Gauge, Pause, Play, Plus, RotateCw, Tag, Trash2, Turtle, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { Page } from "@/components/Page";
 import { ErrorPanel, NotConfigured } from "@/components/ErrorPanel";
 import { ConfirmDialog } from "@/components/Dialog";
-import { Empty, Loading, ProgressBar, Segmented } from "@/components/ui";
+import { Empty, Loading, Segmented } from "@/components/ui";
 import { t } from "@/i18n/es";
 import { qbit, torrentGroup, type Torrent, type TorrentGroup } from "@/api/qbit";
 import { useCategories, useServerState, useTorrents } from "@/hooks/useTorrents";
 import { errorMessage } from "@/lib/errors";
-import { formatBytes, formatEta, formatPercent, formatSpeed } from "@/lib/format";
+import { formatSpeed } from "@/lib/format";
 import { cn } from "@/lib/cn";
+import { usePrefs } from "@/hooks/usePrefs";
+import { usePersistedSort } from "@/hooks/usePersistedSort";
 import { AddTorrentDialog } from "./AddTorrentDialog";
 import { CategoryDialog, LimitsDialog } from "./BulkDialogs";
 import { TorrentDetail } from "./TorrentDetail";
+import { ColumnPicker } from "./ColumnPicker";
+import {
+  columnDefs,
+  DEFAULT_DOWNLOAD_SORT,
+  firstDir,
+  isDownloadSort,
+  sortTorrents,
+  visibleColumns,
+  type DownloadColumn,
+  type DownloadSort,
+  type SortKey,
+} from "./columns";
 
 type Filter = "all" | TorrentGroup;
 
@@ -44,6 +58,38 @@ function IconButton({
   );
 }
 
+function SortHeader({
+  label,
+  sortKey,
+  sort,
+  onSort,
+  className,
+  children,
+}: {
+  label: string;
+  sortKey: SortKey;
+  sort: DownloadSort;
+  onSort: (k: SortKey) => void;
+  className?: string;
+  children?: React.ReactNode;
+}) {
+  const active = sort.key === sortKey;
+  const Icon = sort.dir === "asc" ? ChevronUp : ChevronDown;
+  return (
+    <th className={cn("px-3 py-2 font-medium", className)} aria-sort={active ? (sort.dir === "asc" ? "ascending" : "descending") : "none"}>
+      <button
+        className={cn("inline-flex items-center gap-1 whitespace-nowrap hover:text-fg", active && "text-fg")}
+        onClick={() => onSort(sortKey)}
+        title={t.downloads.sortBy(label)}
+        aria-label={t.downloads.sortBy(label)}
+      >
+        {children ?? label}
+        <Icon className={cn("h-3.5 w-3.5", active ? "text-accent" : "invisible")} aria-hidden />
+      </button>
+    </th>
+  );
+}
+
 function Stat({ icon: Icon, label, value }: { icon: typeof ArrowDown; label: string; value: string }) {
   return (
     <div className="card flex items-center gap-3 px-4 py-3">
@@ -68,12 +114,18 @@ export default function DownloadsPage() {
   const [toDelete, setToDelete] = useState<string[] | null>(null);
   const [detailHash, setDetailHash] = useState<string | null>(null);
   const [bulk, setBulk] = useState<{ kind: "category" | "limits"; hashes: string[] } | null>(null);
+  const [prefs, setPrefs] = usePrefs();
+  const columns = visibleColumns(prefs.downloadColumns);
+  const [sort, setSort] = usePersistedSort<DownloadSort>("downloads", DEFAULT_DOWNLOAD_SORT, isDownloadSort);
+  const onSort = (key: SortKey) =>
+    setSort((s) => (s.key === key ? { key, dir: s.dir === "asc" ? "desc" : "asc" } : { key, dir: firstDir(key) }));
 
   const list = useMemo(() => {
-    return (torrents.data ?? []).filter(
+    const filtered = (torrents.data ?? []).filter(
       (tr) => (filter === "all" || torrentGroup(tr) === filter) && (category === "__all" || tr.category === category),
     );
-  }, [torrents.data, filter, category]);
+    return sortTorrents(filtered, sort);
+  }, [torrents.data, filter, category, sort]);
 
   const refresh = () => qc.invalidateQueries({ queryKey: ["qbittorrent"] });
   const run = async (fn: () => Promise<unknown>) => {
@@ -153,32 +205,35 @@ export default function DownloadsPage() {
             <option key={c}>{c}</option>
           ))}
         </select>
-        {sel.length > 0 && (
-          <div className="ml-auto flex items-center gap-1 rounded-lg border border-border bg-surface px-2 py-1">
-            <span className="px-2 text-sm text-muted">{t.downloads.selected(sel.length)}</span>
-            <IconButton label={t.downloads.resume} onClick={() => run(() => qbit.resume(sel))}>
-              <Play className="h-4 w-4" />
-            </IconButton>
-            <IconButton label={t.downloads.pause} onClick={() => run(() => qbit.pause(sel))}>
-              <Pause className="h-4 w-4" />
-            </IconButton>
-            <IconButton label={t.downloads.forceStart} onClick={() => run(() => qbit.forceStart(sel))}>
-              <Zap className="h-4 w-4" />
-            </IconButton>
-            <IconButton label={t.downloads.recheck} onClick={() => run(() => qbit.recheck(sel))}>
-              <RotateCw className="h-4 w-4" />
-            </IconButton>
-            <IconButton label={t.downloads.setCategory} onClick={() => setBulk({ kind: "category", hashes: sel })}>
-              <Tag className="h-4 w-4" />
-            </IconButton>
-            <IconButton label={t.downloads.setLimits} onClick={() => setBulk({ kind: "limits", hashes: sel })}>
-              <Gauge className="h-4 w-4" />
-            </IconButton>
-            <IconButton label={t.common.delete} danger onClick={() => setToDelete(sel)}>
-              <Trash2 className="h-4 w-4" />
-            </IconButton>
-          </div>
-        )}
+        <div className="ml-auto flex flex-wrap items-center gap-3">
+          {sel.length > 0 && (
+            <div className="flex items-center gap-1 rounded-lg border border-border bg-surface px-2 py-1">
+              <span className="px-2 text-sm text-muted">{t.downloads.selected(sel.length)}</span>
+              <IconButton label={t.downloads.resume} onClick={() => run(() => qbit.resume(sel))}>
+                <Play className="h-4 w-4" />
+              </IconButton>
+              <IconButton label={t.downloads.pause} onClick={() => run(() => qbit.pause(sel))}>
+                <Pause className="h-4 w-4" />
+              </IconButton>
+              <IconButton label={t.downloads.forceStart} onClick={() => run(() => qbit.forceStart(sel))}>
+                <Zap className="h-4 w-4" />
+              </IconButton>
+              <IconButton label={t.downloads.recheck} onClick={() => run(() => qbit.recheck(sel))}>
+                <RotateCw className="h-4 w-4" />
+              </IconButton>
+              <IconButton label={t.downloads.setCategory} onClick={() => setBulk({ kind: "category", hashes: sel })}>
+                <Tag className="h-4 w-4" />
+              </IconButton>
+              <IconButton label={t.downloads.setLimits} onClick={() => setBulk({ kind: "limits", hashes: sel })}>
+                <Gauge className="h-4 w-4" />
+              </IconButton>
+              <IconButton label={t.common.delete} danger onClick={() => setToDelete(sel)}>
+                <Trash2 className="h-4 w-4" />
+              </IconButton>
+            </div>
+          )}
+          <ColumnPicker value={columns} onChange={(cols) => setPrefs({ downloadColumns: cols })} />
+        </div>
       </div>
 
       {torrents.isLoading || torrents.configured === undefined ? (
@@ -188,7 +243,7 @@ export default function DownloadsPage() {
       ) : list.length === 0 ? (
         <Empty />
       ) : (
-        <div className="card overflow-hidden">
+        <div className="card overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="border-b border-border text-left text-xs text-muted">
               <tr>
@@ -200,13 +255,12 @@ export default function DownloadsPage() {
                     onChange={() => setSelected(allSelected ? new Set() : new Set(list.map((x) => x.hash)))}
                   />
                 </th>
-                <th className="px-3 py-2 font-medium">{t.downloads.name}</th>
-                <th className="w-24 px-3 py-2 font-medium">{t.downloads.size}</th>
-                <th className="w-44 px-3 py-2 font-medium">{t.downloads.progress}</th>
-                <th className="w-28 px-3 py-2 font-medium">
-                  <ArrowDown className="inline h-3.5 w-3.5" /> / <ArrowUp className="inline h-3.5 w-3.5" />
-                </th>
-                <th className="w-24 px-3 py-2 font-medium">{t.downloads.eta}</th>
+                <SortHeader label={t.downloads.name} sortKey="name" sort={sort} onSort={onSort} />
+                {columns.map((c) => (
+                  <SortHeader key={c} label={columnDefs[c].label} sortKey={c} sort={sort} onSort={onSort} className={columnDefs[c].width}>
+                    {columnDefs[c].header}
+                  </SortHeader>
+                ))}
                 <th className="w-36 px-3 py-2" />
               </tr>
             </thead>
@@ -215,6 +269,7 @@ export default function DownloadsPage() {
                 <TorrentRow
                   key={tr.hash}
                   tr={tr}
+                  columns={columns}
                   selected={selected.has(tr.hash)}
                   onToggle={() => toggle(tr.hash)}
                   run={run}
@@ -267,6 +322,7 @@ export default function DownloadsPage() {
 
 function TorrentRow({
   tr,
+  columns,
   selected,
   onToggle,
   run,
@@ -274,6 +330,7 @@ function TorrentRow({
   onOpen,
 }: {
   tr: Torrent;
+  columns: DownloadColumn[];
   selected: boolean;
   onToggle: () => void;
   run: (fn: () => Promise<unknown>) => void;
@@ -287,7 +344,7 @@ function TorrentRow({
       <td className="px-3 py-2.5">
         <input type="checkbox" aria-label={t.downloads.select(tr.name)} checked={selected} onChange={onToggle} />
       </td>
-      <td className="max-w-0 px-3 py-2.5">
+      <td className="min-w-[16rem] max-w-0 px-3 py-2.5">
         <button
           className="block w-full truncate text-left font-medium hover:text-accent"
           title={tr.name}
@@ -298,7 +355,7 @@ function TorrentRow({
         </button>
         <div className="mt-0.5 flex items-center gap-2 text-xs text-muted">
           <span className={cn("chip", groupStyle[group])}>{t.downloads.state[group]}</span>
-          {tr.category && <span>{tr.category}</span>}
+          {tr.category && !columns.includes("category") && <span>{tr.category}</span>}
           {((tr.dl_limit ?? 0) > 0 || (tr.up_limit ?? 0) > 0) && (
             <span className="flex items-center gap-0.5" title={t.downloads.setLimits}>
               <Gauge className="h-3 w-3" />
@@ -306,9 +363,11 @@ function TorrentRow({
               {(tr.up_limit ?? 0) > 0 && <span>↑{formatSpeed(tr.up_limit)}</span>}
             </span>
           )}
-          <span>
-            {t.downloads.seeds}: {tr.num_seeds}
-          </span>
+          {!columns.includes("peers") && (
+            <span>
+              {t.downloads.seeds}: {tr.num_seeds}
+            </span>
+          )}
         </div>
         {group === "error" && tr.error && (
           <div className="mt-0.5 truncate text-xs text-danger" title={tr.error}>
@@ -316,16 +375,11 @@ function TorrentRow({
           </div>
         )}
       </td>
-      <td className="px-3 py-2.5 tabular-nums text-muted">{formatBytes(tr.size)}</td>
-      <td className="px-3 py-2.5">
-        <div className="mb-1 text-xs tabular-nums">{formatPercent(tr.progress)}</div>
-        <ProgressBar value={tr.progress} tone={group === "error" ? "danger" : tr.progress >= 1 ? "success" : "accent"} />
-      </td>
-      <td className="px-3 py-2.5 text-xs tabular-nums text-muted">
-        <div>{formatSpeed(tr.dlspeed)}</div>
-        <div>{formatSpeed(tr.upspeed)}</div>
-      </td>
-      <td className="px-3 py-2.5 tabular-nums text-muted">{tr.progress >= 1 ? "—" : formatEta(tr.eta)}</td>
+      {columns.map((c) => (
+        <td key={c} className={cn("max-w-0 px-3 py-2.5", columnDefs[c].width, columnDefs[c].className)}>
+          {columnDefs[c].cell(tr)}
+        </td>
+      ))}
       <td className="px-3 py-2.5">
         <div className="flex justify-end gap-0.5">
           {paused ? (

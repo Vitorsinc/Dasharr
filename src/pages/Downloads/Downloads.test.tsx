@@ -14,6 +14,7 @@ const torrents = [
     state: "downloading",
     category: "radarr",
     num_seeds: 40,
+    added_on: 300,
   },
   {
     hash: "h2",
@@ -26,6 +27,7 @@ const torrents = [
     state: "uploading",
     category: "sonarr",
     num_seeds: 10,
+    added_on: 200,
   },
   {
     hash: "h3",
@@ -38,6 +40,7 @@ const torrents = [
     state: "stoppedDL",
     category: "",
     num_seeds: 0,
+    added_on: 100,
   },
 ];
 
@@ -103,6 +106,50 @@ test("borrar pide confirmación y respeta la casilla de archivos", async () => {
       ],
     },
   });
+});
+
+const names = () =>
+  screen
+    .getAllByRole("button", { name: /^Ver detalles de / })
+    .map((b) => b.textContent);
+
+test("ordena al pulsar la cabecera y recuerda el orden", async () => {
+  backend();
+  const first = renderApp("/descargas");
+  await screen.findByText("Dune.Part.Two.2024.2160p");
+  // Por defecto, el orden de qBittorrent (lo último añadido arriba).
+  expect(names()).toEqual(["Dune.Part.Two.2024.2160p", "Shogun.S01E01.1080p", "Pausado.iso"]);
+  await userEvent.click(screen.getByRole("button", { name: "Ordenar por Tamaño" }));
+  expect(names()).toEqual(["Dune.Part.Two.2024.2160p", "Shogun.S01E01.1080p", "Pausado.iso"]);
+  expect(screen.getByRole("button", { name: "Ordenar por Tamaño" }).closest("th")).toHaveAttribute("aria-sort", "descending");
+  await userEvent.click(screen.getByRole("button", { name: "Ordenar por Tamaño" }));
+  expect(names()).toEqual(["Pausado.iso", "Shogun.S01E01.1080p", "Dune.Part.Two.2024.2160p"]);
+  await userEvent.click(screen.getByRole("button", { name: "Ordenar por Nombre" }));
+  expect(names()).toEqual(["Dune.Part.Two.2024.2160p", "Pausado.iso", "Shogun.S01E01.1080p"]);
+  first.unmount();
+  renderApp("/descargas");
+  await screen.findByText("Dune.Part.Two.2024.2160p");
+  expect(names()).toEqual(["Dune.Part.Two.2024.2160p", "Pausado.iso", "Shogun.S01E01.1080p"]);
+});
+
+test("elige qué columnas se ven y se guarda", async () => {
+  backend();
+  const first = renderApp("/descargas");
+  await screen.findByText("Dune.Part.Two.2024.2160p");
+  expect(screen.queryByRole("button", { name: "Ordenar por Categoría" })).not.toBeInTheDocument();
+  await userEvent.click(screen.getByRole("button", { name: "Columnas" }));
+  await userEvent.click(screen.getByRole("checkbox", { name: "Tamaño" }));
+  await userEvent.click(screen.getByRole("checkbox", { name: "Categoría" }));
+  expect(screen.queryByRole("button", { name: "Ordenar por Tamaño" })).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Ordenar por Categoría" })).toBeInTheDocument();
+  first.unmount();
+  renderApp("/descargas");
+  await screen.findByText("Dune.Part.Two.2024.2160p");
+  expect(screen.queryByRole("button", { name: "Ordenar por Tamaño" })).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Ordenar por Categoría" })).toBeInTheDocument();
+  await userEvent.click(screen.getByRole("button", { name: "Columnas" }));
+  await userEvent.click(screen.getByRole("button", { name: "Restablecer" }));
+  expect(screen.getByRole("button", { name: "Ordenar por Tamaño" })).toBeInTheDocument();
 });
 
 test("sin configurar muestra acceso a Ajustes", async () => {

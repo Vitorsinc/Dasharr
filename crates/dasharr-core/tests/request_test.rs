@@ -433,3 +433,59 @@ async fn seerr_test_checks_key_then_reads_version() {
     let bad = ServiceClient::new(ServiceKind::Seerr, cfg(&s.uri()), key("nope"));
     assert!(matches!(bad.test().await, Err(ApiError::Unauthorized)));
 }
+
+fn beszel_login(user: &str, pass: &str) -> ServiceSecrets {
+    ServiceSecrets { username: Some(user.into()), password: Some(pass.into()), ..Default::default() }
+}
+
+#[tokio::test]
+async fn beszel_logs_in_with_email_and_sends_token() {
+    let s = MockServer::start().await;
+    Mock::given(path("/api/health")).respond_with(ResponseTemplate::new(200)).mount(&s).await;
+    Mock::given(method("POST"))
+        .and(path("/api/collections/users/auth-with-password"))
+        .and(body_string(r#"{"identity":"yo@casa.es","password":"pw"}"#))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({"token": "tok1", "record": {"id": "u1"}})))
+        .expect(1)
+        .mount(&s)
+        .await;
+    Mock::given(method("POST"))
+        .and(path("/api/collections/users/auth-with-password"))
+        .respond_with(ResponseTemplate::new(400).set_body_json(json!({"message": "Failed to authenticate."})))
+        .mount(&s)
+        .await;
+    Mock::given(path("/api/beszel/info"))
+        .and(header("Authorization", "tok1"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({"key": "ssh-ed25519 x", "v": "0.21.2"})))
+        .mount(&s)
+        .await;
+    Mock::given(path("/api/beszel/info")).respond_with(ResponseTemplate::new(401)).mount(&s).await;
+    let c = ServiceClient::new(ServiceKind::Beszel, cfg(&s.uri()), beszel_login("yo@casa.es", "pw"));
+    assert_eq!(c.test().await.unwrap(), "0.21.2");
+    // La sesión se reutiliza: no vuelve a iniciar sesión (expect(1)).
+    assert_eq!(c.test().await.unwrap(), "0.21.2");
+    let bad = ServiceClient::new(ServiceKind::Beszel, cfg(&s.uri()), beszel_login("yo@casa.es", "mal"));
+    assert!(matches!(bad.test().await, Err(ApiError::Unauthorized)));
+}
+
+#[tokio::test]
+async fn beszel_api_key_skips_login_and_proxy_auth() {
+    let s = MockServer::start().await;
+    Mock::given(path("/api/health")).respond_with(ResponseTemplate::new(200)).mount(&s).await;
+    Mock::given(path("/api/collections/users/auth-with-password")).respond_with(ResponseTemplate::new(500)).expect(0).mount(&s).await;
+    Mock::given(path("/api/collections/systems/records"))
+        .and(header("Authorization", "static-key"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({"items": []})))
+        .mount(&s)
+        .await;
+    let secrets = ServiceSecrets {
+        api_key: Some("static-key".into()),
+        username: Some("yo@casa.es".into()),
+        proxy_username: Some("proxy".into()),
+        proxy_password: Some("pp".into()),
+        ..Default::default()
+    };
+    let config = ServiceConfig { local_url: None, external_url: Some(s.uri()), enabled: true };
+    let c = ServiceClient::new(ServiceKind::Beszel, config, secrets);
+    assert_eq!(c.request(ApiRequest::get("/api/collections/systems/records")).await.unwrap().status, 200);
+}

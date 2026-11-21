@@ -37,6 +37,8 @@ import qbittorrentLogo from "@/assets/services/qbittorrent.svg";
 import tracearrLogo from "@/assets/services/tracearr.svg";
 import plexLogo from "@/assets/services/plex.svg";
 import seerrLogo from "@/assets/services/seerr.svg";
+import beszelLogo from "@/assets/services/beszel.svg";
+import { ServerStats } from "@/components/ServerStats";
 
 const servicePage: Record<ServiceKind, string> = {
   radarr: "/peliculas",
@@ -47,6 +49,8 @@ const servicePage: Record<ServiceKind, string> = {
   tracearr: "/historial",
   plex: "/plex",
   seerr: "/solicitudes",
+  // Sin página propia: sus datos están en la propia Inicio («Servidor»).
+  beszel: "/",
 };
 
 const serviceLogo: Record<ServiceKind, string> = {
@@ -58,21 +62,34 @@ const serviceLogo: Record<ServiceKind, string> = {
   tracearr: tracearrLogo,
   plex: plexLogo,
   seerr: seerrLogo,
+  beszel: beszelLogo,
 };
 
-/** Botón en la esquina de la tarjeta que abre la web del servicio en el navegador (externa, si no local). */
+/** Botón a la derecha de la tarjeta que abre la web del servicio en el navegador (externa, si no local). */
 function OpenWebButton({ service, url }: { service: ServiceKind; url: string }) {
   const label = t.home.openWeb(t.services[service]);
   return (
     <button
       type="button"
-      className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-md text-muted transition-colors hover:bg-surface-2 hover:text-accent focus-visible:text-accent"
+      className="absolute right-1 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-md text-muted transition-colors hover:bg-surface-2 hover:text-accent focus-visible:text-accent"
       onClick={() => void openExternal(url)}
       title={`${label}\n${url}`}
       aria-label={label}
     >
-      <ExternalLink className="h-4 w-4" aria-hidden />
+      <ExternalLink className="h-3.5 w-3.5" aria-hidden />
     </button>
+  );
+}
+
+/** Estado de la conexión como punto de color + texto, sin fondo, para que quepa en la línea de la versión. */
+function StatusText({ route }: { route: Parameters<typeof StatusBadge>[0]["route"] }) {
+  const key = route ?? "unknown";
+  const color = { local: "text-success", remote: "text-accent", offline: "text-danger", unknown: "text-muted" }[key];
+  return (
+    <span className={cn("flex shrink-0 items-center gap-1 whitespace-nowrap font-medium", color)}>
+      <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden />
+      {t.route[key]}
+    </span>
   );
 }
 
@@ -89,43 +106,51 @@ function ServiceCard({ service, route }: { service: ServiceKind; route: Paramete
       : v.data
         ? t.home.version(v.data)
         : t.common.loading;
-  // Nombre, estado y detalle van en líneas separadas para que nada se pise aunque la tarjeta sea estrecha;
-  // el detalle (versión o error) ocupa como mucho dos líneas y se ve entero al pasar el ratón.
+  // Tarjeta compacta de una sola fila: logo a la izquierda y, al lado, el nombre arriba y
+  // «estado · versión» debajo (sin configurar: solo eso; «Añádelo en Ajustes» va en el tooltip). El detalle (versión o error) se recorta a una línea y se ve entero al pasar el ratón.
   // El botón va fuera del enlace (un botón dentro de un enlace no es válido) y se coloca encima de la tarjeta.
   return (
     <div className="relative min-w-0">
       <Link
         to={notConfigured ? serviceSettingsPath(service) : servicePage[service]}
         className={cn(
-          "card group relative isolate flex h-full min-w-0 flex-col items-start gap-2 overflow-hidden p-4 transition-colors hover:bg-surface-2",
+          "card group flex h-full min-w-0 items-center gap-2.5 px-3 py-2 transition-colors hover:bg-surface-2",
           notConfigured && "border-dashed bg-transparent",
+          webUrl && "pr-8",
         )}
         aria-label={name}
       >
-        {/* Logo grande de marca de agua, recortado por la esquina inferior derecha. */}
         <img
           src={serviceLogo[service]}
           alt=""
           aria-hidden
           draggable={false}
           className={cn(
-            "pointer-events-none absolute -bottom-6 -right-6 -z-10 h-20 w-20 select-none transition-opacity",
-            notConfigured ? "opacity-10 grayscale" : "opacity-45 group-hover:opacity-70",
+            "pointer-events-none h-7 w-7 shrink-0 select-none object-contain transition-opacity",
+            notConfigured ? "opacity-30 grayscale" : "opacity-90 group-hover:opacity-100",
           )}
         />
-        <span className={cn("w-full truncate font-semibold", notConfigured && "text-muted", webUrl && "pr-7")} title={name}>
-          {name}
-        </span>
-        {notConfigured ? (
-          <span className="chip whitespace-nowrap bg-surface-2 text-muted">{t.home.notConfigured}</span>
-        ) : (
-          <StatusBadge route={v.isError ? "offline" : route} />
-        )}
-        <span
-          className={cn("line-clamp-2 w-full break-words text-xs tabular-nums", v.isError ? "text-danger" : "text-muted")}
-          title={detail}
-        >
-          {detail}
+        <span className="flex min-w-0 flex-1 flex-col">
+          <span className={cn("truncate text-sm font-semibold leading-5", notConfigured && "text-muted")} title={name}>
+            {name}
+          </span>
+          <span className="flex min-w-0 items-center gap-1.5 text-xs leading-4">
+            {notConfigured ? (
+              <span className="truncate font-medium text-muted" title={detail}>
+                {t.home.notConfigured}
+              </span>
+            ) : (
+              <>
+                <StatusText route={v.isError ? "offline" : route} />
+                <span className="text-muted" aria-hidden>
+                  ·
+                </span>
+                <span className={cn("min-w-0 truncate tabular-nums", v.isError ? "text-danger" : "text-muted")} title={detail}>
+                  {detail}
+                </span>
+              </>
+            )}
+          </span>
         </span>
       </Link>
       {webUrl && <OpenWebButton service={service} url={webUrl} />}
@@ -230,12 +255,13 @@ export default function HomePage() {
   const { data: routes } = useConnectionStates();
   return (
     <Page title={t.nav.home}>
-      <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 min-[1400px]:grid-cols-8" aria-label={t.home.services}>
+      <section className="grid grid-cols-[repeat(auto-fill,minmax(10.5rem,1fr))] gap-2" aria-label={t.home.services}>
         {SERVICE_KINDS.map((s) => (
           <ServiceCard key={s} service={s} route={routes?.[s]} />
         ))}
       </section>
       <HealthList services={HEALTH_SERVICES} hideWhenOk />
+      <ServerStats />
       <DuplicatesNotice />
       <PendingRequests />
       <NowWatching title={t.home.nowPlaying} hideWhenEmpty />

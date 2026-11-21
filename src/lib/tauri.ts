@@ -111,6 +111,7 @@ export interface UpdateInfo {
   checksumUrl: string | null;
 }
 
-export const checkUpdate = () => invoke<UpdateInfo | null>("check_update");
+/** Con `dev`, mira la versión de prueba (rama dev) y la compara con el commit instalado (`build`). */
+export const checkUpdate = (dev = false, build = "") => invoke<UpdateInfo | null>("check_update", { dev, build });
 export const installUpdate = (u: UpdateInfo) =>
   invoke<void>("install_update", { installerUrl: u.installerUrl, checksumUrl: u.checksumUrl });

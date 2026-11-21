@@ -68,19 +68,25 @@ impl ServiceSettingsView {
     }
 }
 
+/// Lee el mapa de servicios tal cual está en disco, sin interpretarlo.
+fn raw_services(value: Option<serde_json::Value>) -> serde_json::Map<String, serde_json::Value> {
+    match value {
+        Some(serde_json::Value::Object(map)) => map,
+        _ => serde_json::Map::new(),
+    }
+}
+
 pub fn load_configs<R: Runtime>(app: &AppHandle<R>) -> HashMap<ServiceKind, ServiceConfig> {
     let Ok(store) = app.store(STORE_FILE) else { return HashMap::new() };
-    store
-        .get(SERVICES_KEY)
-        .and_then(|v| serde_json::from_value::<HashMap<ServiceKind, ServiceConfig>>(v).ok())
-        .unwrap_or_default()
+    dasharr_core::parse_service_configs(&raw_services(store.get(SERVICES_KEY)))
 }
 
 pub fn save_config<R: Runtime>(app: &AppHandle<R>, kind: ServiceKind, config: &ServiceConfig) -> Result<(), String> {
     let store = app.store(STORE_FILE).map_err(|e| e.to_string())?;
-    let mut all = load_configs(app);
-    all.insert(kind, config.clone());
-    store.set(SERVICES_KEY, serde_json::to_value(all).map_err(|e| e.to_string())?);
+    // Se parte del contenido en bruto para no borrar servicios que esta versión no entiende.
+    let mut all = raw_services(store.get(SERVICES_KEY));
+    all.insert(kind.as_str().to_string(), serde_json::to_value(config).map_err(|e| e.to_string())?);
+    store.set(SERVICES_KEY, serde_json::Value::Object(all));
     store.save().map_err(|e| e.to_string())
 }
 

@@ -1,7 +1,7 @@
 import { act } from "@testing-library/react";
 import { invoke } from "@tauri-apps/api/core";
 import { toast } from "sonner";
-import { AUTO_INSTALL_DELAY_S, resetUpdateState, runUpdateCheck } from "./useUpdates";
+import { AUTO_INSTALL_DELAY_S, CHECK_EVERY_MS, DEV_CHECK_EVERY_MS, checkDue, resetUpdateState, runUpdateCheck } from "./useUpdates";
 import { setPrefs } from "./usePrefs";
 
 vi.mock("sonner", () => {
@@ -9,7 +9,8 @@ vi.mock("sonner", () => {
   return { toast };
 });
 
-vi.mock("@/lib/version", () => ({ isDevBuild: () => false }));
+const build = vi.hoisted(() => ({ dev: false }));
+vi.mock("@/lib/version", () => ({ isDevBuild: () => build.dev }));
 
 const update = {
   version: "0.2.0",
@@ -33,6 +34,7 @@ beforeEach(() => {
 afterEach(() => {
   resetUpdateState();
   setPrefs({ autoUpdate: true });
+  build.dev = false;
   vi.useRealTimers();
 });
 
@@ -70,4 +72,29 @@ test("sin versión nueva no avisa", async () => {
   backend(null);
   expect(await runUpdateCheck({ manual: false })).toBeNull();
   expect(toast).not.toHaveBeenCalled();
+});
+
+test("la versión publicada mira el canal estable", async () => {
+  const mock = backend(null);
+  await runUpdateCheck({ manual: false });
+  expect(mock).toHaveBeenCalledWith("check_update", { dev: false, build: expect.any(String) });
+});
+
+test("Dasharr Dev sigue la versión de prueba y se actualiza sola", async () => {
+  build.dev = true;
+  const mock = backend({ ...update, version: "0.2.0 · dev abc1234" });
+  await runUpdateCheck({ manual: false });
+  expect(mock).toHaveBeenCalledWith("check_update", { dev: true, build: expect.any(String) });
+  await act(() => vi.advanceTimersByTimeAsync(AUTO_INSTALL_DELAY_S * 1000));
+  expect(mock).toHaveBeenCalledWith("install_update", expect.anything());
+});
+
+test("el canal dev se comprueba cada 10 minutos y el estable cada 6 horas", async () => {
+  backend(null);
+  await runUpdateCheck({ manual: false });
+  const now = Date.now();
+  expect(checkDue(now + DEV_CHECK_EVERY_MS)).toBe(false);
+  expect(checkDue(now + CHECK_EVERY_MS)).toBe(true);
+  build.dev = true;
+  expect(checkDue(now + DEV_CHECK_EVERY_MS)).toBe(true);
 });

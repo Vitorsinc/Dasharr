@@ -36,6 +36,23 @@ test("muestra el error de API key incorrecta", async () => {
   expect(await within(radarr).findByText(/API key o credenciales incorrectas\. Cópiala de Radarr/)).toBeInTheDocument();
 });
 
+test("Beszel se configura con correo y contraseña, sin proxy", async () => {
+  const save = vi.fn();
+  mockBackend({ settings, commands: { save_service: save } });
+  renderApp("/ajustes/servicios/beszel");
+  const beszel = await screen.findByRole("region", { name: "Beszel" });
+  await userEvent.type(within(beszel).getByLabelText("Dirección local"), "http://h:8090");
+  await userEvent.type(within(beszel).getByLabelText("Correo"), "yo@casa.es");
+  await userEvent.type(within(beszel).getByLabelText("Contraseña"), "pw");
+  expect(within(beszel).queryByText(/Autenticación del proxy/)).not.toBeInTheDocument();
+  await userEvent.click(within(beszel).getByRole("button", { name: "Guardar" }));
+  expect(save).toHaveBeenCalledWith({
+    service: "beszel",
+    config: { localUrl: "http://h:8090", externalUrl: null, enabled: true },
+    secrets: { apiKey: undefined, username: "yo@casa.es", password: "pw", proxyUsername: undefined, proxyPassword: undefined },
+  });
+});
+
 test("guarda con semántica de parche: el secreto no tocado no se envía", async () => {
   const save = vi.fn();
   mockBackend({ settings, commands: { save_service: save } });
@@ -116,9 +133,10 @@ test("Servicios se divide en una subpestaña por servicio y solo muestra el form
     "Tracearr",
     "Plex",
     "Seerr",
+    "Beszel",
   ]);
   expect(await screen.findByRole("region", { name: "Radarr" })).toBeInTheDocument();
-  for (const other of ["Sonarr", "Prowlarr", "Bazarr", "qBittorrent", "Tracearr", "Plex", "Seerr"])
+  for (const other of ["Sonarr", "Prowlarr", "Bazarr", "qBittorrent", "Tracearr", "Plex", "Seerr", "Beszel"])
     expect(screen.queryByRole("region", { name: other })).not.toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Importar desde archivo" })).toBeInTheDocument();
   await userEvent.click(within(services).getByRole("link", { name: "Bazarr" }));
