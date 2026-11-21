@@ -77,7 +77,7 @@ export function RatingBadges({ scores }: { scores?: Scores }) {
   const items = RATING_SOURCES.flatMap((s) => (scores?.[s] != null ? [{ source: s, value: scores[s]! }] : []));
   if (!items.length) return null;
   return (
-    <div className="absolute bottom-2 left-0 grid grid-cols-[auto_auto] gap-x-2 gap-y-1 rounded-r-md bg-black/75 py-1.5 pl-2 pr-2 shadow-md backdrop-blur">
+    <div className="absolute bottom-2 left-0 hidden grid-cols-[auto_auto] gap-x-2 gap-y-1 rounded-r-md sm:grid bg-black/75 py-1.5 pl-2 pr-2 shadow-md backdrop-blur">
       {items.map(({ source, value }) => {
         const v = formatScore(source, value);
         return (

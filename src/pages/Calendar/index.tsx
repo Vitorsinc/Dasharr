@@ -2,7 +2,8 @@ import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Page } from "@/components/Page";
 import { ErrorPanel, NotConfigured } from "@/components/ErrorPanel";
-import { Loading, Segmented } from "@/components/ui";
+import { Empty, Loading, Segmented } from "@/components/ui";
+import { useIsNarrow } from "@/hooks/useIsNarrow";
 import { t } from "@/i18n/es";
 import type { CalItem } from "@/api/calendar";
 import { useCalendar } from "@/hooks/useCalendar";
@@ -80,7 +81,9 @@ export default function CalendarPage() {
   const cal = useCalendar(start, end);
   const { openItem, dialogs } = useItemDetail();
   const [{ weekStyle }, setPrefs] = usePrefs();
-  const WeekView = WEEK_VIEWS[weekStyle] ?? WEEK_VIEWS.agenda;
+  const narrow = useIsNarrow();
+  // En el móvil no caben siete columnas: siempre agenda (y el mes, como agenda de los días con estrenos).
+  const WeekView = narrow ? WEEK_VIEWS.agenda : (WEEK_VIEWS[weekStyle] ?? WEEK_VIEWS.agenda);
   const byDay = useMemo(() => {
     const m = new Map<string, CalItem[]>();
     for (const it of cal.items) m.set(dayKey(it.date), [...(m.get(dayKey(it.date)) ?? []), it]);
@@ -114,8 +117,8 @@ export default function CalendarPage() {
               <ChevronRight className="h-4 w-4" />
             </button>
           </div>
-          <span className="min-w-40 text-center text-sm font-medium capitalize">{title}</span>
-          {view === "week" && (
+          <span className="text-center text-sm font-medium capitalize md:min-w-40">{title}</span>
+          {view === "week" && !narrow && (
             <Segmented<WeekStyle>
               label={t.calendar.weekStyle}
               value={weekStyle}
@@ -145,6 +148,8 @@ export default function CalendarPage() {
         <Loading />
       ) : view === "week" ? (
         <WeekView days={days} byDay={byDay} onOpen={openItem} />
+      ) : narrow ? (
+        <MonthAgenda days={days} anchor={anchor} byDay={byDay} onOpen={openItem} />
       ) : (
         <div className="card overflow-hidden">
           <div className="grid grid-cols-7 border-b border-border text-center text-xs font-medium text-muted">
@@ -187,4 +192,21 @@ export default function CalendarPage() {
       {dialogs}
     </Page>
   );
+}
+
+/** Móvil: el mes como agenda, solo con los días que tienen estrenos. */
+function MonthAgenda({
+  days,
+  anchor,
+  byDay,
+  onOpen,
+}: {
+  days: Date[];
+  anchor: Date;
+  byDay: Map<string, CalItem[]>;
+  onOpen: (it: CalItem) => void;
+}) {
+  const withItems = days.filter((d) => d.getMonth() === anchor.getMonth() && (byDay.get(dayKey(d))?.length ?? 0) > 0);
+  if (withItems.length === 0) return <Empty>{t.calendar.emptyMonth}</Empty>;
+  return <WEEK_VIEWS.agenda days={withItems} byDay={byDay} onOpen={onOpen} />;
 }

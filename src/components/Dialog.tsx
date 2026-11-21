@@ -30,17 +30,20 @@ export function Dialog({
           className={cn(
             "card fixed left-1/2 top-1/2 z-50 flex max-h-[88vh] w-[92vw] -translate-x-1/2 -translate-y-1/2 flex-col shadow-2xl outline-none",
             wide === "xl" ? "max-w-6xl" : wide ? "max-w-4xl" : "max-w-lg",
+            // En el móvil, los diálogos anchos (fichas, búsquedas) ocupan toda la pantalla.
+            wide &&
+              "max-md:inset-0 max-md:h-full max-md:max-h-none max-md:w-full max-md:max-w-none max-md:translate-x-0 max-md:translate-y-0 max-md:rounded-none max-md:border-0",
             backdrop && "overflow-hidden",
           )}
         >
           {backdrop && <Backdrop src={backdrop} />}
-          <div className="relative flex items-center justify-between border-b border-border px-5 py-3">
+          <div className="relative flex items-center justify-between gap-3 border-b border-border px-4 py-3 md:px-5">
             <RD.Title className="text-base font-semibold">{title}</RD.Title>
             <RD.Close className="btn-ghost p-1.5" aria-label={t.common.close}>
               <X className="h-4 w-4" />
             </RD.Close>
           </div>
-          <div className="relative overflow-y-auto p-5">{children}</div>
+          <div className="relative min-h-0 flex-1 overflow-y-auto p-4 md:p-5">{children}</div>
         </RD.Content>
       </RD.Portal>
     </RD.Root>

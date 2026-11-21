@@ -1,7 +1,8 @@
 import { useEffect } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { Toaster } from "sonner";
-import { Sidebar, serviceForPath } from "./Sidebar";
+import { MobileNav, Sidebar, serviceForPath } from "./Sidebar";
+import { useIsNarrow } from "@/hooks/useIsNarrow";
 import { useApplyTheme } from "@/hooks/usePrefs";
 import { useDownloadNotifications } from "@/hooks/useDownloadNotifications";
 import { useUpdateCheck } from "@/hooks/useUpdates";
@@ -18,13 +19,21 @@ export function Layout() {
     if (service) document.documentElement.dataset.service = service;
     else delete document.documentElement.dataset.service;
   }, [service]);
+  const narrow = useIsNarrow();
   return (
-    <div className="flex h-full">
-      <Sidebar />
-      <main className="min-w-0 flex-1 overflow-y-auto">
+    <div className="flex h-full flex-col md:flex-row">
+      {!narrow && <Sidebar />}
+      <main className="min-h-0 min-w-0 flex-1 overflow-y-auto">
         <Outlet />
       </main>
-      <Toaster position="bottom-right" theme="system" richColors closeButton />
+      {narrow && <MobileNav />}
+      <Toaster
+        position={narrow ? "top-center" : "bottom-right"}
+        theme="system"
+        richColors
+        closeButton
+        mobileOffset={{ top: 12, left: 12, right: 12 }}
+      />
     </div>
   );
 }

@@ -80,7 +80,7 @@ function Results({ query, onPick }: { query: string; onPick: (t: RequestTarget) 
   if (!items.length) return <Empty>{t.seerr.noResults}</Empty>;
   return (
     <div className="flex flex-col gap-4">
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-5">
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(105px,1fr))] gap-3 sm:grid-cols-[repeat(auto-fill,minmax(150px,1fr))] sm:gap-5">
         {items.map((it) => (
           <ResultCard key={`${it.mediaType}-${it.id}`} item={it} onPick={onPick} />
         ))}

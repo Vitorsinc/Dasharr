@@ -62,7 +62,7 @@ export function RequestRow({ request, compact }: { request: MediaRequest; compac
   const failed = request.status === RequestStatus.Failed;
 
   return (
-    <div className={cn("flex items-center gap-4 px-4", compact ? "py-2.5" : "py-3")}>
+    <div className={cn("flex items-center gap-3 px-3 sm:gap-4 sm:px-4", compact ? "py-2.5" : "py-3")}>
       <div className={cn("shrink-0 overflow-hidden rounded-md bg-surface-2", compact ? "h-14 w-10" : "h-[72px] w-12")}>
         {poster && <img src={poster} alt="" loading="lazy" className="h-full w-full object-cover" />}
       </div>
@@ -98,7 +98,7 @@ export function RequestRow({ request, compact }: { request: MediaRequest; compac
               aria-label={`${t.seerr.approve}: ${title}`}
             >
               {busy === "approve" ? <Spinner className="h-4 w-4 text-accent-fg" /> : <Check className="h-4 w-4" aria-hidden />}
-              {!compact && t.seerr.approve}
+              {!compact && <span className="hidden sm:inline">{t.seerr.approve}</span>}
             </button>
             <button
               className="btn-outline px-2.5 py-1.5 hover:text-danger"
@@ -107,7 +107,7 @@ export function RequestRow({ request, compact }: { request: MediaRequest; compac
               aria-label={`${t.seerr.decline}: ${title}`}
             >
               {busy === "decline" ? <Spinner className="h-4 w-4" /> : <X className="h-4 w-4" aria-hidden />}
-              {!compact && t.seerr.decline}
+              {!compact && <span className="hidden sm:inline">{t.seerr.decline}</span>}
             </button>
           </>
         )}
@@ -119,7 +119,7 @@ export function RequestRow({ request, compact }: { request: MediaRequest; compac
             aria-label={`${t.seerr.retry}: ${title}`}
           >
             {busy === "retry" ? <Spinner className="h-4 w-4" /> : <RotateCcw className="h-4 w-4" aria-hidden />}
-            {!compact && t.seerr.retry}
+            {!compact && <span className="hidden sm:inline">{t.seerr.retry}</span>}
           </button>
         )}
         {!compact && (
