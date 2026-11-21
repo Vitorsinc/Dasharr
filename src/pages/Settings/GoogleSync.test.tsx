@@ -15,7 +15,7 @@ test("sin identificador de Google lo explica", async () => {
 
 test("inicia sesión, pide la contraseña y sube la configuración si no hay copia", async () => {
   let status = { ...base };
-  const push = vi.fn(() => ({ status: "uploaded" }));
+  const push = vi.fn((_args: { force: boolean }) => ({ status: "uploaded" }));
   mockBackend({
     commands: {
       google_status: () => status,
