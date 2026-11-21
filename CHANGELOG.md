@@ -36,6 +36,8 @@ También se puede lanzar a mano en Actions → Release → «Run workflow» indi
 
 ### Cambiado
 - Al borrar una película o serie, «Borrar también los archivos» sale marcado por defecto.
+- Dasharr Dev muestra un número de versión sencillo (por ejemplo «dev 233») en vez del commit.
+- README nuevo, en inglés y en español, con capturas, funciones y enlace de descarga.
 
 ## [0.6.0] - 2026-11-21
 
