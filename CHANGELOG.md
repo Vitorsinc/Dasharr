@@ -28,6 +28,9 @@ También se puede lanzar a mano en Actions → Release → «Run workflow» indi
   eliges una contraseña y los servicios, claves y preferencias quedan iguales en el PC y en el móvil. Se
   sincroniza sola mientras Dasharr está abierto, y las claves viajan cifradas.
 
+### Cambiado
+- Al borrar una película o serie, «Borrar también los archivos» sale marcado por defecto.
+
 ## [0.6.0] - 2026-11-21
 
 ### Cambiado
