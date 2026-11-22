@@ -26,6 +26,8 @@ pub fn run() {
     let context = tauri::generate_context!();
     migrate::copy_stable_config(&context.config().identifier);
     let builder = tauri::Builder::default();
+    #[cfg(target_os = "android")]
+    let builder = builder.plugin(google::android::plugin());
     #[cfg(desktop)]
     let builder = builder.plugin(tauri_plugin_autostart::init(tauri_plugin_autostart::MacosLauncher::LaunchAgent, None));
     builder
@@ -70,7 +72,6 @@ pub fn run() {
             sync::google_login_cancel,
             sync::google_login_paste,
             sync::google_logout,
-            sync::sync_set_password,
             sync::sync_push,
             sync::sync_pull,
             sync::sync_delete_remote,

@@ -19,3 +19,7 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# Plugin propio de inicio de sesión con Google: Tauri lo crea por su nombre.
+-keep class com.vitorsinc.dasharr.GoogleAuthPlugin { *; }
+-keep class com.vitorsinc.dasharr.AuthorizeArgs { *; }

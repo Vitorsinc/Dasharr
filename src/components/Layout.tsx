@@ -8,6 +8,7 @@ import { useDownloadNotifications } from "@/hooks/useDownloadNotifications";
 import { useUpdateCheck } from "@/hooks/useUpdates";
 import { usePlexNotifications } from "@/hooks/usePlex";
 import { useGoogleSync } from "@/hooks/useGoogleSync";
+import { GoogleWelcome } from "./GoogleWelcome";
 import { useHealthInBell } from "./HealthList";
 
 export function Layout() {
@@ -31,6 +32,7 @@ export function Layout() {
         <Outlet />
       </main>
       {narrow && <MobileNav />}
+      <GoogleWelcome />
       <Toaster
         position={narrow ? "top-center" : "bottom-right"}
         theme="system"

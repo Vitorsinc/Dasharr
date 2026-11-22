@@ -30,6 +30,54 @@ const SECRET_NAME: &str = "google";
 const FILE_NAME: &str = "dasharr-config.json";
 const LOGIN_TIMEOUT: Duration = Duration::from_secs(10 * 60);
 
+/// Hay inicio de sesión con Google en esta versión: en Android siempre (lo hace el sistema); en el PC, si
+/// se compiló con el identificador.
+pub fn available() -> bool {
+    cfg!(target_os = "android") || client().is_some()
+}
+
+/// Android: el permiso lo da el sistema dentro de la app (hoja de cuentas de Google), con el plugin
+/// `GoogleAuthPlugin` (Kotlin, en gen/android). Devuelve un token de acceso de una hora; para renovarlo se
+/// vuelve a pedir sin enseñar nada.
+#[cfg(target_os = "android")]
+pub mod android {
+    use std::sync::OnceLock;
+
+    use serde::Deserialize;
+    use tauri::plugin::{Builder, PluginHandle, TauriPlugin};
+    use tauri::Wry;
+
+    static HANDLE: OnceLock<PluginHandle<Wry>> = OnceLock::new();
+
+    pub fn plugin() -> TauriPlugin<Wry> {
+        Builder::new("google-auth")
+            .setup(|_app, api| {
+                let handle = api.register_android_plugin("com.vitorsinc.dasharr", "GoogleAuthPlugin")?;
+                let _ = HANDLE.set(handle);
+                Ok(())
+            })
+            .build()
+    }
+
+    #[derive(Deserialize)]
+    #[serde(rename_all = "camelCase")]
+    struct Token {
+        access_token: String,
+    }
+
+    pub async fn authorize(interactive: bool) -> Result<String, String> {
+        let handle = HANDLE.get().ok_or("El inicio de sesión con Google no está listo.")?;
+        handle
+            .run_mobile_plugin_async::<Token>("authorize", serde_json::json!({ "interactive": interactive }))
+            .await
+            .map(|t| t.access_token)
+            .map_err(|e| match e {
+                tauri::plugin::mobile::PluginInvokeError::InvokeRejected(r) => r.message.unwrap_or_else(|| "Google no ha dado permiso.".into()),
+                other => other.to_string(),
+            })
+    }
+}
+
 pub fn client() -> Option<(&'static str, &'static str)> {
     Some((CLIENT_ID.filter(|s| !s.is_empty())?, CLIENT_SECRET.unwrap_or("")))
 }
@@ -177,8 +225,42 @@ impl Google {
         load_account().is_some()
     }
 
-    /// Abre el navegador con la página de Google y espera a que el usuario acepte. Devuelve el correo.
+    /// Inicia sesión con Google y devuelve el correo. En Android, dentro de la app; en el PC, en el navegador.
     pub async fn login<R: Runtime>(&self, app: &AppHandle<R>) -> Result<String, String> {
+        #[cfg(target_os = "android")]
+        {
+            let _ = app;
+            let token = android::authorize(true).await?;
+            let email = self.userinfo_email(&token).await;
+            let account = Account { refresh_token: String::new(), email: email.clone() };
+            secrets::set(SECRET_NAME, &serde_json::to_string(&account).map_err(|e| e.to_string())?)?;
+            *self.access.lock().await = Some((token, Instant::now() + Duration::from_secs(50 * 60)));
+            log::info!("Google: sesión iniciada (Android)");
+            return Ok(email.unwrap_or_default());
+        }
+        #[cfg(not(target_os = "android"))]
+        {
+            let email = self.login_browser(app).await?;
+            // Vuelve a poner Dasharr delante del navegador.
+            if let Some(w) = tauri::Manager::get_webview_window(app, "main") {
+                let _ = w.unminimize();
+                let _ = w.set_focus();
+            }
+            Ok(email)
+        }
+    }
+
+    /// Correo de la cuenta (para mostrarlo en Ajustes).
+    #[cfg_attr(not(target_os = "android"), allow(dead_code))]
+    async fn userinfo_email(&self, token: &str) -> Option<String> {
+        let res = self.http().get("https://openidconnect.googleapis.com/v1/userinfo").bearer_auth(token).send().await.ok()?;
+        let v: serde_json::Value = res.error_for_status().ok()?.json().await.ok()?;
+        v.get("email")?.as_str().map(str::to_string)
+    }
+
+    /// Abre el navegador con la página de Google y espera a que el usuario acepte. Devuelve el correo.
+    #[cfg_attr(target_os = "android", allow(dead_code))]
+    async fn login_browser<R: Runtime>(&self, app: &AppHandle<R>) -> Result<String, String> {
         use tauri_plugin_opener::OpenerExt;
         let (client_id, client_secret) = client().ok_or("Esta versión de Dasharr no trae la conexión con Google.")?;
         let listener = TcpListener::bind("127.0.0.1:0").await.map_err(|e| e.to_string())?;
@@ -280,7 +362,14 @@ impl Google {
     /// Cierra la sesión: avisa a Google para que retire el permiso y borra el token de este dispositivo.
     pub async fn logout(&self) -> Result<(), String> {
         if let Some(account) = load_account() {
-            let _ = self.http().post(REVOKE_URL).form(&[("token", account.refresh_token.as_str())]).send().await;
+            // En Android no hay token de refresco: se retira el permiso con el de acceso.
+            let token = match account.refresh_token.is_empty() {
+                true => self.access.lock().await.as_ref().map(|(t, _)| t.clone()).unwrap_or_default(),
+                false => account.refresh_token,
+            };
+            if !token.is_empty() {
+                let _ = self.http().post(REVOKE_URL).form(&[("token", token.as_str())]).send().await;
+            }
         }
         *self.access.lock().await = None;
         secrets::delete(SECRET_NAME)
@@ -294,6 +383,20 @@ impl Google {
             }
         }
         let account = load_account().ok_or("No has iniciado sesión con Google.")?;
+        let (token, ttl) = self.refresh(&account).await?;
+        *access = Some((token.clone(), Instant::now() + ttl));
+        Ok(token)
+    }
+
+    /// Token de acceso nuevo. Android: se pide al sistema sin enseñar nada (ya se dio permiso).
+    #[cfg(target_os = "android")]
+    async fn refresh(&self, _account: &Account) -> Result<(String, Duration), String> {
+        Ok((android::authorize(false).await?, Duration::from_secs(50 * 60)))
+    }
+
+    /// Token de acceso nuevo con el token de refresco.
+    #[cfg(not(target_os = "android"))]
+    async fn refresh(&self, account: &Account) -> Result<(String, Duration), String> {
         let (client_id, client_secret) = client().ok_or("Esta versión de Dasharr no trae la conexión con Google.")?;
         let res = self
             .http()
@@ -317,9 +420,7 @@ impl Google {
             return Err(format!("Google no responde ({status})."));
         }
         let token: TokenResponse = res.json().await.map_err(|e| e.to_string())?;
-        let ttl = Duration::from_secs(token.expires_in.unwrap_or(3600).saturating_sub(60));
-        *access = Some((token.access_token.clone(), Instant::now() + ttl));
-        Ok(token.access_token)
+        Ok((token.access_token, Duration::from_secs(token.expires_in.unwrap_or(3600).saturating_sub(60))))
     }
 
     async fn check(res: reqwest::Response, what: &str) -> Result<reqwest::Response, String> {
