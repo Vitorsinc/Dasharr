@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Cloud } from "lucide-react";
-import { googleLogin, googleLoginCancel, googleLogout, syncDeleteRemote, syncPull, syncPush, syncSetPassword, type PushResult } from "@/api/google";
+import { googleLogin, googleLoginCancel, googleLoginPaste, googleLogout, syncDeleteRemote, syncPull, syncPush, syncSetPassword, type PushResult } from "@/api/google";
 import { afterPull, googleStatusKey, syncedPrefs, useGoogleStatus, useSyncError } from "@/hooks/useGoogleSync";
 import { ConfirmDialog } from "@/components/Dialog";
 import { Loading } from "@/components/ui";
@@ -19,6 +19,7 @@ export function GoogleSync() {
   const [busy, setBusy] = useState(false);
   const [waiting, setWaiting] = useState(false);
   const [password, setPassword] = useState("");
+  const [pasted, setPasted] = useState("");
   const [choice, setChoice] = useState<Choice | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const linkingStarted = useRef(false);
@@ -84,6 +85,32 @@ export function GoogleSync() {
             </>
           )}
         </div>
+        {waiting && (
+          <form
+            className="flex flex-col gap-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              googleLoginPaste(pasted).then(
+                () => setPasted(""),
+                (err) => toast.error(errorMessage(err)),
+              );
+            }}
+          >
+            <span className="text-xs text-muted">{t.google.pasteHint}</span>
+            <div className="flex gap-2">
+              <input
+                className="input min-w-0 flex-1"
+                aria-label={t.google.pasteLabel}
+                placeholder="http://127.0.0.1:…"
+                value={pasted}
+                onChange={(e) => setPasted(e.target.value)}
+              />
+              <button className="btn-primary" type="submit" disabled={!pasted.trim()}>
+                {t.google.pasteSend}
+              </button>
+            </div>
+          </form>
+        )}
         <p className="text-xs text-muted">{t.google.loginHint}</p>
       </section>
     );

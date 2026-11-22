@@ -24,6 +24,8 @@ export type PullResult =
 export const googleStatus = () => invoke<GoogleStatus>("google_status");
 /** Abre el navegador y espera a que el usuario acepte. Devuelve el correo. */
 export const googleLogin = () => invoke<string>("google_login");
+/** Termina el inicio de sesión con la dirección que muestra el navegador (si Dasharr no pudo recogerla solo). */
+export const googleLoginPaste = (url: string) => invoke<void>("google_login_paste", { url });
 export const googleLoginCancel = () => invoke<void>("google_login_cancel");
 export const googleLogout = () => invoke<void>("google_logout");
 export const syncSetPassword = (password: string) => invoke<void>("sync_set_password", { password });

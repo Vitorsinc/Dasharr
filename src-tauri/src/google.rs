@@ -10,7 +10,7 @@ use sha2::{Digest, Sha256};
 use tauri::{AppHandle, Runtime};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpListener;
-use tokio::sync::{oneshot, Mutex};
+use tokio::sync::{mpsc, Mutex};
 
 use crate::secrets;
 
@@ -28,7 +28,7 @@ const DRIVE_UPLOAD: &str = "https://www.googleapis.com/upload/drive/v3/files";
 const SCOPES: &str = "openid email https://www.googleapis.com/auth/drive.appdata";
 const SECRET_NAME: &str = "google";
 const FILE_NAME: &str = "dasharr-config.json";
-const LOGIN_TIMEOUT: Duration = Duration::from_secs(5 * 60);
+const LOGIN_TIMEOUT: Duration = Duration::from_secs(10 * 60);
 
 pub fn client() -> Option<(&'static str, &'static str)> {
     Some((CLIENT_ID.filter(|s| !s.is_empty())?, CLIENT_SECRET.unwrap_or("")))
@@ -66,7 +66,13 @@ pub struct RemoteFile {
 pub struct Google {
     http: std::sync::OnceLock<reqwest::Client>,
     access: Mutex<Option<(String, Instant)>>,
-    cancel: Mutex<Option<oneshot::Sender<()>>>,
+    pending: Mutex<Option<Pending>>,
+}
+
+/// Inicio de sesión en curso: llegan aquí el código (del navegador o pegado a mano) o la cancelación.
+struct Pending {
+    state: String,
+    tx: mpsc::Sender<Result<String, String>>,
 }
 
 fn random_token() -> String {
@@ -114,28 +120,46 @@ async fn respond(stream: &mut tokio::net::TcpStream, body: &str) {
     let _ = stream.shutdown().await;
 }
 
-/// Espera la vuelta del navegador con el código. Otras peticiones (el icono de la pestaña) se ignoran.
-async fn wait_for_code(listener: TcpListener, state: &str) -> Result<String, String> {
-    loop {
-        let (mut stream, _) = listener.accept().await.map_err(|e| e.to_string())?;
-        let mut buf = vec![0u8; 8192];
-        let n = match tokio::time::timeout(Duration::from_secs(10), stream.read(&mut buf)).await {
-            Ok(Ok(n)) => n,
-            _ => continue,
-        };
-        let request = String::from_utf8_lossy(&buf[..n]).to_string();
-        match parse_callback(&request) {
-            Some(Ok((code, got_state))) if got_state == state => {
-                respond(&mut stream, PAGE_OK).await;
-                return Ok(code);
-            }
-            Some(Err(err)) => {
-                respond(&mut stream, PAGE_ERR).await;
-                return Err(if err == "access_denied" { "Has cancelado el inicio de sesión.".into() } else { format!("Google ha respondido: {err}") });
-            }
-            _ => respond(&mut stream, PAGE_ERR).await,
+/// Atiende una conexión del navegador. Cada conexión va aparte: Chrome abre a veces conexiones de reserva
+/// que no envían nada, y no deben retrasar la buena.
+async fn handle_connection(mut stream: tokio::net::TcpStream, state: String, tx: mpsc::Sender<Result<String, String>>) {
+    let mut buf = vec![0u8; 8192];
+    let n = match tokio::time::timeout(Duration::from_secs(30), stream.read(&mut buf)).await {
+        Ok(Ok(n)) if n > 0 => n,
+        _ => return,
+    };
+    let request = String::from_utf8_lossy(&buf[..n]).to_string();
+    match parse_callback(&request) {
+        Some(Ok((code, got_state))) if got_state == state => {
+            // Primero el código: en Android la app puede quedar congelada antes de poder contestar.
+            let _ = tx.send(Ok(code)).await;
+            respond(&mut stream, PAGE_OK).await;
         }
+        Some(Err(err)) => {
+            let _ = tx.send(Err(login_error(&err))).await;
+            respond(&mut stream, PAGE_ERR).await;
+        }
+        _ => respond(&mut stream, PAGE_ERR).await,
     }
+}
+
+fn login_error(err: &str) -> String {
+    if err == "access_denied" {
+        "Has cancelado el inicio de sesión.".into()
+    } else {
+        format!("Google ha respondido: {err}")
+    }
+}
+
+/// Lee el código de la dirección que el navegador muestra tras aceptar (la que se pega a mano).
+fn parse_pasted(text: &str) -> Option<Result<(String, String), String>> {
+    let text = text.trim().replace("&amp;", "&");
+    let url = url::Url::parse(&text).ok()?;
+    let get = |k: &str| url.query_pairs().find(|(n, _)| n == k).map(|(_, v)| v.into_owned());
+    if let Some(err) = get("error") {
+        return Some(Err(err));
+    }
+    Some(Ok((get("code")?, get("state")?)))
 }
 
 impl Google {
@@ -174,20 +198,34 @@ impl Google {
             .append_pair("access_type", "offline")
             // Sin esto Google no vuelve a dar token de refresco si ya se había aceptado antes.
             .append_pair("prompt", "consent");
-        let (tx, rx) = oneshot::channel();
-        if let Some(old) = self.cancel.lock().await.replace(tx) {
-            let _ = old.send(());
+        let (tx, mut rx) = mpsc::channel(4);
+        if let Some(old) = self.pending.lock().await.replace(Pending { state: state.clone(), tx: tx.clone() }) {
+            let _ = old.tx.send(Err("Inicio de sesión cancelado.".into())).await;
         }
-        app.opener().open_url(url.as_str(), None::<&str>).map_err(|e| format!("No se pudo abrir el navegador: {e}"))?;
+        let accept_state = state.clone();
+        let server = tokio::spawn(async move {
+            while let Ok((stream, _)) = listener.accept().await {
+                tokio::spawn(handle_connection(stream, accept_state.clone(), tx.clone()));
+            }
+        });
+        let opened = app.opener().open_url(url.as_str(), None::<&str>).map_err(|e| format!("No se pudo abrir el navegador: {e}"));
         log::info!("Google: esperando el inicio de sesión en el navegador");
-        let code = tokio::select! {
-            r = tokio::time::timeout(LOGIN_TIMEOUT, wait_for_code(listener, &state)) => match r {
-                Ok(r) => r?,
-                Err(_) => return Err("Se ha agotado el tiempo para iniciar sesión.".into()),
+        let result = match opened {
+            Ok(()) => match tokio::time::timeout(LOGIN_TIMEOUT, rx.recv()).await {
+                Ok(Some(r)) => r,
+                Ok(None) => Err("Inicio de sesión cancelado.".into()),
+                Err(_) => Err("Se ha agotado el tiempo para iniciar sesión.".into()),
             },
-            _ = rx => return Err("Inicio de sesión cancelado.".into()),
+            Err(e) => Err(e),
         };
-        self.cancel.lock().await.take();
+        server.abort();
+        {
+            let mut pending = self.pending.lock().await;
+            if pending.as_ref().is_some_and(|p| p.state == state) {
+                *pending = None;
+            }
+        }
+        let code = result?;
         let res = self
             .http()
             .post(TOKEN_URL)
@@ -220,9 +258,23 @@ impl Google {
     }
 
     pub async fn cancel_login(&self) {
-        if let Some(tx) = self.cancel.lock().await.take() {
-            let _ = tx.send(());
+        if let Some(p) = self.pending.lock().await.take() {
+            let _ = p.tx.send(Err("Inicio de sesión cancelado.".into())).await;
         }
+    }
+
+    /// Termina el inicio de sesión con la dirección que muestra el navegador, por si Dasharr no pudo
+    /// recogerla solo (en Android el sistema puede congelar la app mientras se está en el navegador).
+    pub async fn paste_login(&self, text: &str) -> Result<(), String> {
+        let pending = self.pending.lock().await;
+        let p = pending.as_ref().ok_or("No hay ningún inicio de sesión en curso: vuelve a pulsar «Iniciar sesión con Google».")?;
+        let msg = match parse_pasted(text) {
+            Some(Ok((code, state))) if state == p.state => Ok(code),
+            Some(Ok(_)) => return Err("Esa dirección es de otro intento: copia la de la última página.".into()),
+            Some(Err(err)) => Err(login_error(&err)),
+            None => return Err("No es la dirección correcta: tiene que empezar por http://127.0.0.1".into()),
+        };
+        p.tx.send(msg).await.map_err(|_| "El inicio de sesión ya ha terminado.".to_string())
     }
 
     /// Cierra la sesión: avisa a Google para que retire el permiso y borra el token de este dispositivo.
@@ -369,6 +421,13 @@ mod tests {
         assert_eq!(parse_callback(req), Some(Ok(("4/0Ab_x".into(), "abc".into()))));
         assert_eq!(parse_callback("GET /?error=access_denied&state=abc HTTP/1.1\r\n"), Some(Err("access_denied".into())));
         assert_eq!(parse_callback("GET /favicon.ico HTTP/1.1\r\n"), None);
+    }
+
+    #[test]
+    fn reads_pasted_address() {
+        let url = "http://127.0.0.1:36107/?state=49h&amp;iss=https://accounts.google.com&amp;code=4/0AUn6&amp;scope=email%20openid";
+        assert_eq!(parse_pasted(url), Some(Ok(("4/0AUn6".into(), "49h".into()))));
+        assert_eq!(parse_pasted("hola"), None);
     }
 
     #[test]
