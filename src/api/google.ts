@@ -5,7 +5,6 @@ export interface GoogleStatus {
   available: boolean;
   signedIn: boolean;
   email: string | null;
-  hasPassword: boolean;
   /** Este dispositivo ya ha traído o subido la copia alguna vez. */
   linked: boolean;
   lastSync: number | null;
@@ -28,7 +27,6 @@ export const googleLogin = () => invoke<string>("google_login");
 export const googleLoginPaste = (url: string) => invoke<void>("google_login_paste", { url });
 export const googleLoginCancel = () => invoke<void>("google_login_cancel");
 export const googleLogout = () => invoke<void>("google_logout");
-export const syncSetPassword = (password: string) => invoke<void>("sync_set_password", { password });
 export const syncPush = (prefs: unknown, force = false) => invoke<PushResult>("sync_push", { prefs, force });
 export const syncPull = (force = false) => invoke<PullResult>("sync_pull", { force });
 export const syncDeleteRemote = () => invoke<void>("sync_delete_remote");

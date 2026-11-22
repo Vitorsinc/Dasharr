@@ -1,7 +1,7 @@
 import { useEffect, useSyncExternalStore } from "react";
 import { useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { googleStatus, syncPull, syncPush, type GoogleStatus, type PullResult } from "@/api/google";
+import { googleLogin, googleStatus, syncPull, syncPush, type GoogleStatus, type PullResult } from "@/api/google";
 import { getPrefs, setPrefs, subscribePrefs, type Prefs } from "@/hooks/usePrefs";
 import { errorMessage } from "@/lib/errors";
 import { formatDateTime } from "@/lib/format";
@@ -10,7 +10,7 @@ import { t } from "@/i18n/es";
 export const googleStatusKey = ["google-status"] as const;
 
 /** Preferencias que son de cada dispositivo (dependen de la pantalla) y no viajan. */
-const DEVICE_PREFS: (keyof Prefs)[] = ["sidebarCollapsed", "downloadColumns"];
+const DEVICE_PREFS: (keyof Prefs)[] = ["sidebarCollapsed", "downloadColumns", "googlePromptSeen"];
 
 export function syncedPrefs(prefs: Prefs = getPrefs()): Partial<Prefs> {
   const out: Partial<Prefs> = { ...prefs };
@@ -56,6 +56,33 @@ export async function afterPull(qc: QueryClient, res: PullResult, quiet = false)
   if (!quiet) toast.success(t.google.pulled(res.device, formatDateTime(new Date(res.updatedAt))));
 }
 
+/**
+ * Tras iniciar sesión: si la cuenta ya tiene configuración guardada, se carga en este dispositivo; si no, se
+ * guarda la de aquí.
+ */
+export async function linkDevice(qc: QueryClient): Promise<"pulled" | "uploaded"> {
+  const res = await syncPull(true);
+  let out: "pulled" | "uploaded";
+  if (res.status === "applied") {
+    await afterPull(qc, res, true);
+    toast.success(t.google.pulled(res.device, formatDateTime(new Date(res.updatedAt))));
+    out = "pulled";
+  } else {
+    await syncPush(syncedPrefs(), true);
+    toast.success(t.google.uploaded);
+    out = "uploaded";
+  }
+  await qc.invalidateQueries({ queryKey: googleStatusKey });
+  return out;
+}
+
+/** Inicia sesión con Google y deja este dispositivo sincronizado. */
+export async function signInAndLink(qc: QueryClient) {
+  await googleLogin();
+  await qc.invalidateQueries({ queryKey: googleStatusKey });
+  await linkDevice(qc);
+}
+
 const PULL_EVERY = 5 * 60_000;
 /** Subir cuesta nada si no ha cambiado nada (se compara una huella sin conectarse). */
 const PUSH_EVERY = 30_000;
@@ -83,7 +110,7 @@ async function cycle(qc: QueryClient, pull: boolean) {
 export function useGoogleSync() {
   const qc = useQueryClient();
   const { data } = useGoogleStatus();
-  const ready = !!(data?.available && data.signedIn && data.hasPassword && data.linked);
+  const ready = !!(data?.available && data.signedIn && data.linked);
   useEffect(() => {
     if (!ready) return;
     let pushTimer: ReturnType<typeof setTimeout> | undefined;
