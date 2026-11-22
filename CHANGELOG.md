@@ -12,6 +12,20 @@ También se puede lanzar a mano en Actions → Release → «Run workflow» indi
 
 ## [Sin publicar]
 
+## [0.7.1] - 2026-11-22
+
+### Corregido
+- Android: el inicio de sesión con Google (Ajustes → Sistema → Sincronización con Google) se quedaba esperando
+  para siempre porque Android congela Dasharr mientras estás en el navegador. Ahora termina solo al volver a
+  la app y, si aun así no lo detecta, puedes pegar la dirección `127.0.0.1` que muestra el navegador.
+
+## [0.7.1] - 2026-11-22
+
+### Corregido
+- Sincronización con Google en Android: al volver de la página de Google el inicio de sesión se quedaba sin
+  terminar (Android congela Dasharr mientras estás en el navegador). Ahora termina al volver a la app y, si
+  el navegador muestra un error, basta con pegar su dirección en Dasharr.
+
 ## [0.7.0] - 2026-11-21
 
 ### Añadido

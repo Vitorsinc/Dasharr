@@ -68,6 +68,7 @@ pub fn run() {
             sync::google_status,
             sync::google_login,
             sync::google_login_cancel,
+            sync::google_login_paste,
             sync::google_logout,
             sync::sync_set_password,
             sync::sync_push,

@@ -826,7 +826,7 @@ dependencies = [
 
 [[package]]
 name = "dasharr"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "aes-gcm",
  "base64 0.22.1",
@@ -853,7 +853,7 @@ dependencies = [
 
 [[package]]
 name = "dasharr-core"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "base64 0.22.1",
  "log",

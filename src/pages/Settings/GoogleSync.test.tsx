@@ -74,3 +74,20 @@ test("las preferencias de cada dispositivo no se suben", () => {
   expect(p).not.toHaveProperty("downloadColumns");
   expect(p.releaseCountry).toBe("MX");
 });
+
+test("si el navegador no vuelve solo, se puede pegar la dirección", async () => {
+  let finish: (v: string) => void = () => {};
+  const paste = vi.fn(() => finish("yo@gmail.com"));
+  mockBackend({
+    commands: {
+      google_status: () => base,
+      google_login: () => new Promise<string>((r) => (finish = r)),
+      google_login_paste: paste,
+    },
+  });
+  renderApp("/ajustes/sistema");
+  await userEvent.click(await screen.findByRole("button", { name: "Iniciar sesión con Google" }));
+  await userEvent.type(await screen.findByLabelText("Dirección de la página del navegador"), "http://127.0.0.1:1/?state=a&code=b");
+  await userEvent.click(screen.getByRole("button", { name: "Continuar" }));
+  expect(paste).toHaveBeenCalledWith({ url: "http://127.0.0.1:1/?state=a&code=b" });
+});
