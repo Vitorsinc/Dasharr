@@ -1006,6 +1006,10 @@ export const es = {
     login: "Iniciar sesión con Google",
     waiting: "Termina en el navegador que se ha abierto…",
     cancel: "Cancelar",
+    pasteHint:
+      "Si después de aceptar el navegador muestra un error o se queda cargando, copia la dirección de esa página (empieza por http://127.0.0.1) y pégala aquí.",
+    pasteLabel: "Dirección de la página del navegador",
+    pasteSend: "Continuar",
     loginHint: "Dasharr solo puede ver su propia carpeta oculta en tu Drive, no tus archivos.",
     signedInAs: (email: string) => (email ? `Sesión iniciada como ${email}` : "Sesión iniciada con Google"),
     logout: "Cerrar sesión",
@@ -1500,6 +1504,10 @@ export const es = {
   common: {
     retry: "Reintentar",
     cancel: "Cancelar",
+    pasteHint:
+      "Si después de aceptar el navegador muestra un error o se queda cargando, copia la dirección de esa página (empieza por http://127.0.0.1) y pégala aquí.",
+    pasteLabel: "Dirección de la página del navegador",
+    pasteSend: "Continuar",
     confirm: "Confirmar",
     save: "Guardar",
     delete: "Borrar",

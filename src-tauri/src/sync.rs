@@ -278,6 +278,11 @@ pub async fn google_login(app: AppHandle, state: State<'_, AppState>) -> Result<
 }
 
 #[tauri::command]
+pub async fn google_login_paste(state: State<'_, AppState>, url: String) -> Result<(), String> {
+    state.google.paste_login(&url).await
+}
+
+#[tauri::command]
 pub async fn google_login_cancel(state: State<'_, AppState>) -> Result<(), ()> {
     state.google.cancel_login().await;
     Ok(())
