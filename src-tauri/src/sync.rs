@@ -86,6 +86,14 @@ fn canonical(v: &Value) -> Value {
     }
 }
 
+/// Hay algo que merezca la pena guardar: al menos un servicio con dirección. Una instalación recién hecha
+/// no tiene nada y nunca debe tapar la configuración que otro dispositivo ya guardó en la cuenta.
+fn has_config(s: &Snapshot) -> bool {
+    s.services.values().any(|v| {
+        ["localUrl", "externalUrl"].iter().any(|k| v.get(k).and_then(Value::as_str).is_some_and(|u| !u.trim().is_empty()))
+    })
+}
+
 fn fingerprint(s: &Snapshot) -> String {
     let v = canonical(&serde_json::to_value(s).unwrap_or(Value::Null));
     hex(&Sha256::digest(v.to_string().as_bytes()))
@@ -122,6 +130,10 @@ struct Local {
     /// Huella del contenido en ese momento: si no cambia, no hace falta subir nada.
     last_hash: Option<String>,
     last_sync: Option<i64>,
+    /// Ya sincronizado con la copia sin contraseña. Los que venían de las primeras versiones suben lo suyo
+    /// la primera vez en vez de traer lo que hubiera (otro dispositivo pudo sustituir la copia vieja).
+    #[serde(default)]
+    v2: bool,
 }
 
 fn load_local<R: Runtime>(app: &AppHandle<R>) -> Local {
@@ -225,6 +237,8 @@ pub enum PushResult {
     /// Nada ha cambiado desde la última vez.
     Unchanged,
     Uploaded,
+    /// En este dispositivo no hay nada configurado todavía: no se sube (no taparía la de la cuenta).
+    NothingToUpload,
     /// Hay una copia más nueva que la de este dispositivo: hay que traerla (o forzar la subida).
     RemoteNewer { updated_at: Option<i64>, device: Option<String> },
 }
@@ -234,23 +248,32 @@ pub enum PushResult {
 pub async fn sync_push(app: AppHandle, state: State<'_, AppState>, prefs: Value, force: bool) -> Result<PushResult, String> {
     let _busy = state.sync.busy.lock().await;
     let snapshot = build(&app, prefs);
-    let hash = fingerprint(&snapshot);
     let mut local = load_local(&app);
+    // Sin nada configurado aquí no se sube: se queda esperando a la configuración de la cuenta.
+    if !has_config(&snapshot) {
+        if local.last_remote.is_none() {
+            local = Local { last_remote: Some(String::new()), v2: true, ..Default::default() };
+            save_local(&app, &local)?;
+        }
+        return Ok(PushResult::NothingToUpload);
+    }
+    let force = force || (local.last_remote.is_some() && !local.v2);
+    let hash = fingerprint(&snapshot);
     if !force && local.last_hash.as_deref() == Some(hash.as_str()) && local.last_remote.is_some() {
         return Ok(PushResult::Unchanged);
     }
     let remote = state.google.find().await?;
     if let Some(r) = &remote {
         if !force && local.last_remote.as_deref() != Some(r.modified_time.as_str()) {
-            // Una copia de las primeras versiones (con contraseña) no se puede leer: se sustituye.
-            if let Some(env) = unpack(&state.google.download(&r.id).await?)? {
+            // Una copia de las primeras versiones (con contraseña) o una vacía se sustituye.
+            if let Some(env) = unpack(&state.google.download(&r.id).await?)?.filter(|e| has_config(&e.data)) {
                 return Ok(PushResult::RemoteNewer { updated_at: Some(env.updated_at), device: Some(env.device) });
             }
         }
     }
     let body = pack(snapshot)?;
     let file = state.google.upload(remote.as_ref().map(|r| r.id.as_str()), body).await?;
-    local = Local { last_remote: Some(file.modified_time), last_hash: Some(hash), last_sync: Some(now_ms()) };
+    local = Local { last_remote: Some(file.modified_time), last_hash: Some(hash), last_sync: Some(now_ms()), v2: true };
     save_local(&app, &local)?;
     log::info!("Google: configuración subida");
     Ok(PushResult::Uploaded)
@@ -270,15 +293,24 @@ pub enum PullResult {
 #[tauri::command]
 pub async fn sync_pull(app: AppHandle, state: State<'_, AppState>, force: bool) -> Result<PullResult, String> {
     let _busy = state.sync.busy.lock().await;
-    let Some(remote) = state.google.find().await? else { return Ok(PullResult::Empty) };
     let mut local = load_local(&app);
+    let here = build(&app, Value::Null);
+    // Venía de las primeras versiones: primero sube lo suyo (ver `Local::v2`).
+    if !force && local.last_remote.is_some() && !local.v2 && has_config(&here) {
+        return Ok(PullResult::Unchanged);
+    }
+    let Some(remote) = state.google.find().await? else { return Ok(PullResult::Empty) };
     if !force && local.last_remote.as_deref() == Some(remote.modified_time.as_str()) {
         return Ok(PullResult::Unchanged);
     }
     let Some(env) = unpack(&state.google.download(&remote.id).await?)? else { return Ok(PullResult::Empty) };
+    // Una copia sin nada configurado no sustituye lo de aquí (la subió una instalación recién hecha).
+    if !has_config(&env.data) && has_config(&here) {
+        return Ok(PullResult::Empty);
+    }
     let snapshot = env.data;
     apply(&app, &state, &snapshot).await?;
-    local = Local { last_remote: Some(remote.modified_time), last_hash: Some(fingerprint(&snapshot)), last_sync: Some(now_ms()) };
+    local = Local { last_remote: Some(remote.modified_time), last_hash: Some(fingerprint(&snapshot)), last_sync: Some(now_ms()), v2: true };
     save_local(&app, &local)?;
     log::info!("Google: configuración traída (de {})", env.device);
     Ok(PullResult::Applied { prefs: snapshot.prefs, updated_at: env.updated_at, device: env.device })
@@ -316,6 +348,18 @@ mod tests {
         assert!(unpack(old).unwrap().is_none());
         assert!(unpack(br#"{"format":"dasharr-sync","version":9}"#).is_err());
         assert!(unpack(b"hola").is_err());
+    }
+
+    #[test]
+    fn empty_install_has_no_config() {
+        assert!(has_config(&sample()));
+        let mut empty = sample();
+        empty.services = serde_json::Map::new();
+        assert!(!has_config(&empty));
+        empty.services.insert("radarr".into(), serde_json::json!({ "localUrl": " ", "enabled": true }));
+        assert!(!has_config(&empty));
+        empty.services.insert("sonarr".into(), serde_json::json!({ "externalUrl": "https://s.example" }));
+        assert!(has_config(&empty));
     }
 
     #[test]
