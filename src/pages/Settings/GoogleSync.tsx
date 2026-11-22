@@ -157,6 +157,7 @@ export function GoogleSync() {
                   pushed = { status: "unchanged" };
                 }
                 if (pushed.status === "uploaded") toast.success(t.google.uploaded);
+                else if (pushed.status === "nothingToUpload" && pulled.status !== "applied") toast.info(t.google.nothingSaved);
                 else if (pulled.status !== "applied") toast.success(t.google.upToDate);
               })
             }

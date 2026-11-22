@@ -60,17 +60,22 @@ export async function afterPull(qc: QueryClient, res: PullResult, quiet = false)
  * Tras iniciar sesión: si la cuenta ya tiene configuración guardada, se carga en este dispositivo; si no, se
  * guarda la de aquí.
  */
-export async function linkDevice(qc: QueryClient): Promise<"pulled" | "uploaded"> {
+export async function linkDevice(qc: QueryClient): Promise<"pulled" | "uploaded" | "waiting"> {
   const res = await syncPull(true);
-  let out: "pulled" | "uploaded";
+  let out: "pulled" | "uploaded" | "waiting";
   if (res.status === "applied") {
     await afterPull(qc, res, true);
     toast.success(t.google.pulled(res.device, formatDateTime(new Date(res.updatedAt))));
     out = "pulled";
   } else {
-    await syncPush(syncedPrefs(), true);
-    toast.success(t.google.uploaded);
-    out = "uploaded";
+    const pushed = await syncPush(syncedPrefs(), true);
+    if (pushed.status === "nothingToUpload") {
+      toast.info(t.google.nothingSaved);
+      out = "waiting";
+    } else {
+      toast.success(t.google.uploaded);
+      out = "uploaded";
+    }
   }
   await qc.invalidateQueries({ queryKey: googleStatusKey });
   return out;

@@ -1020,6 +1020,7 @@ export const es = {
     neverSynced: "Todavía sin sincronizar",
     syncNow: "Sincronizar ahora",
     uploaded: "Configuración guardada en tu cuenta de Google.",
+    nothingSaved: "Tu cuenta de Google aún no tiene configuración guardada. En cuanto la guardes desde otro dispositivo aparecerá aquí sola.",
     pulled: (device: string, when: string) => `Configuración cargada desde tu cuenta de Google (guardada desde ${device}, ${when}).`,
     upToDate: "Todo al día.",
     welcomeTitle: "¿Usar tu cuenta de Google?",

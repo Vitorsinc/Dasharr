@@ -16,6 +16,8 @@ También se puede lanzar a mano en Actions → Release → «Run workflow» indi
 - Sincronización con Google más sencilla: al abrir Dasharr por primera vez te pregunta si quieres usar tu
   cuenta de Google y, si ya tenías la configuración guardada, la carga. En Android el inicio de sesión se hace
   dentro de la app, sin pasar por el navegador. Ya no hay que elegir ninguna contraseña.
+- Un dispositivo sin nada configurado ya no sube su configuración vacía a la cuenta de Google: espera a la que
+  guarde otro. Y el PC que venía de la copia con contraseña sube lo suyo en vez de traer una copia vacía.
 
 ## [0.7.1] - 2026-11-22
 

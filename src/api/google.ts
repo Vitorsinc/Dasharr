@@ -13,6 +13,7 @@ export interface GoogleStatus {
 export type PushResult =
   | { status: "unchanged" }
   | { status: "uploaded" }
+  | { status: "nothingToUpload" }
   | { status: "remoteNewer"; updatedAt: number | null; device: string | null };
 
 export type PullResult =
