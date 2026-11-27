@@ -4,7 +4,8 @@ import { toast } from "@/lib/toast";
 import { Empty, Segmented, Spinner } from "@/components/ui";
 import { t } from "@/i18n/es";
 import type { TrackerDeal, TrackerDeals } from "@/api/trackers";
-import { grabDeal, type ArrResult } from "@/api/trackerGrab";
+import { grabDeal, planDeal, type ArrResult, type DealChoice, type DealPlan } from "@/api/trackerGrab";
+import { DealAddDialog } from "./DealAddDialog";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCategories } from "@/hooks/useTorrents";
 import { errorMessage } from "@/lib/errors";
@@ -121,19 +122,42 @@ export function Deals({ tracker, loading }: { tracker: TrackerDeals | undefined;
   const all: Row[] = tracker?.status === "ok" ? tracker.torrents.map((d) => ({ ...d, indexerId: tracker.indexerId })) : [];
   const rows = sortRows(all.filter((d) => kind === "all" || (kind === "free" ? d.freeleech > 0 : d.doubleUpload)), sort);
 
+  const [pending, setPending] = useState<{ d: Row; plan: Extract<DealPlan, { status: "new" }> } | null>(null);
+  const [adding, setAdding] = useState(false);
+
+  async function finish(d: Row, plan: DealPlan, choice?: DealChoice) {
+    const arr = await grabDeal(d.indexerId, d, plan, choice, qbCategory || undefined);
+    if (arr.status === "added") void qc.invalidateQueries({ queryKey: [arr.service] });
+    const msg = arrMessage(arr);
+    if (arr.status === "added" || arr.status === "existed") toast.success(msg);
+    else toast.warning(msg);
+  }
+
+  // Si no está en Radarr/Sonarr, primero se elige carpeta y calidad; si ya está (o no se puede añadir), se manda tal cual.
   async function send(d: Row) {
     const key = `${d.indexerId}:${d.id}`;
     setSending(key);
     try {
-      const arr = await grabDeal(d.indexerId, d, qbCategory || undefined);
-      if (arr.status === "added") void qc.invalidateQueries({ queryKey: [arr.service] });
-      const msg = arrMessage(arr);
-      if (arr.status === "added" || arr.status === "existed") toast.success(msg);
-      else toast.warning(msg);
+      const plan = await planDeal(d);
+      if (plan.status === "new") setPending({ d, plan });
+      else await finish(d, plan);
     } catch (err) {
       toast.error(errorMessage(err));
     } finally {
       setSending(null);
+    }
+  }
+
+  async function confirmAdd(choice: DealChoice) {
+    if (!pending) return;
+    setAdding(true);
+    try {
+      await finish(pending.d, pending.plan, choice);
+      setPending(null);
+    } catch (err) {
+      toast.error(errorMessage(err));
+    } finally {
+      setAdding(false);
     }
   }
 
@@ -210,6 +234,13 @@ export function Deals({ tracker, loading }: { tracker: TrackerDeals | undefined;
           )}
         </>
       )}
+      <DealAddDialog
+        plan={pending?.plan ?? null}
+        fallbackPoster={pending?.d.poster}
+        busy={adding}
+        onCancel={() => setPending(null)}
+        onConfirm={(c) => void confirmAdd(c)}
+      />
     </section>
   );
 }

@@ -1336,6 +1336,9 @@ export const es = {
       sentNotFound: (arr: string) => `Enviado a qBittorrent, pero ${arr} no lo encuentra: añádelo a mano`,
       sentNoArr: (arr: string) => `Enviado a qBittorrent (${arr} no está configurado)`,
       sentArrFailed: (arr: string, why: string) => `Enviado a qBittorrent, pero no se pudo añadir a ${arr}: ${why}`,
+      addTitle: (arr: string) => `Añadir a ${arr} y enviar`,
+      addHint: (arr: string) => `No está en ${arr}. Elige dónde guardarlo y con qué calidad; el torrent se manda a qBittorrent al añadirlo.`,
+      addAndSend: "Añadir y enviar",
     },
     openSite: "Abrir la web del tracker",
     status: {
