@@ -146,7 +146,7 @@ export function MovieDetail({ movie, onClose }: { movie: Movie | null; onClose: 
               <button className="btn-outline" onClick={() => setManual(true)}>
                 <User className="h-4 w-4" /> {t.releases.manual}
               </button>
-              <button className="btn-outline" onClick={() => run(() => radarr.setMonitored(movie, !movie.monitored).then(onClose))}>
+              <button className="btn-outline" onClick={() => run(() => radarr.setMonitored(movie, !movie.monitored), movie.monitored ? t.library.unmonitoredLabel : t.library.monitoredLabel)}>
                 <MonitorIcon monitored={movie.monitored} />
                 {movie.monitored ? t.library.monitorOff : t.library.monitorOn}
               </button>
