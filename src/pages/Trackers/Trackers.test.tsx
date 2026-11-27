@@ -123,8 +123,8 @@ test("filtra por tipo, añade la película a Radarr y la manda a qBittorrent con
         }
         if (req.path === "/api/v3/movie") return [];
         if (req.path === "/api/v3/movie/lookup") return [{ title: "Dune", tmdbId: 603, year: 2021 }];
-        if (req.path === "/api/v3/rootfolder") return [{ id: 1, path: "D:/Peliculas", freeSpace: 1 }];
-        if (req.path === "/api/v3/qualityprofile") return [{ id: 4, name: "HD" }];
+        if (req.path === "/api/v3/rootfolder") return [{ id: 1, path: "D:/Peliculas", freeSpace: 1 }, { id: 2, path: "E:/Cine", freeSpace: 1 }];
+        if (req.path === "/api/v3/qualityprofile") return [{ id: 4, name: "HD" }, { id: 5, name: "4K" }];
         if (req.path === "/api/v3/downloadclient")
           return [{ implementation: "QBittorrent", enable: true, fields: [{ name: "movieCategory", value: "radarr" }] }];
         return [];
@@ -138,9 +138,81 @@ test("filtra por tipo, añade la película a Radarr y la manda a qBittorrent con
   expect(within(section).queryByRole("listitem", { name: "Matrix 1999" })).not.toBeInTheDocument();
 
   await userEvent.click(within(section).getByRole("button", { name: "Enviar a qBittorrent: Dune 2021" }));
+  const dialog = await screen.findByRole("dialog", { name: "Añadir a Radarr y enviar" });
+  expect(added).toHaveLength(0);
+  await userEvent.selectOptions(within(dialog).getByRole("combobox", { name: "Carpeta raíz" }), "E:/Cine");
+  await userEvent.selectOptions(within(dialog).getByRole("combobox", { name: "Perfil de calidad" }), "4K");
+  await userEvent.click(within(dialog).getByRole("button", { name: "Añadir y enviar" }));
   expect(await screen.findByText("Enviado a qBittorrent y «Dune» añadido a Radarr")).toBeInTheDocument();
   expect(mock).toHaveBeenCalledWith("unit3d_fetch_torrent", { indexerId: 1, torrentId: 2 });
-  expect(posted).toEqual([expect.objectContaining({ tmdbId: 603, qualityProfileId: 4, rootFolderPath: "D:/Peliculas", monitored: true, addOptions: { searchForMovie: false } })]);
+  expect(posted).toEqual([expect.objectContaining({ tmdbId: 603, qualityProfileId: 5, rootFolderPath: "E:/Cine", monitored: true, addOptions: { searchForMovie: false } })]);
   expect(added).toHaveLength(1);
   expect(added[0].body.value.fields).toContainEqual(["category", "radarr"]);
+});
+
+test("una serie del freeleech deja elegir carpeta, calidad y tipo antes de añadirla a Sonarr", async () => {
+  const posted: unknown[] = [];
+  const added: unknown[] = [];
+  const show = { ...deal(7, "Shogun S01 2160p", 100, false, 20), category: "TV", tmdbId: null, tvdbId: 77 };
+  mockBackend({
+    commands: {
+      unit3d_stats: () => stats,
+      unit3d_deals: () => [{ indexerId: 1, name: "Aither (API)", status: "ok", message: null, torrents: [show] }],
+      unit3d_fetch_torrent: () => ({ type: "file", value: "ZDg6YW5ub3VuY2Ux" }),
+    },
+    api: {
+      qbittorrent: (req) => {
+        if (req.path === "/api/v2/torrents/add") added.push(req);
+        return "Ok.";
+      },
+      sonarr: (req) => {
+        if (req.path === "/api/v3/series" && req.method === "POST") {
+          posted.push(req.body.value);
+          return { ...req.body.value, id: 3 };
+        }
+        if (req.path === "/api/v3/series") return [];
+        if (req.path === "/api/v3/series/lookup") return [{ title: "Shogun", tvdbId: 77, year: 2024, seasons: [] }];
+        if (req.path === "/api/v3/rootfolder") return [{ id: 1, path: "D:/Series" }, { id: 2, path: "D:/Anime" }];
+        if (req.path === "/api/v3/qualityprofile") return [{ id: 1, name: "HD" }, { id: 2, name: "Anime" }];
+        return [];
+      },
+    },
+  });
+  renderApp("/trackers");
+  const section = await screen.findByRole("region", { name: "Freeleech y doble subida" });
+  await userEvent.click(await within(section).findByRole("button", { name: "Enviar a qBittorrent: Shogun S01 2160p" }));
+  const dialog = await screen.findByRole("dialog", { name: "Añadir a Sonarr y enviar" });
+  expect(within(dialog).getByRole("combobox", { name: "Carpeta raíz" })).toHaveValue("D:/Series");
+  await userEvent.selectOptions(within(dialog).getByRole("combobox", { name: "Perfil de calidad" }), "Anime");
+  await userEvent.selectOptions(within(dialog).getByRole("combobox", { name: "Monitorizar" }), "future");
+  await userEvent.click(within(dialog).getByRole("button", { name: "Añadir y enviar" }));
+  expect(await screen.findByText("Enviado a qBittorrent y «Shogun» añadido a Sonarr")).toBeInTheDocument();
+  expect(posted).toEqual([expect.objectContaining({ tvdbId: 77, qualityProfileId: 2, rootFolderPath: "D:/Series", seriesType: "standard", addOptions: expect.objectContaining({ monitor: "future", searchForMissingEpisodes: false }) })]);
+  expect(added).toHaveLength(1);
+});
+
+test("si se cancela el diálogo no se manda nada a qBittorrent", async () => {
+  const added: unknown[] = [];
+  mockBackend({
+    commands: { unit3d_stats: () => stats, unit3d_deals: () => deals },
+    api: {
+      qbittorrent: (req) => {
+        if (req.path === "/api/v2/torrents/add") added.push(req);
+        return "Ok.";
+      },
+      radarr: (req) => {
+        if (req.path === "/api/v3/movie/lookup") return [{ title: "Dune", tmdbId: 603, year: 2021 }];
+        if (req.path === "/api/v3/rootfolder") return [{ id: 1, path: "D:/Peliculas" }];
+        if (req.path === "/api/v3/qualityprofile") return [{ id: 4, name: "HD" }];
+        return [];
+      },
+    },
+  });
+  renderApp("/trackers");
+  const section = await screen.findByRole("region", { name: "Freeleech y doble subida" });
+  await userEvent.click(await within(section).findByRole("button", { name: "Enviar a qBittorrent: Matrix 1999" }));
+  const dialog = await screen.findByRole("dialog", { name: "Añadir a Radarr y enviar" });
+  await userEvent.click(within(dialog).getByRole("button", { name: "Cancelar" }));
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  expect(added).toHaveLength(0);
 });

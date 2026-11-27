@@ -269,7 +269,7 @@ export function SeriesDetail({ series, onClose }: { series: Series | null; onClo
                 <button className="btn-primary" onClick={() => run(() => sonarr.searchSeries(series.id), t.library.searchStarted)}>
                   <Search className="h-4 w-4" /> {t.library.searchNow}
                 </button>
-                <button className="btn-outline" onClick={() => run(() => sonarr.setMonitored(series, !series.monitored).then(onClose))}>
+                <button className="btn-outline" onClick={() => run(() => sonarr.setMonitored(series, !series.monitored), series.monitored ? t.library.unmonitoredLabel : t.library.monitoredLabel)}>
                   <MonitorIcon monitored={series.monitored} />
                   {series.monitored ? t.library.monitorOff : t.library.monitorOn}
                 </button>
