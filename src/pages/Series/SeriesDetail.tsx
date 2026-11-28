@@ -10,7 +10,7 @@ import { FactSection } from "@/components/media/DetailFacts";
 import { ReleaseSearchDialog } from "@/components/media/ReleaseSearchDialog";
 import { SearchChoice } from "@/components/media/SearchChoice";
 import { EpisodeMark } from "@/components/media/EpisodeMark";
-import { MonitorIcon, MonitorToggle } from "@/components/media/MonitorToggle";
+import { MonitorToggle, PosterMonitorToggle, seriesRibbon } from "@/components/media/MonitorToggle";
 
 import { Loading, ProgressBar } from "@/components/ui";
 import { fanartUrl, posterUrl, type ReleaseQuery } from "@/api/arr";
@@ -218,7 +218,14 @@ export function SeriesDetail({ series, onClose }: { series: Series | null; onClo
         <div className="flex flex-col gap-6">
           <div className="flex flex-col gap-5 md:flex-row md:gap-6">
             <aside className="grid shrink-0 grid-cols-[7.5rem_minmax(0,1fr)] items-start gap-4 md:flex md:w-48 md:flex-col md:gap-5">
-              <Poster src={posterUrl("sonarr", series)} title={series.title} className="w-full" />
+              <div className="relative w-full">
+                <Poster src={posterUrl("sonarr", series)} title={series.title} className="w-full" />
+                <PosterMonitorToggle
+                  monitored={series.monitored}
+                  state={seriesRibbon(series)}
+                  onToggle={() => run(() => sonarr.setMonitored(series, !series.monitored), series.monitored ? t.library.unmonitoredLabel : t.library.monitoredLabel)}
+                />
+              </div>
               <FactSection title={t.detail.ratings}>
                 <FaInfo item={seriesItem(series)} list />
                 <ArrRatings ratings={{ tvdb: series.ratings }} list />
@@ -268,10 +275,6 @@ export function SeriesDetail({ series, onClose }: { series: Series | null; onClo
               <div className="mt-auto flex flex-wrap gap-2">
                 <button className="btn-primary" onClick={() => run(() => sonarr.searchSeries(series.id), t.library.searchStarted)}>
                   <Search className="h-4 w-4" /> {t.library.searchNow}
-                </button>
-                <button className="btn-outline" onClick={() => run(() => sonarr.setMonitored(series, !series.monitored).then(onClose))}>
-                  <MonitorIcon monitored={series.monitored} />
-                  {series.monitored ? t.library.monitorOff : t.library.monitorOn}
                 </button>
                 <button
                   className="btn-outline"

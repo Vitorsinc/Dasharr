@@ -41,6 +41,8 @@ export interface Prefs {
   downloadColumns: string[] | null;
   /** Datos de Beszel que no se quieren ver en Inicio (los nuevos salen por defecto). */
   hiddenServerFields: ServerField[];
+  /** Ya se preguntó al abrir si usar la cuenta de Google (es de cada dispositivo). */
+  googlePromptSeen: boolean;
 }
 
 const KEY = "dasharr.prefs";
@@ -60,6 +62,7 @@ const DEFAULTS: Prefs = {
   deleteTorrents: false,
   downloadColumns: null,
   hiddenServerFields: [],
+  googlePromptSeen: false,
 };
 const listeners = new Set<() => void>();
 let cache: Prefs | null = null;

@@ -5,13 +5,7 @@ import { cn } from "@/lib/cn";
 import { t } from "@/i18n/es";
 import type { LibState, Scores } from "./library";
 import { RatingBadges } from "./RatingBadges";
-
-const stateStyle: Record<LibState, { dot: string; label: string }> = {
-  downloaded: { dot: "bg-success", label: t.library.statusDownloaded },
-  missing: { dot: "bg-danger", label: t.library.statusMissing },
-  unmonitored: { dot: "bg-muted", label: t.library.statusUnmonitored },
-  partial: { dot: "bg-warning", label: t.library.statusPartial },
-};
+import { MonitorRibbon, PosterMonitorToggle, ribbonLabel, type RibbonState } from "./MonitorToggle";
 
 export function Poster({ src, title, className }: { src?: string; title: string; className?: string }) {
   const [failed, setFailed] = useState(false);
@@ -38,6 +32,10 @@ export function PosterCard({
   onClick,
   selected,
   watch,
+  monitored,
+  downloading,
+  ribbonState,
+  onToggleMonitor,
 }: {
   title: string;
   subtitle?: string;
@@ -50,20 +48,30 @@ export function PosterCard({
   selected?: boolean;
   /** Lo que has visto tú (según Tracearr): marca de visto o barra de progreso. */
   watch?: MyWatch;
+  /** Si está monitorizada; por defecto se deduce de `state`. */
+  monitored?: boolean;
+  /** Si hay una descarga en curso (cola de Radarr/Sonarr): la cinta sale azul. */
+  downloading?: boolean;
+  /** Color de la cinta más fino que `state` (p. ej. serie a medias); por defecto se deduce de `state`. */
+  ribbonState?: RibbonState;
+  /** Si se pasa, la cinta se puede pulsar para monitorizar o dejar de monitorizar sin abrir la ficha. */
+  onToggleMonitor?: () => void;
 }) {
-  const s = state ? stateStyle[state] : null;
   const selecting = selected !== undefined;
+  const isMonitored = monitored ?? state !== "unmonitored";
+  const ribbon: RibbonState | null = !state
+    ? null
+    : downloading
+      ? "downloading"
+      : (ribbonState ?? (state === "unmonitored" ? "none" : state));
   return (
-    <button onClick={onClick} className="group flex flex-col gap-2 text-left outline-none" aria-label={title} aria-pressed={selected}>
-      <div className="relative transition-transform duration-200 group-hover:-translate-y-0.5 group-focus-visible:ring-2 group-focus-visible:ring-accent rounded-lg">
+    <div className="group relative flex flex-col gap-2">
+      <button onClick={onClick} className="group/card flex flex-col gap-2 text-left outline-none" aria-label={title} aria-pressed={selected}>
+      <div className="relative transition-transform duration-200 group-hover:-translate-y-0.5 group-focus-visible/card:ring-2 group-focus-visible/card:ring-accent rounded-lg">
         <Poster src={poster} title={title} className="shadow-sm group-hover:shadow-lg" />
-        {s && (
-          <span
-            className="absolute right-2 top-2 flex items-center gap-1 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur"
-            title={s.label}
-          >
-            <span className={cn("h-1.5 w-1.5 rounded-full", s.dot)} />
-            {s.label}
+        {ribbon && (!onToggleMonitor || selecting) && (
+          <span className="absolute right-2.5 top-0" title={ribbonLabel[ribbon]}>
+            <MonitorRibbon monitored={isMonitored} state={ribbon} />
           </span>
         )}
         <RatingBadges scores={scores} />
@@ -90,7 +98,17 @@ export function PosterCard({
         </div>
         {subtitle && <div className="truncate text-xs text-muted">{subtitle}</div>}
       </div>
-    </button>
+      </button>
+      {ribbon && onToggleMonitor && !selecting && (
+        <PosterMonitorToggle
+          monitored={isMonitored}
+          state={ribbon}
+          what={title}
+          onToggle={onToggleMonitor}
+          className="transition-transform duration-200 group-hover:-translate-y-0.5"
+        />
+      )}
+    </div>
   );
 }
 
@@ -112,13 +130,15 @@ function WatchMark({ watch }: { watch: MyWatch }) {
   // `dark`: el ámbar de Plex del tema oscuro se lee bien sobre cualquier póster, también con el tema claro.
   if (watch.state === "watched")
     return (
+      // Esquina doblada arriba a la izquierda con un ✓ fino, a juego con la cinta.
       <span
-        className="dark absolute left-2 top-2 grid h-6 w-6 place-items-center rounded-full bg-plex text-[rgb(14_18_24)] shadow-md ring-2 ring-black/30"
+        className="dark absolute left-0 top-0 h-7 w-7 overflow-hidden rounded-tl-lg drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]"
         title={label}
         aria-label={label}
         role="img"
       >
-        <Check className="h-4 w-4" strokeWidth={3} aria-hidden />
+        <span className="absolute inset-0 bg-plex [clip-path:polygon(0_0,100%_0,0_100%)]" />
+        <Check className="absolute left-[3px] top-[3px] h-3 w-3 text-[rgb(14_18_24)]" strokeWidth={3.5} aria-hidden />
       </span>
     );
   return (

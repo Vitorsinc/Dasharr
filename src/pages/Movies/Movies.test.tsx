@@ -339,3 +339,14 @@ test("el orden elegido se conserva al volver a montar la pantalla y al cambiar d
   expect(screen.getByRole("combobox", { name: "Ordenar por" })).toHaveValue("year");
   setPrefs({ sorts: {} });
 });
+
+test("ficha: monitorizar no cierra la ficha", async () => {
+  const calls = backend();
+  renderApp("/peliculas");
+  await userEvent.click(await screen.findByRole("button", { name: "Dune" }));
+  const dialog = await screen.findByRole("dialog", { name: "Dune (2021)" });
+  await userEvent.click(within(dialog).getByRole("button", { name: "Dejar de monitorizar" }));
+  expect(await screen.findByText("No monitorizada")).toBeInTheDocument();
+  expect(calls.find((c) => c.method === "PUT" && c.path === "/api/v3/movie/1")?.body.value).toMatchObject({ monitored: false });
+  expect(screen.getByRole("dialog", { name: "Dune (2021)" })).toBeInTheDocument();
+});

@@ -49,7 +49,7 @@ export default function MoviesPage() {
   const qc = useQueryClient();
   const [tab, setTab] = useState<Tab>("library");
   const movies = useMovies();
-  const queue = useRadarrQueue(tab === "queue");
+  const queue = useRadarrQueue();
   const meta = useRadarrMeta();
   const [wantedKind, setWantedKind] = useState<WantedKind>("missing");
   const wanted = useRadarrWanted(wantedKind, tab === "wanted");
@@ -119,6 +119,7 @@ export default function MoviesPage() {
   );
   const existing = useMemo(() => new Set((movies.data ?? []).map((m) => m.tmdbId)), [movies.data]);
   const selected = movies.data?.find((m) => m.id === selectedId) ?? null;
+  const downloadingIds = useMemo(() => new Set((queue.data ?? []).map((r) => r.movieId)), [queue.data]);
 
   if (movies.configured === false)
     return (
@@ -234,6 +235,11 @@ export default function MoviesPage() {
                   scores={m.scores}
                   watch={m.watch}
                   selected={selecting ? picked.has(m.id) : undefined}
+                  monitored={m.monitored}
+                  downloading={!m.hasFile && downloadingIds.has(m.id)}
+                  onToggleMonitor={() =>
+                    run(() => radarr.editMovies([m.id], { monitored: !m.monitored }), m.monitored ? t.library.unmonitoredLabel : t.library.monitoredLabel)
+                  }
                   onClick={() => (selecting ? togglePick(m.id) : setSelectedId(m.id))}
                 />
               ))}

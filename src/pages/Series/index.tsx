@@ -7,6 +7,7 @@ import { Empty, Loading, Segmented } from "@/components/ui";
 import { AddMediaDialog } from "@/components/media/AddMediaDialog";
 import { LibraryToolbar } from "@/components/media/LibraryToolbar";
 import { PosterCard, PosterGrid } from "@/components/media/PosterCard";
+import { seriesRibbon } from "@/components/media/MonitorToggle";
 import { QueueList } from "@/components/media/QueueList";
 import { usePersistedSort } from "@/hooks/usePersistedSort";
 import {
@@ -56,7 +57,7 @@ export default function SeriesPage({ kind = "series" }: { kind?: SeriesKind }) {
   const qc = useQueryClient();
   const [tab, setTab] = useState<Tab>("library");
   const series = useSeries();
-  const queue = useSonarrQueue(tab === "queue");
+  const queue = useSonarrQueue();
   const meta = useSonarrMeta();
   const [wantedKind, setWantedKind] = useState<WantedKind>("missing");
   const wanted = useSonarrWanted(wantedKind, tab === "wanted");
@@ -131,6 +132,7 @@ export default function SeriesPage({ kind = "series" }: { kind?: SeriesKind }) {
   );
   const existing = useMemo(() => new Set((series.data ?? []).map((s) => s.tvdbId)), [series.data]);
   const selected = series.data?.find((s) => s.id === selectedId) ?? null;
+  const downloadingIds = useMemo(() => new Set((queue.data ?? []).map((r) => r.seriesId)), [queue.data]);
 
   if (series.configured === false)
     return (
@@ -248,6 +250,12 @@ export default function SeriesPage({ kind = "series" }: { kind?: SeriesKind }) {
                   scores={s.scores}
                   watch={s.watch}
                   selected={selecting ? picked.has(s.id) : undefined}
+                  monitored={s.monitored}
+                  downloading={downloadingIds.has(s.id)}
+                  ribbonState={seriesRibbon(s)}
+                  onToggleMonitor={() =>
+                    run(() => sonarr.editSeries([s.id], { monitored: !s.monitored }), s.monitored ? t.library.unmonitoredLabel : t.library.monitoredLabel)
+                  }
                   onClick={() => (selecting ? togglePick(s.id) : setSelectedId(s.id))}
                 />
               ))}
