@@ -12,12 +12,24 @@ También se puede lanzar a mano en Actions → Release → «Run workflow» indi
 
 ## [Sin publicar]
 
+## [0.8.0] - 2026-11-28
+
+### Añadido
+- Freeleech: al añadir una película o serie a Radarr/Sonarr ahora eliges la carpeta y el perfil de calidad.
+- Cinta de monitorización sobre el póster, en la ficha y en los catálogos de Películas, Series y Anime: púlsala
+  para monitorizar o dejar de monitorizar. Su color indica el estado: verde descargada, azul descargando, ámbar
+  incompleta, rojo falta y gris sin archivos. Sin monitorizar se ve recogida hacia arriba.
+
 ### Cambiado
+- La marca de «visto» en los pósters pasa de círculo a una esquina doblada, más discreta.
 - Sincronización con Google más sencilla: al abrir Dasharr por primera vez te pregunta si quieres usar tu
   cuenta de Google y, si ya tenías la configuración guardada, la carga. En Android el inicio de sesión se hace
   dentro de la app, sin pasar por el navegador. Ya no hay que elegir ninguna contraseña.
 - Un dispositivo sin nada configurado ya no sube su configuración vacía a la cuenta de Google: espera a la que
   guarde otro. Y el PC que venía de la copia con contraseña sube lo suyo en vez de traer una copia vacía.
+
+### Corregido
+- Ficha: pulsar Monitorizar ya no cierra la ventana.
 
 ## [0.7.1] - 2026-11-22
 
@@ -25,13 +37,6 @@ También se puede lanzar a mano en Actions → Release → «Run workflow» indi
 - Android: el inicio de sesión con Google (Ajustes → Sistema → Sincronización con Google) se quedaba esperando
   para siempre porque Android congela Dasharr mientras estás en el navegador. Ahora termina solo al volver a
   la app y, si aun así no lo detecta, puedes pegar la dirección `127.0.0.1` que muestra el navegador.
-
-## [0.7.1] - 2026-11-22
-
-### Corregido
-- Sincronización con Google en Android: al volver de la página de Google el inicio de sesión se quedaba sin
-  terminar (Android congela Dasharr mientras estás en el navegador). Ahora termina al volver a la app y, si
-  el navegador muestra un error, basta con pegar su dirección en Dasharr.
 
 ## [0.7.0] - 2026-11-21
 
