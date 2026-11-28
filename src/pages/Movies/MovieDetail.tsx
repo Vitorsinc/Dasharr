@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { FileX, FolderSearch, Library, Pencil, RefreshCw, Search, TextCursorInput, Trash2, User } from "lucide-react";
-import { MonitorIcon } from "@/components/media/MonitorToggle";
+import { PosterMonitorToggle } from "@/components/media/MonitorToggle";
 import { toast } from "@/lib/toast";
 import { ConfirmDialog, Dialog } from "@/components/Dialog";
 import { RenameDialog } from "@/components/media/RenameDialog";
@@ -83,7 +83,14 @@ export function MovieDetail({ movie, onClose }: { movie: Movie | null; onClose: 
       <Dialog open onOpenChange={(o) => !o && onClose()} title={`${movie.title} (${movie.year})`} wide backdrop={fanartUrl("radarr", movie)}>
         <div className="flex flex-col gap-5 md:flex-row md:gap-6">
           <aside className="grid shrink-0 grid-cols-[7.5rem_minmax(0,1fr)] items-start gap-4 md:flex md:w-48 md:flex-col md:gap-5">
-            <Poster src={posterUrl("radarr", movie)} title={movie.title} className="w-full" />
+            <div className="relative w-full">
+              <Poster src={posterUrl("radarr", movie)} title={movie.title} className="w-full" />
+              <PosterMonitorToggle
+                monitored={movie.monitored}
+                state={movie.hasFile ? "downloaded" : movie.monitored ? "missing" : "none"}
+                onToggle={() => run(() => radarr.setMonitored(movie, !movie.monitored), movie.monitored ? t.library.unmonitoredLabel : t.library.monitoredLabel)}
+              />
+            </div>
             <FactSection title={t.detail.ratings}>
               <FaInfo item={movieItem(movie)} list />
               <LbInfo tmdbId={movie.tmdbId} />
@@ -145,10 +152,6 @@ export function MovieDetail({ movie, onClose }: { movie: Movie | null; onClose: 
               </button>
               <button className="btn-outline" onClick={() => setManual(true)}>
                 <User className="h-4 w-4" /> {t.releases.manual}
-              </button>
-              <button className="btn-outline" onClick={() => run(() => radarr.setMonitored(movie, !movie.monitored), movie.monitored ? t.library.unmonitoredLabel : t.library.monitoredLabel)}>
-                <MonitorIcon monitored={movie.monitored} />
-                {movie.monitored ? t.library.monitorOff : t.library.monitorOn}
               </button>
               <button
                 className="btn-outline"
